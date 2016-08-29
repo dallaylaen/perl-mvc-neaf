@@ -24,7 +24,7 @@ MVC::Neaf - Not Even A Framework for very simple web apps.
 
 =cut
 
-our $VERSION = 0.0101;
+our $VERSION = 0.0102;
 
 use MVC::Neaf::Request;
 
@@ -122,14 +122,18 @@ my %known_view = (
 	TT => 'MVC::Neaf::View::TT',
 );
 sub load_view {
-	my ($self, $view) = @_;
+	my ($self, $view, $module) = @_;
 
-	my $class = $known_view{ $view } || $view;
-	eval "require $class"; ## no critic
+	$module ||= $known_view{ $view } || $view;
+	eval "require $module" ## no critic
+		unless ref $module;
 
 	die "Failed to load view $view: $@"
 		if $@;
-	return $class;
+
+	$seen_view{$view} = $module;
+
+	return $module;
 };
 
 =head1 AUTHOR

@@ -13,7 +13,7 @@ These methods are common for ALL Neaf::Request::* classes.
 
 =cut
 
-our $VERSION = 0.01;
+our $VERSION = 0.0101;
 
 =head2 new()
 
@@ -42,7 +42,10 @@ Return param, if it passes regex check, default value (or '') otherwise.
 sub param {
 	my ($self, $name, $regex, $default) = @_;
 
-	return $self->get_params->{ $name };
+	my $value = $self->get_params->{ $name };
+	$default = '' unless defined $default;
+
+	return $value =~ /^$regex$/ ? $value : $default;
 };
 
 =head2 get_params()
