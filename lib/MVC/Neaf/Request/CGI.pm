@@ -3,7 +3,7 @@ package MVC::Neaf::Request::CGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.01;
+our $VERSION = 0.0101;
 use Carp;
 
 use base qw(MVC::Neaf::Request);
@@ -24,7 +24,7 @@ sub new {
 	my ($class, %args) = @_;
 
 	$args{driver} ||= $cgi->new;
-	return \%args, $class;
+	return bless \%args, $class;
 };
 
 =head2 get_params
@@ -60,11 +60,32 @@ sub reply {
 	my ($self, $status, $header, $content) = @_;
 
 	print "Status: $status\n";
-	foreach (keys %$header) {
-		print "$_: $header->{$_}\n";
+	foreach my $name (keys %$header) {
+		my $value = $header->{$name};
+		if (ref $value eq 'ARRAY') {
+			print "$name: $_\n" for @$value;
+		} else {
+			print "$name: $value\n";
+		};
 	};
 	print "\n";
 	print $content;
+};
+
+=head2 do_get_cookies
+
+=cut
+
+sub do_get_cookies {
+	my $self = shift;
+
+	my @cook = $self->{driver}->cookie;
+	my %ret;
+	foreach (@cook) {
+		$ret{$_} = $self->{driver}->cookie( $_ );
+	};
+
+	return \%ret;
 };
 
 1;

@@ -51,7 +51,7 @@ The principals of Neaf are as follows:
 
 =cut
 
-our $VERSION = 0.0103;
+our $VERSION = 0.0104;
 
 use MVC::Neaf::Request;
 
@@ -116,42 +116,67 @@ This is the CORE of this module. Should not be called directly.
 
 my %seen_view;
 sub handle_request {
-	my ($class, $req) = @_;
+	my ($self, $req) = @_;
 
 	my $data = eval {
 		$req->path =~ $route_re || die '404\n';
 		return $route{$1}{code}->($req);
 	};
 
-	if (!$data) {
-		# TODO try to handle error
-		my $err = $@;
-
-		my $status = $err =~ /^(\d\d\d)/ ? $1 : 500;
-		warn "ERROR: $err" unless $1;
-
-		$data = {
-			-status     => $status,
-			-type       => 'text/plain',
-			-view       => 'TT',
-			-template   => \"Error $status",
-		};
-	} else {
+	if ($data) {
 		$data->{-status} ||= 200;
+	} else {
+		$data = _error_to_reply( $@ );
 	};
 
 	my $view = $data->{-view} || 'TT'; # TODO route defaults, global default
 
 	$data->{-type} ||= 'text/html';
-	$view = $seen_view{$view} ||= $class->load_view( $view );
+	$view = $seen_view{$view} ||= $self->load_view( $view );
 
 	my $content = $view->show( $data );
-	my $headers = {
-		'Content-Type' => $data->{-type},
-	};
+	my $headers = $self->make_headers( $data );
+	$headers->{'Set-Cookie'} = $req->format_cookies;
 
 	# This "return" is mostly for PSGI
 	return $req->reply( $data->{-status}, $headers, $content );
+};
+
+sub _error_to_reply {
+	my $err = shift;
+
+	if (ref $err eq 'HASH') {
+		# TODO use own excp class
+		$err->{-status} ||= 500;
+		return $err;
+	} else {
+		my $status = $err =~ /^(\d\d\d)/ ? $1 : 500;
+		warn "ERROR: $err" unless $1;
+
+		return {
+			-status     => $status,
+			-type       => 'text/plain',
+			-view       => 'TT',
+			-template   => \"Error $status",
+		};
+	};
+};
+
+=head2 make_headers( $data )
+
+Extract header data from application reply.
+
+=cut
+
+sub make_headers {
+	my ($self, $data) = @_;
+
+	my %head;
+	$head{'Content-Type'} = $data->{-type} || "text/html";
+	$head{'Location'} = $data->{-location}
+		if $data->{-location};
+
+	return \%head;
 };
 
 =head2 load_view( $view_name )

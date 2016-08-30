@@ -13,8 +13,10 @@ These methods are common for ALL Neaf::Request::* classes.
 
 =cut
 
-our $VERSION = 0.0102;
+our $VERSION = 0.0103;
 use Carp;
+use URI::Escape;
+use POSIX qw(strftime);
 
 =head2 new( %args )
 
@@ -35,6 +37,7 @@ Returns the path part of the uri.
 
 sub path {
 	my $self = shift;
+
 	return $self->{path} ||= do {
 		my $path = $self->get_path;
 		$path = '' unless defined $path;
@@ -112,6 +115,124 @@ sub get_params {
 	croak __PACKAGE__."::get_params() unimplemented in base class";
 };
 
+=head2 get_cookie ( "name" [ => qr/regex/ ] )
+
+Fetch client cookie.
+
+=cut
+
+sub get_cookie {
+    my ($self, $name, $regex) = @_;
+
+    $self->{neaf_cookie_in} ||= $self->do_get_cookies;
+    return unless $self->{neaf_cookie_in}{ $name };
+    my $value = uri_unescape( $self->{neaf_cookie_in}{ $name } );
+    defined $regex and $value !~ /^$regex$/ and $value = undef;
+
+    return $value;
+};
+
+=head2 set_cookie( name => "value", %options )
+
+Set HTTP cookie. %options may include:
+
+=over
+
+=item * regex - regular expression to check outgoing value
+
+=item * ttl - time to live in seconds
+
+=item * expires - unix timestamp when the cookie expires
+(overridden by ttl).
+
+=item * domain
+
+=item * path
+
+=item * httponly - flag
+
+=item * secure - flag
+
+=back
+
+=cut
+
+sub set_cookie {
+    my ($self, $name, $cook, %opt) = @_;
+
+    defined $opt{regex} and $cook !~ /^$opt{regex}$/
+        and croak "set_cookie(): constant value doesn't match regex";
+
+    if (defined $opt{ttl}) {
+        $opt{expires} = time + $opt{ttl};
+    };
+
+    $self->{neaf_cookie_out}{ $name } = [ $cook, $opt{regex}, $opt{domain}, $opt{path}, $opt{expires}, $opt{secure}, $opt{httponly} ];
+    return $self;
+};
+
+=head2 do_get_cookies
+
+Cookie fetching mechanism to be implemented in driver.
+
+=cut
+
+sub do_get_cookies {
+	my $self = shift;
+
+	croak ((ref $self || $self )."->do_get_cookies() unimplemented");
+};
+
+# Set-Cookie: SSID=Ap4P….GTEq; Domain=foo.com; Path=/;
+# Expires=Wed, 13 Jan 2021 22:23:01 GMT; Secure; HttpOnly
+
+=head2 format_cookies
+
+Converts stored cookies into an arrayref of scalars
+ready to be put into Set-Cookie header.
+
+=cut
+
+sub format_cookies {
+    my $self = shift;
+
+    my $cookies = $self->{neaf_cookie_out} || {};
+
+    my @out;
+    foreach my $name (keys %$cookies) {
+        my ($cook, $regex, $domain, $path, $expires, $secure, $httponly)
+            = @{ $cookies->{$name} };
+        next unless defined $cook; # TODO erase cookie if undef?
+
+        $path = "/" unless defined $path;
+        defined $expires and $expires
+             = strftime( "%a, %d %b %Y %H:%M:%S GMT", gmtime($expires));
+        my $bake = join "; ", ("$name=".uri_escape($cook))
+            , defined $domain  ? "Domain=$domain" : ()
+            , "Path=$path"
+            , defined $expires ? "Expires=$expires" : ()
+            , $secure ? "Secure" : ()
+            , $httponly ? "HttpOnly" : ();
+        push @out, $bake;
+    };
+    return \@out;
+};
+
+
+=head2 redirect( $location )
+
+Redirect to a new location, currently by dying.
+
+=cut
+
+sub redirect {
+	my ($self, $location) = @_;
+
+	die {
+		-status => 302,
+		-location => $location,
+	};
+};
 
 =head2 reply( $status, \%headers, $content )
 

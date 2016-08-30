@@ -3,8 +3,9 @@ package MVC::Neaf::Request::PSGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.01;
+our $VERSION = 0.0101;
 use URI::Escape qw(uri_unescape);
+use Plack::Request;
 
 use parent qw(MVC::Neaf::Request);
 
@@ -40,6 +41,19 @@ sub get_params {
 	};
 
 	return \%hash;
+};
+
+=head2 do_get_cookies
+
+Use Plack::Request to fetch cookies.
+
+=cut
+
+sub do_get_cookies {
+	my $self = shift;
+
+	my $req = Plack::Request->new( $self->{env} );
+	return $req->cookies;
 };
 
 =head2 reply

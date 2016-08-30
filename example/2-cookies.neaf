@@ -1,0 +1,62 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use Carp;
+
+use MVC::Neaf;
+$SIG{__WARN__} = \&Carp::cluck;
+
+my $tpl_show = <<"TT";
+<html>
+<head>
+	<title>[% title %]</title>
+</head>
+<body>
+<h1>Hello, [% name %]!</h1>
+</body>
+</html>
+TT
+
+my $tpl_ask = <<"TT";
+<html>
+<head>
+	<title>[% title %]</title>
+</head>
+<body>
+<h1>What's your name?</h1>
+<form method="GET">
+	<input name="name"/><input type="submit" value="&gt;&gt;"/>
+</form>
+</body>
+</html>
+TT
+
+MVC::Neaf->route("/" => sub {
+	my $req = shift;
+
+	my $name = $req->param( name => qr/[-\w ]+/ );
+	if ($name) {
+		$req->set_cookie( name => $name );
+		$req->redirect( "/" );
+	} else {
+		$name = $req->get_cookie( name => qr/[-\w ]+/ );
+		if ($name) {
+			return {
+				-view => 'TT',
+				-template => \$tpl_show,
+				title => 'Hello',
+				name => $name,
+			};
+		} else {
+			return {
+				-view => 'TT',
+				-template => \$tpl_ask,
+				title => 'What\'s your name?',
+			};
+		};
+	};
+});
+
+MVC::Neaf->run;
+
