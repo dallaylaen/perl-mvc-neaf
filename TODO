@@ -1,0 +1,24 @@
+SINCE VERSION | TBD VERSION | COMMENT
+
+-- next --
+0.01	0.02	API uploads
+0.01	0.02	API referer
+0.01	0.02	API serve raw content (-type ... -content ... no view)
+0.01	1.00	BUG Add status table (I'm a teapot)
+0.01	1.00	GET/POST handling (at least)
+
+-- backlog --
+
+0.01	1.00	TST Unit tests for what can be tested
+0.01	1.00	API pre-route hook
+0.01	1.00	DRI Apache2 integration
+0.01	1.00	DEV REPL - MVC::Neaf::Cli? with term session etc
+0.01	1.00	MOD Session - cookie-based + BE callbacks - N::Session + N::Session::Store
+0.01	1.00	API Route-based defaults, global defaults
+0.01	1.00	API Multiparam form cleaner (sep. module?)
+0.01	2.00	REF Allow multiple Neaf instances
+0.01	1.00	REF Own exception class for signalling
+
+-- think --
+0.01	2.00	?? API lang() - simplified multilingual iface
+0.01	2.00	MOD Seamless caching
