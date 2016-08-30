@@ -22,11 +22,11 @@ MVC::Neaf::View::TT - Template toolkit-based view module for Neaf.
 
 =cut
 
-our $VERSION = 0.01;
+our $VERSION = 0.0101;
 
 use Template;
 
-=head2 show($data)
+=head2 show( \%data )
 
 Returns processed data.
 

@@ -5,7 +5,7 @@ use warnings;
 
 =head1 NAME
 
-MVC::Neaf::Request - CGI-based request class for Neaf.
+MVC::Neaf::Request - Base request class for Neaf.
 
 =head1 METHODS
 
@@ -13,14 +13,18 @@ These methods are common for ALL Neaf::Request::* classes.
 
 =cut
 
-our $VERSION = 0.0101;
+our $VERSION = 0.0102;
+use Carp;
 
-=head2 new()
+=head2 new( %args )
+
+For now, just swallows whatever given to it.
 
 =cut
 
 sub new {
-	return bless {}, shift;
+	my ($class, %args) = @_;
+	return bless \%args, $class;
 };
 
 =head2 path()
@@ -30,7 +34,41 @@ Returns the path part of the uri.
 =cut
 
 sub path {
-	return '/';
+	my $self = shift;
+	return $self->{path} ||= do {
+		my $path = $self->get_path;
+		$path = '' unless defined $path;
+		$path =~ s#^/*#/#;
+		$self->{original_path} = $path;
+		$path;
+	};
+};
+
+=head2 set_path
+
+Set new path which will be returned onward.
+Undef value resets the path to whatever returned by the underlying driver.
+
+=cut
+
+sub set_path {
+	my ($self, $path) = @_;
+
+	$path = $self->get_path
+		unless defined $path;
+	$path =~ s#^/*#/#;
+
+	$self->{path} = $path;
+};
+
+=head2 get_path
+
+Stub.
+
+=cut
+
+sub get_path {
+	croak __PACKAGE__."::get_path() unimplemented";
 };
 
 =head2 param($name, [$regex, $default])
@@ -42,37 +80,38 @@ Return param, if it passes regex check, default value (or '') otherwise.
 sub param {
 	my ($self, $name, $regex, $default) = @_;
 
-	my $value = $self->get_params->{ $name };
+	my $value = $self->all_params->{ $name };
 	$default = '' unless defined $default;
 
-	return $value =~ /^$regex$/ ? $value : $default;
+	return (defined $value and $value =~ /^$regex$/)
+		? $value
+		: $default;
+};
+
+=head2 all_params()
+
+Get all params as one hashref via cache.
+Loading is performed by get_params() method.
+
+=cut
+
+sub all_params {
+	my $self = shift;
+
+	return $self->{all_params} ||= $self->get_params;
 };
 
 =head2 get_params()
 
-Get all params as one hashref. Caching.
 
 =cut
 
 sub get_params {
 	my $self = shift;
 
-	return $self->{params} ||= do {
-		my %hash;
-		foreach (@ARGV) {
-			m/^(\w+)=(.*)$/ or next;
-			$hash{$1} = $2;
-		};
-		\%hash;
-	};
+	croak __PACKAGE__."::get_params() unimplemented in base class";
 };
 
-
-my %status_line = (
-	200 => 'OK',
-	404 => 'Not Found',
-	500 => 'Internal Server Error',
-);
 
 =head2 reply( $status, \%headers, $content )
 
@@ -83,14 +122,7 @@ Return data to requestor. Not to be used directly.
 sub reply {
 	my ($self, $status, $header, $content) = @_;
 
-	my $line = $status_line{$status} || 'Teapot';
-
-	print "HTTP/1.1 $status $line\n";
-	foreach (keys %$header) {
-		print "$_: $header->{$_}\n";
-	};
-	print "\n";
-	print $content;
+	croak __PACKAGE__."::reply() unimplemented in base class";
 };
 
 1;

@@ -8,8 +8,35 @@ use warnings;
 
 MVC::Neaf - Not Even A Framework for very simple web apps.
 
-=cut
+=head1 OVERVIEW
 
+Neaf stands for Not Even An (MVC) Framework.
+
+It is made for lazy people without an IDE.
+
+The Model is assumed to be just a regular Perl module,
+no restrictions are put on it.
+
+The Controller is reduced to just one function which receives a Request object
+and returns a \\%hashref with a mix
+of actual data and minus-prefixed control parameters.
+
+The View is expected to have one method, C<show>, receiving such hash
+and returning scalar of rendered context.
+
+The principals of Neaf are as follows:
+
+=over
+
+=item * Start out simple, then scale up.
+
+=item * Already on Perl, needn't more magic.
+
+=item * Everything can be configured, nothing needs to be.
+
+=item * It's not software unless you can run it from command line.
+
+=back
 
 =head1 SYNOPSIS
 
@@ -24,7 +51,7 @@ MVC::Neaf - Not Even A Framework for very simple web apps.
 
 =cut
 
-our $VERSION = 0.0102;
+our $VERSION = 0.0103;
 
 use MVC::Neaf::Request;
 
@@ -53,11 +80,23 @@ Returns a coderef under PSGI.
 
 sub run {
 	my $class = shift;
-	# TODO if under psgi/apache
+	# TODO Detect psgi/apache
 
 	$route_re ||= $class->_make_route_re( \%route );
-	my $req = MVC::Neaf::Request->new;
-	$class->handle_request( $req );
+
+	if (caller eq 'main') {
+		require MVC::Neaf::Request::CGI;
+		my $req = MVC::Neaf::Request::CGI->new;
+		$class->handle_request( $req );
+	} else {
+		# PSGI
+		require MVC::Neaf::Request::PSGI;
+		return sub {
+			my $env = shift;
+			my $req = MVC::Neaf::Request::PSGI->new( env => $env );
+			return $class->handle_request( $req );
+		};
+	};
 };
 
 sub _make_route_re {
@@ -88,7 +127,9 @@ sub handle_request {
 		# TODO try to handle error
 		my $err = $@;
 
-		my $status = $err =~ /^(\d\d\d)/ || 500;
+		my $status = $err =~ /^(\d\d\d)/ ? $1 : 500;
+		warn "ERROR: $err" unless $1;
+
 		$data = {
 			-status     => $status,
 			-type       => 'text/plain',
@@ -109,7 +150,8 @@ sub handle_request {
 		'Content-Type' => $data->{-type},
 	};
 
-	$req->reply( $data->{-status}, $headers, $content )
+	# This "return" is mostly for PSGI
+	return $req->reply( $data->{-status}, $headers, $content );
 };
 
 =head2 load_view( $view_name )
@@ -120,6 +162,7 @@ Load a view module by name.
 
 my %known_view = (
 	TT => 'MVC::Neaf::View::TT',
+	JS => 'MVC::Neaf::View::JS',
 );
 sub load_view {
 	my ($self, $view, $module) = @_;
