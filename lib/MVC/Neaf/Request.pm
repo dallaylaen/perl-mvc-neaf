@@ -13,7 +13,7 @@ These methods are common for ALL Neaf::Request::* classes.
 
 =cut
 
-our $VERSION = 0.0103;
+our $VERSION = 0.0104;
 use Carp;
 use URI::Escape;
 use POSIX qw(strftime);
@@ -27,6 +27,15 @@ For now, just swallows whatever given to it.
 sub new {
 	my ($class, %args) = @_;
 	return bless \%args, $class;
+};
+
+=head2 method()
+
+=cut
+
+sub method {
+	my $self = shift;
+	return $self->{method} ||= $self->do_get_method;
 };
 
 =head2 path()
@@ -64,16 +73,6 @@ sub set_path {
 	$self->{path} = $path;
 };
 
-=head2 get_path
-
-Stub.
-
-=cut
-
-sub get_path {
-	croak __PACKAGE__."::get_path() unimplemented";
-};
-
 =head2 param($name, [$regex, $default])
 
 Return param, if it passes regex check, default value (or '') otherwise.
@@ -102,17 +101,6 @@ sub all_params {
 	my $self = shift;
 
 	return $self->{all_params} ||= $self->get_params;
-};
-
-=head2 get_params()
-
-
-=cut
-
-sub get_params {
-	my $self = shift;
-
-	croak __PACKAGE__."::get_params() unimplemented in base class";
 };
 
 =head2 get_cookie ( "name" [ => qr/regex/ ] )
@@ -171,18 +159,6 @@ sub set_cookie {
     return $self;
 };
 
-=head2 do_get_cookies
-
-Cookie fetching mechanism to be implemented in driver.
-
-=cut
-
-sub do_get_cookies {
-	my $self = shift;
-
-	croak ((ref $self || $self )."->do_get_cookies() unimplemented");
-};
-
 # Set-Cookie: SSID=Ap4P….GTEq; Domain=foo.com; Path=/;
 # Expires=Wed, 13 Jan 2021 22:23:01 GMT; Secure; HttpOnly
 
@@ -234,16 +210,62 @@ sub redirect {
 	};
 };
 
-=head2 reply( $status, \%headers, $content )
+=head2 referer
 
-Return data to requestor. Not to be used directly.
+Get/set referer.
+
+B<NOTE> Avoid using referer for anything serious - too easy to forge.
 
 =cut
 
-sub reply {
-	my ($self, $status, $header, $content) = @_;
+sub referer {
+	my $self = shift;
+	if (@_) {
+		$self->{referer} = shift
+	} else {
+		$self->{referer} = $self->go_get_referer
+			unless exists $self->{referer};
+		return $self->{referer};
+	};
+};
 
-	croak __PACKAGE__."::reply() unimplemented in base class";
+=head1 DRIVER METHODS
+
+The following methods MUST be implemented in every Request subclass
+to create a working Neaf backend.
+
+They shall not generally be called directly inside the app.
+
+=over
+
+=item * do_get_method()
+
+=item * get_path()
+
+=item * get_params()
+
+=item * do_get_cookies()
+
+=item * do_get_referer() - unlike others, this won't die if unimplemented
+
+=item * reply( $status, \%headers, $content )
+
+=back
+
+=cut
+
+foreach (qw(do_get_method get_params do_get_cookies get_path reply)) {
+	my $method = $_;
+	my $code = sub {
+		my $self = shift;
+		croak ((ref $self || $self)."->$method() unimplemented!");
+	};
+	no strict 'refs'; ## no critic
+	*$method = $code;
+};
+
+sub do_get_referer {
+	return '';
 };
 
 1;
