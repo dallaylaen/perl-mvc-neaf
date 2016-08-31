@@ -11,3 +11,4 @@ cover_db
 pod2htm*.tmp
 MVC-Neaf-*
 .*.swp
+/nocommit-apache
