@@ -7,54 +7,42 @@ use Carp;
 use MVC::Neaf;
 $SIG{__WARN__} = \&Carp::cluck;
 
-my $tpl_show = <<"TT";
+my $tpl = <<"TT";
 <html>
 <head>
 	<title>[% title %]</title>
 </head>
 <body>
-<h1>Hello, [% name %]!</h1>
-</body>
-</html>
-TT
-
-my $tpl_ask = <<"TT";
-<html>
-<head>
-	<title>[% title %]</title>
-</head>
-<body>
-<h1>What's your name?</h1>
-<form method="GET">
-	<input name="name"/><input type="submit" value="&gt;&gt;"/>
+<h1>[% IF name %]Hello, [% name %]![% ELSE %]What's your name?[% END %]</h1>
+<form method="POST" action="/change">
+	Change name: <input name="name"/><input type="submit" value="&gt;&gt;"/>
 </form>
 </body>
 </html>
 TT
 
+MVC::Neaf->route("/change" => sub {
+	my $req = shift;
+
+	die 403 unless $req->method eq 'POST';
+
+	my $name = $req->param( name => qr/[-\w ]+/, '' );
+	if (length $name) {
+        $req->set_cookie( name => $name );
+	};
+
+	$req->redirect( "/" );
+});
+
 MVC::Neaf->route("/" => sub {
 	my $req = shift;
 
-	my $name = $req->param( name => qr/[-\w ]+/ );
-	if ($name) {
-		$req->set_cookie( name => $name );
-		$req->redirect( "/" );
-	} else {
-		$name = $req->get_cookie( name => qr/[-\w ]+/ );
-		if ($name) {
-			return {
-				-view => 'TT',
-				-template => \$tpl_show,
-				title => 'Hello',
-				name => $name,
-			};
-		} else {
-			return {
-				-view => 'TT',
-				-template => \$tpl_ask,
-				title => 'What\'s your name?',
-			};
-		};
+	my $name = $req->get_cookie( name => qr/[-\w ]+/ );
+	return {
+		-view => 'TT',
+		-template => \$tpl,
+		title => 'Hello',
+		name => $name,
 	};
 });
 

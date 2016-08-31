@@ -11,7 +11,7 @@ MVC::Neaf::Request::PSGI - Not Even A Framework: PSGI driver.
 
 =cut
 
-our $VERSION = 0.0102;
+our $VERSION = 0.0103;
 use URI::Escape qw(uri_unescape);
 use Plack::Request;
 
@@ -28,6 +28,17 @@ sub new {
 	my $self = $class->SUPER::new( @_ );
 	$self->{driver} ||= Plack::Request->new( $self->{env} || {} );
 	return $self;
+};
+
+=head2 do_get_method()
+
+Return GET/POST.
+
+=cut
+
+sub do_get_method {
+	my $self = shift;
+	return $self->{driver}->method;
 };
 
 =head2 get_path()
