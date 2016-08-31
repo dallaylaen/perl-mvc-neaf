@@ -13,9 +13,20 @@ my %message = (
 my $tpl = <<"TT";
 <h1>[% message %]</h1>
 [% FOREACH lang IN menu %]
-<a href="/cgi/05-lang.cgi?lang=[% lang %]">[% lang %]</a>
+<a href="/[% lang %]/cgi/05-lang.cgi">[% lang %]</a>
 [% END %]
 TT
+
+MVC::Neaf->pre_route( sub {
+	my $req = shift;
+
+	my $path = $req->path;
+
+	if ($path =~ s#^/([a-z][a-z])/#/#) {
+		$req->set_param( lang => $1 );
+		$req->set_path($path);
+	};
+});
 
 MVC::Neaf->route("/" => sub {
 	my $req = shift;

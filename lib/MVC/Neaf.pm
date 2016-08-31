@@ -51,7 +51,8 @@ The principals of Neaf are as follows:
 
 =cut
 
-our $VERSION = 0.0203;
+our $VERSION = 0.0204;
+use Scalar::Util qw(blessed);
 
 use MVC::Neaf::Request;
 
@@ -68,6 +69,7 @@ Creates a new route in the application.
 
 =cut
 
+my $pre_route;
 my %route;
 my $route_re;
 sub route {
@@ -119,11 +121,30 @@ sub _make_route_re {
 	return qr{^($re)(?:[?/]|$)};
 };
 
+=head2 pre_route( sub { ... } )
+
+Mangle request before serving it.
+E.g. canonize uri or read session cookie.
+
+If the sub returns a MVC::Neaf::Request object in scalar context,
+it is considered to replace the original one.
+It looks like it's hard to return an unrelated Request by chance,
+but beware!
+
+=cut
+
+sub pre_route {
+	my ($self, $code) = @_;
+
+	$pre_route = $code;
+};
+
 # The CORE
 
 =head2 handle_request( MVC::Neaf::request->new )
 
-This is the CORE of this module. Should not be called directly.
+This is the CORE of this module.
+Should not be called directly - use run() instead.
 
 =cut
 
@@ -132,6 +153,14 @@ sub handle_request {
 	my ($self, $req) = @_;
 
 	my $data = eval {
+		# First, try running the pre-routing callback.
+		if ($pre_route) {
+			my $new_req = $pre_route->( $req );
+			blessed $new_req and $new_req->isa("MVC::Neaf::Request")
+				and $req = $new_req;
+		};
+
+		# Run the controller!
 		$req->path =~ $route_re || die '404\n';
 		return $route{$1}{code}->($req);
 	};
@@ -151,6 +180,7 @@ sub handle_request {
             ? 'text/plain' : 'application/octet-stream';
     } else {
 		# TODO route defaults, global default
+		# TODO eval template errors
 		my $view = $force_view || $data->{-view} || 'TT';
 		$view = $seen_view{$view} ||= $self->load_view( $view );
         ($content, my $type) = $view->show( $data );

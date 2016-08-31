@@ -7,13 +7,17 @@ use warnings;
 
 MVC::Neaf::Request - Base request class for Neaf.
 
+=head1 OVERVIEW
+
+This is what your application is going to get as the only input.
+
 =head1 METHODS
 
 These methods are common for ALL Neaf::Request::* classes.
 
 =cut
 
-our $VERSION = 0.0202;
+our $VERSION = 0.0203;
 use Carp;
 use URI::Escape;
 use POSIX qw(strftime);
@@ -92,8 +96,8 @@ sub param {
 	# Some write-through caching
 	my $value = (exists $self->{cached_params}{ $name })
 		? $self->{cached_params}{ $name }
-		: $self->{cached_params}{ $name }
-			= decode_utf8( $self->all_params->{ $name } );
+		: ( $self->{cached_params}{ $name }
+			= decode_utf8( $self->all_params->{ $name } ) );
 
 	return (defined $value and $value =~ /^$regex$/)
 		? $value
