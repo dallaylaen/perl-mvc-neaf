@@ -13,7 +13,7 @@ These methods are common for ALL Neaf::Request::* classes.
 
 =cut
 
-our $VERSION = 0.0201;
+our $VERSION = 0.0202;
 use Carp;
 use URI::Escape;
 use POSIX qw(strftime);
@@ -98,6 +98,19 @@ sub param {
 	return (defined $value and $value =~ /^$regex$/)
 		? $value
 		: $default;
+};
+
+=head2 set_param( name => $value )
+
+Override form parameter. Returns request object.
+
+=cut
+
+sub set_param {
+	my ($self, $name, $value) = @_;
+
+	$self->{cached_params}{$name} = $value;
+	return $self;
 };
 
 =head2 all_params()

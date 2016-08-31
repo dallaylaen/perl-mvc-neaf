@@ -8,6 +8,8 @@ SINCE VERSION | TBD VERSION | COMMENT
 
 -- backlog --
 
+0.02	1.00	Handle template errors
+0.02	1.00	Fancy Error templates - dynamic + fallback
 0.01    1.00    Served stats
 0.01	1.00	TST Unit tests for what can be tested
 0.01	1.00	DEV REPL - MVC::Neaf::Cli? with term session etc

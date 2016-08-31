@@ -51,9 +51,16 @@ The principals of Neaf are as follows:
 
 =cut
 
-our $VERSION = 0.0202;
+our $VERSION = 0.0203;
 
 use MVC::Neaf::Request;
+
+our $force_view;
+sub import {
+	my ($class, %args) = @_;
+
+	$args{view} and $force_view = $args{view};
+};
 
 =head2 route( path => CODEREF, %options )
 
@@ -73,6 +80,7 @@ sub route {
 
 	$route_re = undef;
 	$route{ $path }{code} = $sub;
+	return $class;
 };
 
 =head2 run()
@@ -142,7 +150,8 @@ sub handle_request {
         $data->{-type} ||= $content =~ /^.{0,512}[^\s\x20-\x7F]/
             ? 'text/plain' : 'application/octet-stream';
     } else {
-		my $view = $data->{-view} || 'TT'; # TODO route defaults, global default
+		# TODO route defaults, global default
+		my $view = $force_view || $data->{-view} || 'TT';
 		$view = $seen_view{$view} ||= $self->load_view( $view );
         ($content, my $type) = $view->show( $data );
         $data->{-type} ||= $type || 'text/html';
