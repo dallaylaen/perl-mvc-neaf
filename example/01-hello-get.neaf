@@ -17,13 +17,12 @@ MVC::Neaf->route( "/" => sub {
 	my $neaf = shift;
 
 	my $name = $neaf->param( name => qr/\w+/, 'Stranger' );
-	my $jsonp = $neaf->param( jsonp => qr/\w+/ );
+	my $jsonp = $neaf->param( jsonp => qr/.+/ );
 
 	return {
 		name => $name,
 		-template => \$tpl,
 		-view => $jsonp ? 'JS' : 'TT',
-		-type => 'text/html',
 		-callback => $jsonp,
 	};
 });

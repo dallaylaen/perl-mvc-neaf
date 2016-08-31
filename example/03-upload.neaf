@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use Encode;
 use MVC::Neaf;
 
 my $tpl = <<"TT";
@@ -28,6 +29,7 @@ MVC::Neaf->route("/" => sub {
 		my $fd = $up->handle;
 		my %count;
 		while (<$fd>) {
+			$_ = decode_utf8($_);
 			$count{$_}++ for /(\w\w\w+)/g;
 		};
 
