@@ -5,6 +5,14 @@ use warnings;
 
 use MVC::Neaf;
 
+my $tpl = <<"TT";
+<h1>Hello, [% name %]!</h1>
+<form method="GET">
+	<input name="name">
+	<input type="submit" value="&gt;&gt;">
+</form>
+TT
+
 MVC::Neaf->route( "/" => sub {
 	my $neaf = shift;
 
@@ -13,9 +21,9 @@ MVC::Neaf->route( "/" => sub {
 
 	return {
 		name => $name,
-		-template => \"Hello, [% name %]!\n",
+		-template => \$tpl,
 		-view => $jsonp ? 'JS' : 'TT',
-		-type => 'text/plain',
+		-type => 'text/html',
 		-callback => $jsonp,
 	};
 });
