@@ -3,7 +3,7 @@ package MVC::Neaf::Request::CGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.0101;
+our $VERSION = 0.0102;
 use Carp;
 
 use base qw(MVC::Neaf::Request);
@@ -25,6 +25,17 @@ sub new {
 
 	$args{driver} ||= $cgi->new;
 	return bless \%args, $class;
+};
+
+=head2 do_get_method()
+
+Return GET/POST.
+
+=cut
+
+sub do_get_method {
+	my $self = shift;
+	return $self->{driver}->method;
 };
 
 =head2 get_params
@@ -52,6 +63,33 @@ sub get_path {
 	return $self->{driver}->url(-absolute => 1);
 };
 
+=head2 do_get_cookies
+
+=cut
+
+sub do_get_cookies {
+	my $self = shift;
+
+	my @cook = $self->{driver}->cookie;
+	my %ret;
+	foreach (@cook) {
+		$ret{$_} = $self->{driver}->cookie( $_ );
+	};
+
+	return \%ret;
+};
+
+=head2 do_get_referer()
+
+=cut
+
+sub do_get_referer {
+	my $self = shift;
+
+	return $self->{driver}->referer;
+};
+
+
 =head2 reply
 
 =cut
@@ -70,22 +108,6 @@ sub reply {
 	};
 	print "\n";
 	print $content;
-};
-
-=head2 do_get_cookies
-
-=cut
-
-sub do_get_cookies {
-	my $self = shift;
-
-	my @cook = $self->{driver}->cookie;
-	my %ret;
-	foreach (@cook) {
-		$ret{$_} = $self->{driver}->cookie( $_ );
-	};
-
-	return \%ret;
 };
 
 1;

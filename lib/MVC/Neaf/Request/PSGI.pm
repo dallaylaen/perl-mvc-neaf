@@ -11,7 +11,7 @@ MVC::Neaf::Request::PSGI - Not Even A Framework: PSGI driver.
 
 =cut
 
-our $VERSION = 0.0103;
+our $VERSION = 0.0104;
 use URI::Escape qw(uri_unescape);
 use Plack::Request;
 
@@ -87,6 +87,16 @@ sub do_get_cookies {
 	my $self = shift;
 
 	return $self->{driver}->cookies;
+};
+
+=head2 do_get_referer()
+
+=cut
+
+sub do_get_referer {
+	my $self = shift;
+
+	return $self->{driver}->referer;
 };
 
 =head2 reply( $status_line, \%headers, $content )
