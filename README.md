@@ -1,28 +1,28 @@
 # NAME
 
-MVC::Neaf stands for Not Even A Framework
+MVC::Neaf stands for Not Even A Framework.
 
 # OVERVIEW
 
 Neaf offers very simple rules to build very simple applications.
 For the lazy, by the lazy.
 
-*Model* is assumed to be a regular Perl module, and is totally out of scope.
+**Model** is assumed to be a regular Perl module, and is totally out of scope.
 
-*View* is assumed to have just one function, `show()`,
+**View** is assumed to have just one method, `show()`,
 which receives a hashref and returns rendered context as scalar.
 
-*Controller* is reduced to just one function, which gets a request object
+**Controller** is reduced to just one function, which gets a request object
 and is expected to return a hashref.
 
 A pre-defined set of dash-prefixed control keys allows to control the
 framework's behaviour while all other keys are just sent to the view.
 
-*Request* object will depend on the underlying web-server. 
+**Request** object will depend on the underlying web-server.
 The same app, verbatim, should be able to run as PSGI app, CGI script, or
 Apache handler.
 
-# PRINCIPALS
+# FOUNDATIONS
 
 * Start out simple, then scale up.
 
@@ -66,7 +66,7 @@ Apache handler.
 
 Lots of them. Still in alpha stage.
 
-Patches and proposals will be welcome.
+Patches and proposals are welcome.
 
 # ACKNOWLEDGEMENTS
 
