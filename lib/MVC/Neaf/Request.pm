@@ -13,7 +13,7 @@ These methods are common for ALL Neaf::Request::* classes.
 
 =cut
 
-our $VERSION = 0.0106;
+our $VERSION = 0.0107;
 use Carp;
 use URI::Escape;
 use POSIX qw(strftime);
@@ -86,6 +86,8 @@ sub param {
 
 	my $value = $self->all_params->{ $name };
 	$default = '' unless defined $default;
+	croak( (ref $self)."->param REQUIRES regex for data")
+		unless defined $regex;
 
 	return (defined $value and $value =~ /^$regex$/)
 		? $value

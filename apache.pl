@@ -14,6 +14,22 @@ use warnings;
 use FindBin qw($Bin);
 use Template;
 
+# Some config here
+# /forms/ is just the same, but does not spoil our shiny index
+my %cgi = (qw(
+	01-get 01-hello-get.neaf
+	02-post 02-cookie-post-redirect.neaf
+	forms/02-post 02-cookie-post-redirect.neaf
+	03-upload 03-upload.neaf
+	04-image 04-raw-content.neaf
+	forms/04-img 04-raw-content.neaf
+));
+my $dir = "$Bin/nocommit-apache";
+my $conf = "$dir/httpd.conf";
+my $httpd = "/usr/sbin/apache2"; # TODO hardcode, autodetect!
+my $port = 8000;
+
+# Here we go...
 my $action = shift || '';
 if ($action !~ /^(start|stop|make)$/) {
 	print "Usage: $0 start|stop|make";
@@ -57,12 +73,6 @@ Alias /cgi [% dir %]/cgi
 
 TT
 
-my $dir = "$Bin/nocommit-apache";
-my $conf = "$dir/httpd.conf";
-my $httpd = "/usr/sbin/apache2"; # TODO hardcode, autodetect!
-chomp $httpd;
-my $port = 8000;
-
 # Stop apache
 system $httpd, -f => $conf, -k => "stop"
 	if -f $conf and -x $httpd;
@@ -74,14 +84,6 @@ foreach (qw(/ cgi html forms)) {
 };
 
 # Create links to examples
-# /forms/ is just the same, but does not spoil our shiny index
-my %cgi = (qw(
-	01-get 01-hello-get.neaf
-	02-post 02-cookie-post-redirect.neaf
-	forms/02-post 02-cookie-post-redirect.neaf
-	03-upload 03-upload.neaf
-));
-
 foreach (keys %cgi) {
 	my $link = /^forms\// ? "$dir/$_.cgi" : "$dir/cgi/$_.cgi";
 	my $file = "$Bin/example/$cgi{$_}";

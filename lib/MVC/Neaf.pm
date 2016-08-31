@@ -51,7 +51,7 @@ The principals of Neaf are as follows:
 
 =cut
 
-our $VERSION = 0.0105;
+our $VERSION = 0.0106;
 
 use MVC::Neaf::Request;
 
@@ -134,12 +134,21 @@ sub handle_request {
 		$data = _error_to_reply( $@ );
 	};
 
-	my $view = $data->{-view} || 'TT'; # TODO route defaults, global default
+    # Render content if needed. This may alter type, so
+    # produce headers later.
+    my $content;
+    if (defined $data->{-content}) {
+        $content = $data->{-content};
+        $data->{-type} ||= $content =~ /^.{0,512}[^\s\x20-\x7F]/
+            ? 'text/plain' : 'application/octet-stream';
+    } else {
+		my $view = $data->{-view} || 'TT'; # TODO route defaults, global default
+		$view = $seen_view{$view} ||= $self->load_view( $view );
+        ($content, my $type) = $view->show( $data );
+        $data->{-type} ||= $type || 'text/html';
+    };
 
-	$data->{-type} ||= 'text/html';
-	$view = $seen_view{$view} ||= $self->load_view( $view );
-
-	my $content = $view->show( $data );
+    # Handle headers
 	my $headers = $self->make_headers( $data );
 	$headers->{'Set-Cookie'} = $req->format_cookies;
 
