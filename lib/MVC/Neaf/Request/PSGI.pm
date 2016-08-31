@@ -11,7 +11,7 @@ MVC::Neaf::Request::PSGI - Not Even A Framework: PSGI driver.
 
 =cut
 
-our $VERSION = 0.0201;
+our $VERSION = 0.0202;
 use URI::Escape qw(uri_unescape);
 use Encode;
 use Plack::Request;
@@ -52,6 +52,7 @@ sub get_path {
 	my $self = shift;
 
 	my $path = $self->{env}{REQUEST_URI};
+	$path = '' unless defined $path;
 
 	$path =~ s#\?.*$##;
 	$path =~ s#^/*#/#;

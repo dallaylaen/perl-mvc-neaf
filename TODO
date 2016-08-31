@@ -1,15 +1,15 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.01	0.10	API Route-based defaults, global defaults
-0.01	0.10	API pre-route hook
-0.01	0.10	DRI Apache2 integration
-0.02	0.10	DOC List all known dash-prefixed keys
+0.01	0.03	API Route-based defaults, global defaults
+0.01	0.03	DRI Apache2 integration
+0.02	0.03	DOC List all known dash-prefixed keys
+0.02	0.03	Handle template errors
+0.02	0.03	Obligatory cookie regex (just as params)
 
 -- backlog --
 
-0.02	1.00	Handle template errors
-0.02	1.00	Fancy Error templates - dynamic + fallback
+0.02	0.10	Fancy Error templates - dynamic + fallback
 0.01    1.00    Served stats
 0.01	1.00	TST Unit tests for what can be tested
 0.01	1.00	DEV REPL - MVC::Neaf::Cli? with term session etc

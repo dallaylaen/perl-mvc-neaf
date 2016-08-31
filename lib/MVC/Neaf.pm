@@ -51,7 +51,7 @@ The principals of Neaf are as follows:
 
 =cut
 
-our $VERSION = 0.0204;
+our $VERSION = 0.0205;
 use Scalar::Util qw(blessed);
 
 use MVC::Neaf::Request;
@@ -95,15 +95,15 @@ Returns a coderef under PSGI.
 
 sub run {
 	my $class = shift;
-	# TODO Detect psgi/apache
+	# TODO Better detection still wanted
 
 	$route_re ||= $class->_make_route_re( \%route );
 
-	if (caller eq 'main') {
-		require MVC::Neaf::Request::CGI;
-		my $req = MVC::Neaf::Request::CGI->new;
-		$class->handle_request( $req );
-	} else {
+	if (defined wantarray) {
+		# The run method is being called in non-void context
+		# This is the case for PSGI, but not CGI (where it's just
+		# the last statement in the script).
+
 		# PSGI
 		require MVC::Neaf::Request::PSGI;
 		return sub {
@@ -111,6 +111,11 @@ sub run {
 			my $req = MVC::Neaf::Request::PSGI->new( env => $env );
 			return $class->handle_request( $req );
 		};
+	} else {
+		# void context - CGI called.
+		require MVC::Neaf::Request::CGI;
+		my $req = MVC::Neaf::Request::CGI->new;
+		$class->handle_request( $req );
 	};
 };
 
