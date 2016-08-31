@@ -13,7 +13,7 @@ These methods are common for ALL Neaf::Request::* classes.
 
 =cut
 
-our $VERSION = 0.0107;
+our $VERSION = 0.02;
 use Carp;
 use URI::Escape;
 use POSIX qw(strftime);

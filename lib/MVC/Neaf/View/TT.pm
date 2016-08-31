@@ -22,7 +22,7 @@ MVC::Neaf::View::TT - Template toolkit-based view module for Neaf.
 
 =cut
 
-our $VERSION = 0.0102;
+our $VERSION = 0.02;
 
 use Carp;
 use Template;

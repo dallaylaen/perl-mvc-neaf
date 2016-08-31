@@ -51,7 +51,7 @@ The principals of Neaf are as follows:
 
 =cut
 
-our $VERSION = 0.0107;
+our $VERSION = 0.02;
 
 use MVC::Neaf::Request;
 

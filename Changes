@@ -1,5 +1,13 @@
 Revision history for MVC-Neaf
 
+0.02    Wed Aug 31 2016
+        API Now -content can be used to return raw content, e.g. images
+        API Add uploads
+        TST Add apache2 tempdir auxiliary script to test under apache
+        API Add cookies, add redirects, add referer
+        API Add View::JS with jsonp support
+        API Add View::TT with basic Template support
+
 0.01    Date/time
         First version, released on an unsuspecting world.
 
