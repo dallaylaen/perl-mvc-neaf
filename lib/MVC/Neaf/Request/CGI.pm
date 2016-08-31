@@ -3,7 +3,7 @@ package MVC::Neaf::Request::CGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.0102;
+our $VERSION = 0.0103;
 use Carp;
 
 use base qw(MVC::Neaf::Request);
@@ -35,7 +35,7 @@ Return GET/POST.
 
 sub do_get_method {
 	my $self = shift;
-	return $self->{driver}->method;
+	return $self->{driver}->request_method;
 };
 
 =head2 get_params

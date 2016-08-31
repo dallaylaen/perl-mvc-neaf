@@ -51,7 +51,7 @@ The principals of Neaf are as follows:
 
 =cut
 
-our $VERSION = 0.0104;
+our $VERSION = 0.0105;
 
 use MVC::Neaf::Request;
 
@@ -65,6 +65,11 @@ my %route;
 my $route_re;
 sub route {
 	my ($class, $path, $sub) = @_;
+
+	# Sanitize path so that we have exactly one leading slash
+	# root becomes nothing (which is OK with us).
+	$path =~ s#^/*#/#;
+	$path =~ s#/+$##;
 
 	$route_re = undef;
 	$route{ $path }{code} = $sub;

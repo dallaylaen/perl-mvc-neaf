@@ -13,7 +13,7 @@ These methods are common for ALL Neaf::Request::* classes.
 
 =cut
 
-our $VERSION = 0.0104;
+our $VERSION = 0.0105;
 use Carp;
 use URI::Escape;
 use POSIX qw(strftime);
@@ -223,7 +223,7 @@ sub referer {
 	if (@_) {
 		$self->{referer} = shift
 	} else {
-		$self->{referer} = $self->go_get_referer
+		$self->{referer} = $self->do_get_referer
 			unless exists $self->{referer};
 		return $self->{referer};
 	};
