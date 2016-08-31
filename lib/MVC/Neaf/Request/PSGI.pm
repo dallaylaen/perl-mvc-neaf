@@ -3,13 +3,36 @@ package MVC::Neaf::Request::PSGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.0101;
+=head1 NAME
+
+MVC::Neaf::Request::PSGI - Not Even A Framework: PSGI driver.
+
+=head1 METHODS
+
+=cut
+
+our $VERSION = 0.0102;
 use URI::Escape qw(uri_unescape);
 use Plack::Request;
 
 use parent qw(MVC::Neaf::Request);
 
-=head2 get_path
+=head2 new( env => $psgi_input )
+
+Constructor.
+
+=cut
+
+sub new {
+	my $class = shift;
+	my $self = $class->SUPER::new( @_ );
+	$self->{driver} ||= Plack::Request->new( $self->{env} || {} );
+	return $self;
+};
+
+=head2 get_path()
+
+Returns the path part of URI.
 
 =cut
 
@@ -18,26 +41,26 @@ sub get_path {
 
 	my $path = $self->{env}{REQUEST_URI};
 
-	$path =~ s/\?.*$//;
+	$path =~ s#\?.*$##;
+	$path =~ s#^/*#/#;
 
 	return $path;
 };
 
-=head2 get_params
+=head2 get_params()
+
+Returns GET/POST parameters as a hash.
+
+B<CAVEAT> Plack::Request's multivalue hash params are ignored for now.
 
 =cut
 
 sub get_params {
 	my $self = shift;
 
-	my $path = $self->{env}{REQUEST_URI};
-	$path =~ /.*?\?(.*)/ or return {};
-	my $raw = $1;
-
 	my %hash;
-	foreach (split /&/, $raw) {
-		/^(.*?)=(.*)$/ or next;
-		$hash{uri_unescape($1)} = uri_unescape($2);
+	foreach ( $self->{driver}->param ) {
+		$hash{$_} = $self->{driver}->param( $_ );
 	};
 
 	return \%hash;
@@ -52,11 +75,15 @@ Use Plack::Request to fetch cookies.
 sub do_get_cookies {
 	my $self = shift;
 
-	my $req = Plack::Request->new( $self->{env} );
-	return $req->cookies;
+	return $self->{driver}->cookies;
 };
 
-=head2 reply
+=head2 reply( $status_line, \%headers, $content )
+
+Send reply to client. Not to be used directly.
+
+B<NOTE> This function just returns its input and has no side effect,
+rather relying on PSGI calling conventions.
 
 =cut
 
@@ -74,7 +101,8 @@ sub reply {
 		};
 	};
 
-	# HACK - we're being returned by handler.
+	# HACK - we're being returned by handler in MVC::Neaf itself in case of
+	# PSGI being used.
 	return [ $status, \@header_array, [ $content ]];
 };
 
