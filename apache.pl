@@ -79,6 +79,7 @@ my %cgi = (qw(
 	01-get 01-hello-get.neaf
 	02-post 02-cookie-post-redirect.neaf
 	forms/02-post 02-cookie-post-redirect.neaf
+	03-upload 03-upload.neaf
 ));
 
 foreach (keys %cgi) {

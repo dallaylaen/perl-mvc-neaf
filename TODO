@@ -1,7 +1,6 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.01	0.02	API uploads
 0.01	0.02	API serve raw content (-type ... -content ... no view)
 0.01	1.00	BUG Add status table (I'm a teapot)
 

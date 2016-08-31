@@ -3,7 +3,7 @@ package MVC::Neaf::Request::CGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.0103;
+our $VERSION = 0.0104;
 use Carp;
 
 use base qw(MVC::Neaf::Request);
@@ -77,6 +77,19 @@ sub do_get_cookies {
 	};
 
 	return \%ret;
+};
+
+=head2 do_get_upload( "name" )
+
+=cut
+
+sub do_get_upload {
+	my ($self, $id) = @_;
+
+	my $filename = $self->{driver}->param($id);
+	my $handle   = $self->{driver}->upload($id);
+
+	return $handle ? { handle => $handle, filename => $filename } : ();
 };
 
 =head2 do_get_referer()

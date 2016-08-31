@@ -14,7 +14,8 @@ L<MVC::Neaf::Request> object.
 
 =cut
 
-our $VERSION = 0.01;
+our $VERSION = 0.0101;
+use Carp;
 
 =head2 new(%options)
 
@@ -38,7 +39,7 @@ sub new {
 	my ($class, %args) = @_;
 
 	defined $args{id}
-		or croak( "$class->new(): name option is required" );
+		or croak( "$class->new(): id option is required" );
 	defined $args{tempfile} || defined $args{handle}
 		or croak( "$class->new(): Either tempfile or handle option required" );
 

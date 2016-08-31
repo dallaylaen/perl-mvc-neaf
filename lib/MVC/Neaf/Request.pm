@@ -13,10 +13,12 @@ These methods are common for ALL Neaf::Request::* classes.
 
 =cut
 
-our $VERSION = 0.0105;
+our $VERSION = 0.0106;
 use Carp;
 use URI::Escape;
 use POSIX qw(strftime);
+
+use MVC::Neaf::Upload;
 
 =head2 new( %args )
 
@@ -101,6 +103,27 @@ sub all_params {
 	my $self = shift;
 
 	return $self->{all_params} ||= $self->get_params;
+};
+
+=head2 upload( "name" )
+
+=cut
+
+sub upload {
+	my ($self, $id) = @_;
+
+	# caching undef as well, so exists()
+	if (!exists $self->{uploads}{$id}) {
+		my $raw = $self->do_get_upload( $id );
+		# This would create NO upload objects for objects
+		# And also will return undef as undef - just as we want
+		#    even though that's side effect
+		$self->{uploads}{$id} = (ref $raw eq 'HASH')
+			? MVC::Neaf::Upload->new( %$raw, id => $id )
+			: $raw;
+	};
+
+	return $self->{uploads}{$id};
 };
 
 =head2 get_cookie ( "name" [ => qr/regex/ ] )
@@ -246,6 +269,8 @@ They shall not generally be called directly inside the app.
 
 =item * do_get_cookies()
 
+=item * do_get_upload()
+
 =item * do_get_referer() - unlike others, this won't die if unimplemented
 
 =item * reply( $status, \%headers, $content )
@@ -254,7 +279,7 @@ They shall not generally be called directly inside the app.
 
 =cut
 
-foreach (qw(do_get_method get_params do_get_cookies get_path reply)) {
+foreach (qw(do_get_method get_params do_get_cookies get_path reply do_get_upload )) {
 	my $method = $_;
 	my $code = sub {
 		my $self = shift;

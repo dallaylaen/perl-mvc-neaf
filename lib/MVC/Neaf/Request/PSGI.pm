@@ -11,7 +11,7 @@ MVC::Neaf::Request::PSGI - Not Even A Framework: PSGI driver.
 
 =cut
 
-our $VERSION = 0.0104;
+our $VERSION = 0.0105;
 use URI::Escape qw(uri_unescape);
 use Plack::Request;
 
@@ -87,6 +87,21 @@ sub do_get_cookies {
 	my $self = shift;
 
 	return $self->{driver}->cookies;
+};
+
+=head2 do_get_upload( "name" )
+
+B<NOTE> This garbles Hash::Multivalue.
+
+=cut
+
+sub do_get_upload {
+	my ($self, $id) = @_;
+
+	$self->{driver_upload} ||= $self->{driver}->uploads;
+	my $up = $self->{driver_upload}{$id}; # TODO don't garble multivalues
+
+	return $up ? { tempfile => $up->path, filename => $up->filename } : ();
 };
 
 =head2 do_get_referer()
