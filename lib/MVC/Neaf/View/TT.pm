@@ -22,7 +22,7 @@ MVC::Neaf::View::TT - Template toolkit-based view module for Neaf.
 
 =cut
 
-our $VERSION = 0.02;
+our $VERSION = 0.0201;
 
 use Carp;
 use Template;
@@ -42,7 +42,7 @@ sub show {
 	my $out;
 	Template->new->process( $template, $data, \$out );
 
-	return $out;
+	return ($out, "text/html");
 };
 
 =head1 SEE ALSO

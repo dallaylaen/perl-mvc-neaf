@@ -51,7 +51,7 @@ The principals of Neaf are as follows:
 
 =cut
 
-our $VERSION = 0.0201;
+our $VERSION = 0.0202;
 
 use MVC::Neaf::Request;
 
@@ -189,6 +189,8 @@ sub make_headers {
 	$head{'Content-Type'} = $data->{-type} || "text/html";
 	$head{'Location'} = $data->{-location}
 		if $data->{-location};
+	$head{'Content-Type'} =~ m#^text/[-\w]+$#
+		and $head{'Content-Type'} .= "; charset=utf-8";
 
 	return \%head;
 };

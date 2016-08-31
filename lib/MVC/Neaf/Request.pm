@@ -13,10 +13,11 @@ These methods are common for ALL Neaf::Request::* classes.
 
 =cut
 
-our $VERSION = 0.02;
+our $VERSION = 0.0201;
 use Carp;
 use URI::Escape;
 use POSIX qw(strftime);
+use Encode;
 
 use MVC::Neaf::Upload;
 
@@ -84,10 +85,15 @@ Return param, if it passes regex check, default value (or '') otherwise.
 sub param {
 	my ($self, $name, $regex, $default) = @_;
 
-	my $value = $self->all_params->{ $name };
 	$default = '' unless defined $default;
 	croak( (ref $self)."->param REQUIRES regex for data")
 		unless defined $regex;
+
+	# Some write-through caching
+	my $value = (exists $self->{cached_params}{ $name })
+		? $self->{cached_params}{ $name }
+		: $self->{cached_params}{ $name }
+			= decode_utf8( $self->all_params->{ $name } );
 
 	return (defined $value and $value =~ /^$regex$/)
 		? $value

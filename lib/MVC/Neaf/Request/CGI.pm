@@ -3,8 +3,9 @@ package MVC::Neaf::Request::CGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.02;
+our $VERSION = 0.0201;
 use Carp;
+use Encode;
 
 use base qw(MVC::Neaf::Request);
 
@@ -109,6 +110,10 @@ sub do_get_referer {
 
 sub reply {
 	my ($self, $status, $header, $content) = @_;
+
+	if (Encode::is_utf8($content)) {
+		$content = encode_utf8($content);
+	};
 
 	print "Status: $status\n";
 	foreach my $name (keys %$header) {

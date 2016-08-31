@@ -22,10 +22,11 @@ instead or rendering a template.
 
 =cut
 
-our $VERSION = 0.01;
+our $VERSION = 0.0202;
 use JSON::XS;
 
 my $codec = JSON::XS->new->allow_blessed->convert_blessed;
+my $jsonp_re = qr/^(?:[A-Z_a-z][A-Z_a-z\d]*)(?:\.(?:[A-Z_a-z][A-Z_a-z\d]*))*$/;
 
 =head2 show( \%data )
 
@@ -36,16 +37,19 @@ Returns a scalar with JSON-encoded data.
 sub show {
 	my ($self, $data) = @_;
 
-	my $callback = delete $data->{-callback};
-	my $type = delete $data->{-type};
+	my $callback = $data->{-callback};
+	my $type = $data->{-type};
 
-	# TODO sanitize data in a better way
+	# TODO sanitize data in a more efficient way
+	my %copy;
 	foreach (keys %$data) {
-		/^-/ and delete $data->{$_};
+		/^-/ or $copy{$_} = $data->{$_};
 	};
 
-	my $content = $codec->encode( $data );
-	return $callback ? "$callback($content);" : $content;
+	my $content = $codec->encode( \%copy );
+	return $callback && $callback =~ $jsonp_re
+		? ("$callback($content);", "application/json; charset=utf-8")
+		: ($content, "application/javascript; charset=utf-8");
 };
 
 1;

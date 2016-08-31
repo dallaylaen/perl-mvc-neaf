@@ -1,10 +1,10 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.01    0.10    API Unicode
 0.01	0.10	API Route-based defaults, global defaults
 0.01	0.10	API pre-route hook
 0.01	0.10	DRI Apache2 integration
+0.02	0.10	DOC List all known dash-prefixed keys
 
 -- backlog --
 
@@ -15,6 +15,7 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.01	1.00	API Multiparam form cleaner (sep. module?)
 0.01	2.00	REF Allow multiple Neaf instances
 0.01	1.00	REF Own exception class for signalling
+0.02	1.00	BUG Die if same route given twice
 
 -- think --
 0.01	2.00	?? API lang() - simplified multilingual iface
