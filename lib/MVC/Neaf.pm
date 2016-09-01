@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.03;
+our $VERSION = 0.0301;
 
 =head1 NAME
 
@@ -137,15 +137,16 @@ They have nothing to do with serving the request.
 
 =cut
 
+use Carp;
 use Scalar::Util qw(blessed);
 
 use MVC::Neaf::Request;
 
-our $force_view;
+our $Inst = __PACKAGE__->new;
 sub import {
 	my ($class, %args) = @_;
 
-	$args{view} and $force_view = $args{view};
+	$args{view} and $Inst->{force_view} = $args{view};
 };
 
 =head2 route( path => CODEREF, %options )
@@ -162,20 +163,27 @@ Exactly one leading slash will be prepended no matter what you do.
 
 =cut
 
-my $pre_route;
-my %route;
-my $route_re;
 sub route {
-	my ($class, $path, $sub) = @_;
+	my ($self, $path, $sub, %args) = @_;
+	$self = $Inst unless ref $self;
 
 	# Sanitize path so that we have exactly one leading slash
 	# root becomes nothing (which is OK with us).
 	$path =~ s#^/*#/#;
 	$path =~ s#/+$##;
+	croak( "MVC::Neaf: Attempting to set duplicate handler for path $path" )
+		if $self->{route}{ $path };
 
-	$route_re = undef;
-	$route{ $path }{code} = $sub;
-	return $class;
+	# reset cache
+	$self->{route_re} = undef;
+
+
+	# Do the work
+	$self->{route}{ $path }{code}     = $sub;
+	$self->{route}{ $path }{defaults} = \%args;
+	$self->{route}{ $path }{caller}   = [caller(0)]->[1,2]; # file,line
+
+	return $self;
 };
 
 =head2 pre_route( sub { ... } )
@@ -192,8 +200,10 @@ but beware!
 
 sub pre_route {
 	my ($self, $code) = @_;
+	$self = $Inst unless ref $self;
 
-	$pre_route = $code;
+	$self->{pre_route} = $code;
+	return $self;
 };
 
 =head2 load_view( $view_name )
@@ -206,18 +216,28 @@ my %known_view = (
 	TT => 'MVC::Neaf::View::TT',
 	JS => 'MVC::Neaf::View::JS',
 );
-my %seen_view;
 sub load_view {
 	my ($self, $view, $module) = @_;
+	$self = $Inst unless ref $self;
+
+	$view = $self->{force_view}
+		if exists $self->{force_view};
+	$view = $self->{-view}
+		unless defined $view;
+
+	# Agressive caching FTW!
+	return $self->{seen_view}{$view}
+		if exists $self->{seen_view}{$view};
 
 	$module ||= $known_view{ $view } || $view;
 	eval "require $module" ## no critic
 		unless ref $module;
 
-	die "Failed to load view $view: $@"
+	# TODO report app error if during request
+	croak "Failed to load view $view: $@"
 		if $@;
 
-	$seen_view{$view} = $module;
+	$self->{seen_view}{$view} = $module;
 
 	return $module;
 };
@@ -231,10 +251,11 @@ Returns a coderef under PSGI.
 =cut
 
 sub run {
-	my $class = shift;
+	my $self = shift;
+	$self = $Inst unless ref $self;
 	# TODO Better detection still wanted
 
-	$route_re ||= $class->_make_route_re( \%route );
+	$self->{route_re} ||= $self->_make_route_re;
 
 	if (defined wantarray) {
 		# The run method is being called in non-void context
@@ -246,18 +267,20 @@ sub run {
 		return sub {
 			my $env = shift;
 			my $req = MVC::Neaf::Request::PSGI->new( env => $env );
-			return $class->handle_request( $req );
+			return $self->handle_request( $req );
 		};
 	} else {
 		# void context - CGI called.
 		require MVC::Neaf::Request::CGI;
 		my $req = MVC::Neaf::Request::CGI->new;
-		$class->handle_request( $req );
+		$self->handle_request( $req );
 	};
 };
 
 sub _make_route_re {
-	my ($class, $hash) = @_;
+	my ($self, $hash) = @_;
+
+	$hash ||= $self->{route};
 
 	my $re = join "|", map { quotemeta } reverse sort keys %$hash;
 	return qr{^($re)(?:[?/]|$)};
@@ -265,12 +288,34 @@ sub _make_route_re {
 
 =head1 INTERNAL API
 
+B<CAVEAT EMPTOR.>
+
 The following methods are generally not to be used,
 unless you want something very strange.
 
 =cut
 
-# The CORE
+
+=head2 new(%options)
+
+Constructor. Usually, instantiating Neaf is not required.
+But it's possible.
+
+Options are not checked whatsoever.
+
+Just in case you're curious, $MVC::Neaf::Inst is the default instance
+that handles MVC::Neaf->... requests.
+
+=cut
+
+sub new {
+	my ($class, %opt) = @_;
+
+	$opt{-type} ||= "text/html";
+	$opt{-view} ||= "TT";
+
+	return bless \%opt, $class;
+};
 
 =head2 handle_request( MVC::Neaf::request->new )
 
@@ -281,18 +326,19 @@ Should not be called directly - use run() instead.
 
 sub handle_request {
 	my ($self, $req) = @_;
+	$self = $Inst unless ref $self;
 
 	my $data = eval {
 		# First, try running the pre-routing callback.
-		if ($pre_route) {
-			my $new_req = $pre_route->( $req );
+		if (exists $self->{pre_route}) {
+			my $new_req = $self->{pre_route}->( $req );
 			blessed $new_req and $new_req->isa("MVC::Neaf::Request")
 				and $req = $new_req;
 		};
 
 		# Run the controller!
-		$req->path =~ $route_re || die '404\n';
-		return $route{$1}{code}->($req);
+		$req->path =~ $self->{route_re} || die '404\n';
+		return $self->{route}{$1}{code}->($req);
 	};
 
 	if ($data) {
@@ -310,11 +356,10 @@ sub handle_request {
             ? 'text/plain' : 'application/octet-stream';
     } else {
 		# TODO route defaults, global default
-		my $view = $force_view || $data->{-view} || 'TT';
-		$view = $seen_view{$view} ||= $self->load_view( $view );
+		my $view = $self->load_view( $data->{-view} );
         eval { ($content, $type) = $view->show( $data ); };
 		if (!defined $content) {
-			warn "Template error: $@";
+			warn "ERROR: In view: $@";
 			$data = {
 				-status => 500,
 				-type   => "text/plain",
@@ -333,15 +378,23 @@ sub handle_request {
 };
 
 sub _error_to_reply {
-	my $err = shift;
+	my ($err, $where) = @_;
 
 	if (ref $err eq 'HASH') {
 		# TODO use own excp class
 		$err->{-status} ||= 500;
 		return $err;
 	} else {
-		my $status = $err =~ /^(\d\d\d)/ ? $1 : 500;
-		warn "ERROR: $err" unless $1;
+		my $status = (!ref $err && $err =~ /^(\d\d\d)/) ? $1 : 500;
+		if( !$1 ) {
+			# TODO error reporting CB?
+			my $warn = "ERROR: $err";
+			if ($where) {
+				$warn =~ s/\n+$//s;
+				$warn .= " in controller at $where->[0] line $where->[1]\n";
+			};
+			warn $warn;
+		};
 
 		return {
 			-status     => $status,
@@ -360,9 +413,10 @@ Extract header data from application reply.
 
 sub make_headers {
 	my ($self, $data) = @_;
+	$self = $Inst unless ref $self;
 
 	my %head;
-	$head{'Content-Type'} = $data->{-type} || "text/html";
+	$head{'Content-Type'} = $data->{-type} || $self->{-type};
 	$head{'Location'} = $data->{-location}
 		if $data->{-location};
 	$head{'Content-Type'} =~ m#^text/[-\w]+$#
