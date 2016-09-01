@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0301;
+our $VERSION = 0.0302;
 
 =head1 NAME
 
@@ -213,8 +213,9 @@ Load a view module by name.
 =cut
 
 my %known_view = (
-	TT => 'MVC::Neaf::View::TT',
-	JS => 'MVC::Neaf::View::JS',
+	TT     => 'MVC::Neaf::View::TT',
+	JS     => 'MVC::Neaf::View::JS',
+	Dumper => 'MVC::Neaf::View::Dumper',
 );
 sub load_view {
 	my ($self, $view, $module) = @_;

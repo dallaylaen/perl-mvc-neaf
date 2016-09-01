@@ -1,20 +1,17 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.01	0.04	REF Allow multiple Neaf instances
 0.01	0.04	API Route-based defaults, global defaults, cached view objs
-0.02	0.04	Data::Dumper view
 0.02	0.04	BUG Http HEAD support
 0.02	0.04	BUG Die if same route given twice
 0.02	0.04	BUG Attribute errors to calling controller
+0.02	0.04	Fancy Error templates - dynamic + fallback
 
 -- backlog --
+0.01	0.05	MOD Session - cookie-based + BE callbacks - N::Session + N::Session::Store
 0.01	0.10	TST Unit tests for what can be tested
-0.02	0.10	Fancy Error templates - dynamic + fallback
-0.02	0.10	BUG Disallow multiple mapping to the same location
 0.01    1.00    Served stats
 0.01	1.00	DEV REPL - MVC::Neaf::Cli? with term session etc
-0.01	1.00	MOD Session - cookie-based + BE callbacks - N::Session + N::Session::Store
 0.01	1.00	API Multiparam form cleaner (sep. module?) (cached cleaner?)
 0.01	1.00	REF Own exception class for signalling
 0.02	1.00	REF Allow overriding route of existing app
