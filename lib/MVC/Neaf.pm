@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0209;
+our $VERSION = 0.0210;
 
 =head1 NAME
 
@@ -130,7 +130,7 @@ and will be passed to the View module as of current,
 they are not guaranteed to work in the future.
 Please either avoid them, or send patches.
 
-=head1 METHODS
+=head1 APPLICATION API
 
 These methods are generally called during the setup phase of the application.
 They have nothing to do with serving the request.
@@ -178,6 +178,50 @@ sub route {
 	return $class;
 };
 
+=head2 pre_route( sub { ... } )
+
+Mangle request before serving it.
+E.g. canonize uri or read session cookie.
+
+If the sub returns a MVC::Neaf::Request object in scalar context,
+it is considered to replace the original one.
+It looks like it's hard to return an unrelated Request by chance,
+but beware!
+
+=cut
+
+sub pre_route {
+	my ($self, $code) = @_;
+
+	$pre_route = $code;
+};
+
+=head2 load_view( $view_name )
+
+Load a view module by name.
+
+=cut
+
+my %known_view = (
+	TT => 'MVC::Neaf::View::TT',
+	JS => 'MVC::Neaf::View::JS',
+);
+my %seen_view;
+sub load_view {
+	my ($self, $view, $module) = @_;
+
+	$module ||= $known_view{ $view } || $view;
+	eval "require $module" ## no critic
+		unless ref $module;
+
+	die "Failed to load view $view: $@"
+		if $@;
+
+	$seen_view{$view} = $module;
+
+	return $module;
+};
+
 =head2 run()
 
 Run the applicaton.
@@ -219,23 +263,12 @@ sub _make_route_re {
 	return qr{^($re)(?:[?/]|$)};
 };
 
-=head2 pre_route( sub { ... } )
+=head1 INTERNAL API
 
-Mangle request before serving it.
-E.g. canonize uri or read session cookie.
-
-If the sub returns a MVC::Neaf::Request object in scalar context,
-it is considered to replace the original one.
-It looks like it's hard to return an unrelated Request by chance,
-but beware!
+The following methods are generally not to be used,
+unless you want something very strange.
 
 =cut
-
-sub pre_route {
-	my ($self, $code) = @_;
-
-	$pre_route = $code;
-};
 
 # The CORE
 
@@ -246,7 +279,6 @@ Should not be called directly - use run() instead.
 
 =cut
 
-my %seen_view;
 sub handle_request {
 	my ($self, $req) = @_;
 
@@ -337,31 +369,6 @@ sub make_headers {
 		and $head{'Content-Type'} .= "; charset=utf-8";
 
 	return \%head;
-};
-
-=head2 load_view( $view_name )
-
-Load a view module by name.
-
-=cut
-
-my %known_view = (
-	TT => 'MVC::Neaf::View::TT',
-	JS => 'MVC::Neaf::View::JS',
-);
-sub load_view {
-	my ($self, $view, $module) = @_;
-
-	$module ||= $known_view{ $view } || $view;
-	eval "require $module" ## no critic
-		unless ref $module;
-
-	die "Failed to load view $view: $@"
-		if $@;
-
-	$seen_view{$view} = $module;
-
-	return $module;
 };
 
 =head1 AUTHOR
