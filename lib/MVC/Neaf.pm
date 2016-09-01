@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0302;
+our $VERSION = 0.0303;
 
 =head1 NAME
 
@@ -243,6 +243,24 @@ sub load_view {
 	return $module;
 };
 
+=head2 set_default ( key => value, ... )
+
+Set some default values that would be appended to data hash returned
+from any controller on successful operation.
+Controller return always overrides these values.
+
+Returns self.
+
+=cut
+
+sub set_default {
+	my ($self, %data) = @_;
+	$self = $Inst unless ref $self;
+
+	$self->{defaults}{$_} = $data{$_} for keys %data;
+	return $self;
+};
+
 =head2 run()
 
 Run the applicaton.
@@ -312,8 +330,9 @@ that handles MVC::Neaf->... requests.
 sub new {
 	my ($class, %opt) = @_;
 
-	$opt{-type} ||= "text/html";
-	$opt{-view} ||= "TT";
+	$opt{-type}     ||= "text/html";
+	$opt{-view}     ||= "TT";
+	$opt{defaults}  ||= { -status => 200 };
 
 	return bless \%opt, $class;
 };
@@ -343,8 +362,14 @@ sub handle_request {
 	};
 
 	if ($data) {
+		# post-process data - fill in the defaults.
+		# TODO fill in location defaults, too - but do we need them at all?
+		exists $data->{$_} or $data->{$_} = $self->{defaults}{$_}
+			for keys %{ $self->{defaults} };
+		# TODO not sure if we even need default status given prev line
 		$data->{-status} ||= 200;
 	} else {
+		# Fall back to error page
 		$data = _error_to_reply( $@ );
 	};
 
@@ -376,7 +401,7 @@ sub handle_request {
 
 	# This "return" is mostly for PSGI
 	return $req->do_reply( $data->{-status}, $headers, $content );
-};
+}; # End handle_request()
 
 sub _error_to_reply {
 	my ($err, $where) = @_;

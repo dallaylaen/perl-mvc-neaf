@@ -1,7 +1,7 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.01	0.04	API Route-based defaults, global defaults, cached view objs
+0.01	0.04	API Route-based defaults, cached view objs
 0.02	0.04	BUG Http HEAD support
 0.02	0.04	BUG Die if same route given twice
 0.02	0.04	BUG Attribute errors to calling controller
