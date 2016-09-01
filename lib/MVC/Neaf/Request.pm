@@ -3,6 +3,8 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
+our $VERSION = 0.0205;
+
 =head1 NAME
 
 MVC::Neaf::Request - Base request class for Neaf.
@@ -17,7 +19,6 @@ These methods are common for ALL Neaf::Request::* classes.
 
 =cut
 
-our $VERSION = 0.0204;
 use Carp;
 use URI::Escape;
 use POSIX qw(strftime);
@@ -83,6 +84,10 @@ sub set_path {
 =head2 param($name, [$regex, $default])
 
 Return param, if it passes regex check, default value (or '') otherwise.
+
+The regular expression is applied to the WHOLE string,
+from beginning to end, not just the middle.
+Use '.*' if you really need none.
 
 =cut
 
@@ -151,14 +156,23 @@ sub upload {
 	return $self->{uploads}{$id};
 };
 
-=head2 get_cookie ( "name" [ => qr/regex/ ] )
+=head2 get_cookie ( "name" => qr/regex/ [, "default" ] )
 
 Fetch client cookie.
+The cookie MUST be sanitized by regular expression.
+
+The regular expression is applied to the WHOLE string,
+from beginning to end, not just the middle.
+Use '.*' if you really need none.
 
 =cut
 
 sub get_cookie {
-    my ($self, $name, $regex) = @_;
+    my ($self, $name, $regex, $default) = @_;
+
+	$default = '' unless defined $default;
+	croak( (ref $self)."->get_cookie REQUIRES regex for data")
+		unless defined $regex;
 
     $self->{neaf_cookie_in} ||= $self->do_get_cookies;
     return unless $self->{neaf_cookie_in}{ $name };
@@ -170,9 +184,7 @@ sub get_cookie {
 		$self->{neaf_cookie_in}{ $name } = $value;
 	};
 
-    defined $regex and $value !~ /^$regex$/ and $value = undef;
-
-    return $value;
+    return $value =~ /^$regex$/ ? $value : $default;
 };
 
 =head2 set_cookie( name => "value", %options )

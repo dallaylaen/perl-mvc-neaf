@@ -5,7 +5,6 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.01	0.03	DRI Apache2 integration (fix bugs, TODO POST & upload)
 0.02	0.03	DOC List all known dash-prefixed keys
 0.02	0.03	Handle template errors
-0.02	0.03	Obligatory cookie regex (just as params)
 
 -- backlog --
 
