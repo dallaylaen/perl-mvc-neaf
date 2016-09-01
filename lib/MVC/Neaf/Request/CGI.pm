@@ -3,7 +3,7 @@ package MVC::Neaf::Request::CGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.0202;
+our $VERSION = 0.0203;
 use Carp;
 use Encode;
 
@@ -61,7 +61,7 @@ sub do_get_params {
 sub do_get_path {
 	my $self = shift;
 
-	return $self->{driver}->url(-absolute => 1);
+	return $self->{driver}->url(-absolute => 1, -path => 1);
 };
 
 =head2 do_get_cookies
