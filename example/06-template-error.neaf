@@ -1,0 +1,13 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use MVC::Neaf;
+
+MVC::Neaf->route( "/" => sub {
+	return {
+		-template => \"[% IF %]", # this dies
+	};
+});
+
+MVC::Neaf->run;
