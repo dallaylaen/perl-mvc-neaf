@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0207;
+our $VERSION = 0.0208;
 
 =head1 NAME
 
@@ -20,7 +20,7 @@ The Model is assumed to be just a regular Perl module,
 no restrictions are put on it.
 
 The Controller is reduced to just one function which receives a Request object
-and returns a \\%hashref with a mix
+and returns a \%hashref with a mix
 of actual data and minus-prefixed control parameters.
 
 The View is expected to have one method, C<show>, receiving such hash
@@ -42,14 +42,98 @@ The principals of Neaf are as follows:
 
 =head1 SYNOPSIS
 
+The following application, outputting a greeting, is ready to run
+either from under a plack server, or as a standalone script.
+
     use MVC::Neaf;
 
 	MVC::Neaf->route( "/app" => sub {
-		return { ... };
+		my $req = shift;
+
+		my $name = $req->param( name => qr/[\w\s]+/, "Yet another perl hacker" );
+
+		return {
+			-template => \"Hello, [% name %]",
+			-type     => "text/plain",
+			name      => $name,
+		};
 	});
 	MVC::Neaf->run;
 
+=head1 CREATING AN APPLICATION
+
+The Controller (which is pretty much the only thing to talk about here)
+receives a $request object and outputs a \%hash.
+
+It may also die, which will be interpreted as an error 500,
+UNLESS error message starts with 3 digits and a whitespace,
+in which case this is considered the return status.
+E.g. die 404; is a valid method to return "Not Found" right away.
+
+B<The request> is a L<MCV::Neaf::Request> descendant which generally
+boils down to:
+
+    my $param  = $request->param ( "param_name"  => qr/.../, "Unset" );
+    my $cookie = $request->cookie( "cookie_name" => qr/.../, "Unset" );
+    my $file   = $request->upload( "upload_name" );
+
+Note the regexp check - it's mandatory and deliberately so.
+Upload content checking is up to the user, though.
+See <MVC::Neaf::Upload>.
+
+B<The response> may contain regular keys, typically alphanumeric,
+as well as a predefined set of dash-prefixed keys which control
+app's behaviour.
+
+I<-Note -that -dash-prefixed -options -look -antique
+even to the author of this writing.
+They smell like Tk and CGI. They feel so 90's!
+However, it looks like a meaningful and B<visible> way to separate
+auxiliary parameters from users's data,
+without requiring a more complex return structure
+(two hashes, array of arrays etc).>
+
+The small but growing list of these -options is as follows:
+
+=over
+
+=item * -callback - Used by JS view module to produce a
+L<jsonp|https://en.wikipedia.org/wiki/JSONP> response.
+Callback is ignored unless it is a set of identifiers separated by dots,
+for security reason.
+
+=item * -content - Return raw data and skip view processing.
+E.g. display generated image.
+
+=item * -location - HTTP Location: header.
+
+=item * -status - HTTP status (200, 404, 500 etc).
+Default is 200 if the app managed to live through.
+
+=item * -template - Set template name for TT (L<Template>-based view).
+
+=item * -type - Content-type HTTP header.
+View module may set this parameter if unset.
+Default: C<"text/html">.
+
+=item * -view - select B<View> module.
+Views are initialized lazily and cached by the framework.
+C<TT>, C<JS>, C<Full::Module::Name>, and C<$view_predefined_object>
+are currently supported.
+New short aliases may be created by
+C<MVC::Neaf-E<gt>load_view( "name" => $your_view );>. (See below).
+
+=back
+
+Though more dash-prefixed parameters may be returned
+and will be passed to the View module as of current,
+they are not guaranteed to work in the future.
+Please either avoid them, or send patches.
+
 =head1 METHODS
+
+These methods are generally called during the setup phase of the application.
+They have nothing to do with serving the request.
 
 =cut
 
@@ -67,6 +151,14 @@ sub import {
 =head2 route( path => CODEREF, %options )
 
 Creates a new route in the application.
+Any incoming request to uri starting with C</path>
+(C</path/something/else> too, but NOT C</pathology>)
+will now be directed to CODEREF.
+
+Longer paths are GUARANTEED to be checked first.
+
+Exactly one leading slash will be prepended no matter what you do.
+(C<path>, C</path> and C</////path> are all the same).
 
 =cut
 
