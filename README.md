@@ -1,6 +1,6 @@
 # NAME
 
-MVC::Neaf stands for Not Even A Framework.
+MVC::Neaf [ni:f] stands for Not Even A Framework.
 
 # OVERVIEW
 

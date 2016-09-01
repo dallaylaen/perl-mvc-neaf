@@ -4,13 +4,15 @@ use 5.006;
 use strict;
 use warnings;
 
+our $VERSION = 0.0207;
+
 =head1 NAME
 
 MVC::Neaf - Not Even A Framework for very simple web apps.
 
 =head1 OVERVIEW
 
-Neaf stands for Not Even An (MVC) Framework.
+Neaf [ni:f] stands for Not Even An (MVC) Framework.
 
 It is made for lazy people without an IDE.
 
@@ -51,7 +53,6 @@ The principals of Neaf are as follows:
 
 =cut
 
-our $VERSION = 0.0206;
 use Scalar::Util qw(blessed);
 
 use MVC::Neaf::Request;
