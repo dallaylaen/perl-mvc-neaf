@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0208;
+our $VERSION = 0.0209;
 
 =head1 NAME
 
@@ -271,17 +271,24 @@ sub handle_request {
 
     # Render content if needed. This may alter type, so
     # produce headers later.
-    my $content;
+    my ($content, $type);
     if (defined $data->{-content}) {
         $content = $data->{-content};
         $data->{-type} ||= $content =~ /^.{0,512}[^\s\x20-\x7F]/
             ? 'text/plain' : 'application/octet-stream';
     } else {
 		# TODO route defaults, global default
-		# TODO eval template errors
 		my $view = $force_view || $data->{-view} || 'TT';
 		$view = $seen_view{$view} ||= $self->load_view( $view );
-        ($content, my $type) = $view->show( $data );
+        eval { ($content, $type) = $view->show( $data ); };
+		if (!defined $content) {
+			warn "Template error: $@";
+			$data = {
+				-status => 500,
+				-type   => "text/plain",
+			};
+			$content = "Template error.";
+		};
         $data->{-type} ||= $type || 'text/html';
     };
 

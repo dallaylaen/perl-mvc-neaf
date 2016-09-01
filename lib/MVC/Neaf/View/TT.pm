@@ -4,6 +4,8 @@ use 5.006;
 use strict;
 use warnings;
 
+our $VERSION = 0.0202;
+
 =head1 NAME
 
 MVC::Neaf::View::TT - Template toolkit-based view module for Neaf.
@@ -22,8 +24,6 @@ MVC::Neaf::View::TT - Template toolkit-based view module for Neaf.
 
 =cut
 
-our $VERSION = 0.0201;
-
 use Carp;
 use Template;
 
@@ -33,6 +33,8 @@ Returns processed data.
 
 =cut
 
+my $tt = Template->new;
+
 sub show {
 	my ($self, $data) = @_;
 
@@ -40,7 +42,8 @@ sub show {
 	return '' unless $template;
 
 	my $out;
-	Template->new->process( $template, $data, \$out );
+	$tt->process( $template, $data, \$out )
+		or die $tt->error;
 
 	return ($out, "text/html");
 };
