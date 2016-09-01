@@ -56,6 +56,8 @@ LoadModule mime_module        [% modules %]/mod_mime.so
 	TypesConfig  magic
 LoadModule perl_module        [% modules %]/mod_perl.so
 	PerlSwitches -I[% lib %]
+LoadModule apreq_module       [% modules %]/mod_apreq2.so
+
 
 Listen [% port %]
 ErrorLog [% dir %]/error.log
@@ -76,8 +78,9 @@ Alias /cgi [% dir %]/cgi
 
 # mod_perl part
 PerlModule MVC::Neaf
-PerlPostConfigRequire [% parent %]/example/01-hello-get.neaf
-<Location /perl/>
+# PerlPostConfigRequire [% parent %]/example/01-hello-get.neaf
+PerlPostConfigRequire [% parent %]/example/03-upload.neaf
+<Location /perl>
     SetHandler perl-script
 	PerlResponseHandler MVC::Neaf::Request::Apache2
 </Location>
