@@ -1,5 +1,14 @@
 Revision history for MVC-Neaf
 
+0.03    Thu Sep 01 2016
+        API Add Apache2/mod_perl2 support
+        DOC Update MVC::Neaf documentation
+        API Cookie now requires regexp validation
+        API Add MVC::Neaf->pre_route( CODE ) for mangling initial request
+        API add request->set_param( name : value )
+        API Everything in utf-8 now by default
+        BUG Bugs fixed, even more introduced
+
 0.02    Wed Aug 31 2016
         API Now -content can be used to return raw content, e.g. images
         API Add uploads

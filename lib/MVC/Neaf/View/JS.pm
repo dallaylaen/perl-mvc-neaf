@@ -3,6 +3,8 @@ package MVC::Neaf::View::JS;
 use strict;
 use warnings;
 
+our $VERSION = 0.03;
+
 =head1 NAME
 
 MVC::Neaf::View::JS - JSON-base view for Not Even A Framework.
@@ -22,7 +24,6 @@ instead or rendering a template.
 
 =cut
 
-our $VERSION = 0.0202;
 use JSON::XS;
 
 my $codec = JSON::XS->new->allow_blessed->convert_blessed;

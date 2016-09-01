@@ -3,7 +3,7 @@ package MVC::Neaf::Request::CGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.0203;
+our $VERSION = 0.03;
 use Carp;
 use Encode;
 
