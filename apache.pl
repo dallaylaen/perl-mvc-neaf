@@ -12,7 +12,9 @@
 use strict;
 use warnings;
 use FindBin qw($Bin);
+use File::Basename qw(dirname);
 use Template;
+use IO::Socket::INET;
 
 # Some config here
 # /forms/ is just the same, but does not spoil our shiny index
@@ -50,13 +52,13 @@ LoadModule autoindex_module   [% modules %]/mod_autoindex.so
 LoadModule cgi_module         [% modules %]/mod_cgi.so
 LoadModule env_module         [% modules %]/mod_env.so
 LoadModule mime_module        [% modules %]/mod_mime.so
-TypesConfig  magic
+	# this fixes mod_mime loading on my ubuntu
+	TypesConfig  magic
+LoadModule perl_module        [% modules %]/mod_perl.so
+	PerlSwitches -I[% lib %]
 
 Listen [% port %]
 ErrorLog [% dir %]/error.log
-
-<Location />
-</Location>
 
 Alias /forms [% dir %]/forms
 <Directory [% dir %]/forms>
@@ -71,6 +73,14 @@ Alias /cgi [% dir %]/cgi
 	AddHandler cgi-script cgi pl neaf
 	Options +Indexes +ExecCGI +FollowSymlinks
 </Directory>
+
+# mod_perl part
+PerlModule MVC::Neaf
+PerlPostConfigRequire [% parent %]/example/01-hello-get.neaf
+<Location /perl/>
+    SetHandler perl-script
+	PerlResponseHandler MVC::Neaf::Request::Apache2
+</Location>
 
 TT
 
@@ -98,6 +108,7 @@ my %vars = (
 	lib       => "$Bin/lib",
 	dir       => "$dir",
 	port      => $port,
+	parent    => $Bin,
 	modules   => "/usr/lib/apache2/modules",
 );
 
@@ -110,9 +121,24 @@ close $fd or die "Failed to close $conf: $!";
 # restart server if asked to
 if ($action eq 'start' and -x $httpd) {
 	system $httpd, -f => $conf, -k => "start";
-	if (!$?) {
-		print "Chack server at http://localhost:$port/cgi/"
+
+	if ($?) {
+		print "Server start failed, check logs at $dir/error.log";
+		exit 1;
 	};
+
+	foreach (1 .. 10) {
+		my $sock = IO::Socket::INET->new(
+			Proto => "tcp",
+			PeerHost => "localhost",
+			PeerPort => $port,
+		);
+
+		last if ($sock);
+		sleep 1;
+	};
+
+	print "Check server at http://localhost:$port/cgi/";
 };
 
 
