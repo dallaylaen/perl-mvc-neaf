@@ -11,7 +11,7 @@ MVC::Neaf::Request::PSGI - Not Even A Framework: PSGI driver.
 
 =cut
 
-our $VERSION = 0.0202;
+our $VERSION = 0.0203;
 use URI::Escape qw(uri_unescape);
 use Encode;
 use Plack::Request;
@@ -42,13 +42,13 @@ sub do_get_method {
 	return $self->{driver}->method;
 };
 
-=head2 get_path()
+=head2 do_get_path()
 
 Returns the path part of URI.
 
 =cut
 
-sub get_path {
+sub do_get_path {
 	my $self = shift;
 
 	my $path = $self->{env}{REQUEST_URI};
@@ -60,7 +60,7 @@ sub get_path {
 	return $path;
 };
 
-=head2 get_params()
+=head2 do_get_params()
 
 Returns GET/POST parameters as a hash.
 
@@ -68,7 +68,7 @@ B<CAVEAT> Plack::Request's multivalue hash params are ignored for now.
 
 =cut
 
-sub get_params {
+sub do_get_params {
 	my $self = shift;
 
 	my %hash;
@@ -116,7 +116,7 @@ sub do_get_referer {
 	return $self->{driver}->referer;
 };
 
-=head2 reply( $status_line, \%headers, $content )
+=head2 do_reply( $status_line, \%headers, $content )
 
 Send reply to client. Not to be used directly.
 
@@ -125,7 +125,7 @@ rather relying on PSGI calling conventions.
 
 =cut
 
-sub reply {
+sub do_reply {
 	my ($self, $status, $header, $content) = @_;
 
 	my @header_array;

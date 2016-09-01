@@ -3,7 +3,7 @@ package MVC::Neaf::Request::CGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.0201;
+our $VERSION = 0.0202;
 use Carp;
 use Encode;
 
@@ -39,11 +39,11 @@ sub do_get_method {
 	return $self->{driver}->request_method;
 };
 
-=head2 get_params
+=head2 do_get_params
 
 =cut
 
-sub get_params {
+sub do_get_params {
 	my $self = shift;
 
 	my $q = $self->{driver};
@@ -54,11 +54,11 @@ sub get_params {
 	return \%hash;
 };
 
-=head2 get_path
+=head2 do_get_path
 
 =cut
 
-sub get_path {
+sub do_get_path {
 	my $self = shift;
 
 	return $self->{driver}->url(-absolute => 1);
@@ -104,11 +104,11 @@ sub do_get_referer {
 };
 
 
-=head2 reply
+=head2 do_reply
 
 =cut
 
-sub reply {
+sub do_reply {
 	my ($self, $status, $header, $content) = @_;
 
 	if (Encode::is_utf8($content)) {

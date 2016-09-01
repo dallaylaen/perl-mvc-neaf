@@ -17,7 +17,7 @@ These methods are common for ALL Neaf::Request::* classes.
 
 =cut
 
-our $VERSION = 0.0203;
+our $VERSION = 0.0204;
 use Carp;
 use URI::Escape;
 use POSIX qw(strftime);
@@ -55,7 +55,7 @@ sub path {
 	my $self = shift;
 
 	return $self->{path} ||= do {
-		my $path = $self->get_path;
+		my $path = $self->do_get_path;
 		$path = '' unless defined $path;
 		$path =~ s#^/*#/#;
 		$self->{original_path} = $path;
@@ -73,7 +73,7 @@ Undef value resets the path to whatever returned by the underlying driver.
 sub set_path {
 	my ($self, $path) = @_;
 
-	$path = $self->get_path
+	$path = $self->do_get_path
 		unless defined $path;
 	$path =~ s#^/*#/#;
 
@@ -127,7 +127,7 @@ Loading is performed by get_params() method.
 sub all_params {
 	my $self = shift;
 
-	return $self->{all_params} ||= $self->get_params;
+	return $self->{all_params} ||= $self->do_get_params;
 };
 
 =head2 upload( "name" )
@@ -162,7 +162,14 @@ sub get_cookie {
 
     $self->{neaf_cookie_in} ||= $self->do_get_cookies;
     return unless $self->{neaf_cookie_in}{ $name };
-    my $value = uri_unescape( $self->{neaf_cookie_in}{ $name } );
+    my $value = $self->{neaf_cookie_in}{ $name };
+
+	if (!Encode::is_utf8($value)) {
+		# HACK non-utf8 => do what the driver forgot.
+		$value = decode_utf8( $value );
+		$self->{neaf_cookie_in}{ $name } = $value;
+	};
+
     defined $regex and $value !~ /^$regex$/ and $value = undef;
 
     return $value;
@@ -231,7 +238,7 @@ sub format_cookies {
         $path = "/" unless defined $path;
         defined $expires and $expires
              = strftime( "%a, %d %b %Y %H:%M:%S GMT", gmtime($expires));
-        my $bake = join "; ", ("$name=".uri_escape($cook))
+        my $bake = join "; ", ("$name=".uri_escape_utf8($cook))
             , defined $domain  ? "Domain=$domain" : ()
             , "Path=$path"
             , defined $expires ? "Expires=$expires" : ()
@@ -288,9 +295,9 @@ They shall not generally be called directly inside the app.
 
 =item * do_get_method()
 
-=item * get_path()
+=item * do_get_path()
 
-=item * get_params()
+=item * do_get_params()
 
 =item * do_get_cookies()
 
@@ -298,13 +305,13 @@ They shall not generally be called directly inside the app.
 
 =item * do_get_referer() - unlike others, this won't die if unimplemented
 
-=item * reply( $status, \%headers, $content )
+=item * do_reply( $status, \%headers, $content )
 
 =back
 
 =cut
 
-foreach (qw(do_get_method get_params do_get_cookies get_path reply do_get_upload )) {
+foreach (qw(do_get_method do_get_params do_get_cookies do_get_path do_reply do_get_upload )) {
 	my $method = $_;
 	my $code = sub {
 		my $self = shift;

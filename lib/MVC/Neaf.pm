@@ -51,7 +51,7 @@ The principals of Neaf are as follows:
 
 =cut
 
-our $VERSION = 0.0205;
+our $VERSION = 0.0206;
 use Scalar::Util qw(blessed);
 
 use MVC::Neaf::Request;
@@ -197,7 +197,7 @@ sub handle_request {
 	$headers->{'Set-Cookie'} = $req->format_cookies;
 
 	# This "return" is mostly for PSGI
-	return $req->reply( $data->{-status}, $headers, $content );
+	return $req->do_reply( $data->{-status}, $headers, $content );
 };
 
 sub _error_to_reply {
