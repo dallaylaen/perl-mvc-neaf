@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.03;
+our $VERSION = 0.0301;
 
 =head1 NAME
 
@@ -81,7 +81,7 @@ sub set_path {
 	$self->{path} = $path;
 };
 
-=head2 param($name, [$regex, $default])
+=head2 param($name, $regex [, $default])
 
 Return param, if it passes regex check, default value (or '') otherwise.
 
@@ -89,20 +89,22 @@ The regular expression is applied to the WHOLE string,
 from beginning to end, not just the middle.
 Use '.*' if you really need none.
 
+A default value of C<undef> is possible, but must be supplied explicitly.
+
 =cut
 
 sub param {
 	my ($self, $name, $regex, $default) = @_;
 
-	$default = '' unless defined $default;
-	croak( (ref $self)."->param REQUIRES regex for data")
+	croak( (ref $self)."->param: validation regex is REQUIRED")
 		unless defined $regex;
+	$default = '' if @_ <= 3; # deliberate undef as default = ok
 
 	# Some write-through caching
 	my $value = (exists $self->{cached_params}{ $name })
 		? $self->{cached_params}{ $name }
 		: ( $self->{cached_params}{ $name }
-			= decode_utf8( $self->all_params->{ $name } ) );
+			= decode_utf8( $self->_all_params->{ $name } ) );
 
 	return (defined $value and $value =~ /^$regex$/)
 		? $value
@@ -111,7 +113,7 @@ sub param {
 
 =head2 set_param( name => $value )
 
-Override form parameter. Returns request object.
+Override form parameter. Returns self.
 
 =cut
 
@@ -122,14 +124,53 @@ sub set_param {
 	return $self;
 };
 
-=head2 all_params()
+=head2 get_form_as_hash ( name => qr/.../, name2 => qr/..../, ... )
 
-Get all params as one hashref via cache.
-Loading is performed by get_params() method.
+Return a group of form parameters as a hashref.
+Only values that pass corresponding validation are added.
+
+B<EXPERIMANTAL>. API and naming subject to change.
 
 =cut
 
-sub all_params {
+sub get_form_as_hash {
+	my ($self, %spec) = @_;
+
+	my %form;
+	foreach (keys %spec) {
+		my $value = $self->param( $_, $spec{$_}, undef );
+		$form{$_} = $value if defined $value;
+	};
+
+	return \%form;
+};
+
+=head2 get_form_as_list ( qr/.../, qw(name1 name2 ...)  )
+
+=head2 get_form_as_list ( [ qr/.../, "default" ], qw(name1 name2 ...)  )
+
+Return a group of form parameters as a list, in that order.
+Values that fail validation are returned as undef, unless default given.
+
+B<EXPERIMANTAL>. API and naming subject to change.
+
+=cut
+
+sub get_form_as_list {
+	my ($self, $spec, @list) = @_;
+
+	# TODO Should we?
+	croak "Meaningless call of get_form_as_list() in scalar context"
+		unless wantarray;
+
+	$spec = [ $spec, undef ]
+		unless ref $spec eq 'ARRAY';
+
+	# Call the same validation over for each parameter
+	return map { $self->param( $_, @$spec ); } @list;
+};
+
+sub _all_params {
 	my $self = shift;
 
 	return $self->{all_params} ||= $self->do_get_params;
@@ -171,7 +212,7 @@ sub get_cookie {
     my ($self, $name, $regex, $default) = @_;
 
 	$default = '' unless defined $default;
-	croak( (ref $self)."->get_cookie REQUIRES regex for data")
+	croak( (ref $self)."->get_cookie: validation regex is REQUIRED")
 		unless defined $regex;
 
     $self->{neaf_cookie_in} ||= $self->do_get_cookies;
