@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.04;
+our $VERSION = 0.0401;
 
 =head1 NAME
 
@@ -43,7 +43,7 @@ sub new {
 
 sub method {
 	my $self = shift;
-	return $self->{method} ||= $self->do_get_method;
+	return $self->{method} ||= $self->do_get_method || "GET";
 };
 
 =head2 path()

@@ -4,6 +4,10 @@ use strict;
 use warnings;
 use GD::Simple;
 
+# always use latest and gratest libraries, not the system ones
+use FindBin qw($Bin);
+use File::Basename qw(dirname);
+use lib dirname($Bin)."/lib";
 use MVC::Neaf;
 
 my $tpl = <<"TT";
@@ -39,7 +43,7 @@ MVC::Neaf->route( "/" => sub {
 MVC::Neaf->route( "/forms/04-img.cgi" => sub {
 	my $req = shift;
 	my $size = $req->param( size => qr/\d+/, 100 );
-	
+
 	my $r = int ($size / 2);
 	my $img = GD::Simple->new( $size, $size );
 	$img->moveTo ( $r, $r );

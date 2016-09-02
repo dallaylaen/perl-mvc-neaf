@@ -3,6 +3,11 @@
 use strict;
 use warnings;
 use Encode;
+
+# always use latest and gratest libraries, not the system ones
+use FindBin qw($Bin);
+use File::Basename qw(dirname);
+use lib dirname($Bin)."/lib";
 use MVC::Neaf;
 
 my $tpl = <<"TT";
@@ -35,7 +40,7 @@ MVC::Neaf->route("/" => sub {
 
 		# transform hash into set of tuples; filter count > 1;
 		# sort tuples by count, then alphabetically
-		@top = sort { $b->[1] <=> $a->[1] or $a->[0] cmp $b->[0] } 
+		@top = sort { $b->[1] <=> $a->[1] or $a->[0] cmp $b->[0] }
 			grep { $_->[1] > 1 }
 			map { [ $_, $count{$_} ] }
 			keys %count;

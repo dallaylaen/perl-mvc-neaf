@@ -4,6 +4,10 @@ use strict;
 use warnings;
 use Carp;
 
+# always use latest and gratest libraries, not the system ones
+use FindBin qw($Bin);
+use File::Basename qw(dirname);
+use lib dirname($Bin)."/lib";
 use MVC::Neaf;
 $SIG{__WARN__} = \&Carp::cluck;
 
