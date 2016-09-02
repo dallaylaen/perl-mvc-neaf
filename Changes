@@ -1,5 +1,13 @@
 Revision history for MVC-Neaf
 
+0.04    Fri Sep 2 2016
+        NET HEAD request handled, Content-Length served
+        API Add multiparameter form validation EXPERIMENTAL
+        API Add global and per-request set_default() methods
+        DEV Add MVC::Neaf::View::Dumper - just dump raw reply from controller
+        BUG Bugs fixed, even more introduced
+        Semireal psgi app migrated from ad-hoc framework
+
 0.03    Thu Sep 01 2016
         API Add Apache2/mod_perl2 support
         DOC Update MVC::Neaf documentation

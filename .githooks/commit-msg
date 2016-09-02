@@ -6,5 +6,6 @@ use warnings;
 $/ = '';
 my $msg = <>;
 
-$msg =~ /^[A-Z]{3}[A-Z_0-9]* +/
+# Add smiley for releases ONLY
+$msg =~ /^[A-Z]{3}[A-Z_0-9]* +/ or $msg =~ /^\^_\^ +Version +\d+.\d+ +released/
 	or die "Commit message must start with capital tag(API, DOC, TST ...)";

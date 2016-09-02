@@ -14,3 +14,7 @@ MVC-Neaf-*
 /nocommit-apache
 MYMETA.*
 nytprof*
+*.bak
+*.old
+*.orig
+*.rej

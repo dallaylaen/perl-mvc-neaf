@@ -1,17 +1,20 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.02	0.04	BUG Http HEAD support
-0.02	0.05	BUG Attribute errors to calling controller
+0.02	0.05	DEV Attribute errors to calling controller
 0.02	0.05	Fancy Error templates - dynamic + fallback
+0.03	0.05	API Add allowed methods to route()
+0.01    0.05    Served stats
+0.03	0.05	API Add form pre-validatoin to route() [see existing modules!]
+0.03	0.05	REF Make view real objects, rename show to render
+0.03	0.05	REF Cleanup code for make install - MANIFEST etc
 
 -- backlog --
+0.03	0.10	API Unspecified length reply - -download => sub { ... }
 0.01	0.10	MOD Session - cookie-based + BE callbacks - N::Session + N::Session::Store
-0.03	0.05	BUG Content-Length header - read on it
-0.03	0.05	API Add form pre-validatoin to route() [see existing modules!]
-0.03	0.05	API Add allowed methods to route()
+0.03	0.10	NET Content-Length header - read on it
 0.01	0.10	TST Unit tests for what can be tested
-0.01    0.05    Served stats
+0.03	0.10	REF Split core into route_request and process_reply
 0.01	1.00	API Route-based defaults, cached view objs
 0.01	1.00	DEV REPL - MVC::Neaf::Cli? with term session etc
 0.01	1.00	REF Own exception class for signalling
