@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0304;
+our $VERSION = 0.0305;
 
 =head1 NAME
 
@@ -158,6 +158,8 @@ will now be directed to CODEREF.
 
 Longer paths are GUARANTEED to be checked first.
 
+Dies if same route is given twice.
+
 Exactly one leading slash will be prepended no matter what you do.
 (C<path>, C</path> and C</////path> are all the same).
 
@@ -176,7 +178,6 @@ sub route {
 
 	# reset cache
 	$self->{route_re} = undef;
-
 
 	# Do the work
 	$self->{route}{ $path }{code}     = $sub;
@@ -398,9 +399,11 @@ sub handle_request {
     # Handle headers
 	my $headers = $self->make_headers( $data );
 	$headers->{'Set-Cookie'} = $req->format_cookies;
+	$headers->{'Content-Length'} = length $content;
 
 	# This "return" is mostly for PSGI
-	return $req->do_reply( $data->{-status}, $headers, $content );
+	return $req->do_reply( $data->{-status}, $headers,
+		($req->method eq 'HEAD' ? '' : $content) );
 }; # End handle_request()
 
 sub _error_to_reply {
