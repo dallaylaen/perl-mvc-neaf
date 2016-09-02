@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0303;
+our $VERSION = 0.0304;
 
 =head1 NAME
 
@@ -362,12 +362,12 @@ sub handle_request {
 	};
 
 	if ($data) {
-		# post-process data - fill in the defaults.
-		# TODO fill in location defaults, too - but do we need them at all?
-		exists $data->{$_} or $data->{$_} = $self->{defaults}{$_}
-			for keys %{ $self->{defaults} };
-		# TODO not sure if we even need default status given prev line
-		$data->{-status} ||= 200;
+		# post-process data - fill in request(RD) & global(GD) defaults.
+		# TODO fill in per-location defaults, too - but do we need them?
+		my $RD = $req->get_default;
+		my $GD = $self->{defaults};
+		exists $data->{$_} or $data->{$_} = $RD->{$_} for keys %$RD;
+		exists $data->{$_} or $data->{$_} = $GD->{$_} for keys %$GD;
 	} else {
 		# Fall back to error page
 		$data = _error_to_reply( $@ );

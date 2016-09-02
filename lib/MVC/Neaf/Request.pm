@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0301;
+our $VERSION = 0.0302;
 
 =head1 NAME
 
@@ -174,6 +174,41 @@ sub _all_params {
 	my $self = shift;
 
 	return $self->{all_params} ||= $self->do_get_params;
+};
+
+=head2 set_default( key => $value, ... )
+
+Set default values for your return hash.
+May be useful inside MVC::Neaf->pre_route.
+
+Returns self.
+
+B<EXPERIMANTAL>. API and naming subject to change.
+
+=cut
+
+sub set_default {
+	my ($self, %args) = @_;
+
+	foreach (keys %args) {
+		defined $args{$_}
+			? $self->{defaults}{$_} = $args{$_}
+			: delete $self->{defaults}{$_};
+	};
+
+	return $self;
+};
+
+=head2 get_default()
+
+Returns a hash of previously set default values.
+
+=cut
+
+sub get_default {
+	my $self = shift;
+
+	return $self->{defaults} || {};
 };
 
 =head2 upload( "name" )
