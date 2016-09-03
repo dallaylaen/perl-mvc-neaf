@@ -3,17 +3,41 @@ package MVC::Neaf::Request::Apache2;
 use strict;
 use warnings;
 
-our $VERSION = 0.03;
+our $VERSION = 0.0401;
 
 =head1 NAME
 
 MVC::Neaf::Request::Apache - Apache2 (mod_perl) driver for Not Even A Framework.
+
+=head1 DESCRIPTION
+
+Apache2 request that will invoke MVC::Neaf core functions from under mod_perl.
+
+Much to the author's disgrace, this module currently uses
+BOTH Apache2::RequestRec and Apache2::Request from libapreq.
+
+=head1 SYNOPSIS
+
+The following apache configuration should work with this module:
+
+	LoadModule perl_module        modules/mod_perl.so
+		PerlSwitches -I[% YOUR_LIB_DIRECTORY %]
+	LoadModule apreq_module       [% modules %]/mod_apreq2.so
+
+	# later...
+	PerlModule MVC::Neaf::Request::Apache2
+	PerlPostConfigRequire [% YOUR_APPLICATION %]
+	<Location /[% SOME_URL_PREFIX %]>
+		SetHandler perl-script
+		PerlResponseHandler MVC::Neaf::Request::Apache2
+	</Location>
 
 =head1 METHODS
 
 =cut
 
 use URI::Escape;
+use HTTP::Headers;
 
 use Apache2::RequestRec ();
 use Apache2::RequestIO ();
@@ -58,20 +82,20 @@ sub do_get_params {
 	return \%hash;
 };
 
-=head2 do_get_cookies()
+=head2 go_get_header_in()
 
 =cut
 
-sub do_get_cookies {
+sub go_get_header_in {
 	my $self = shift;
 
-	my %cook;
-	foreach ($self->{driver_out}->headers_in->get("Cookie")) {
-		/^(\S+)=(\S*)/ or next;
-		$cook{ uri_unescape($1) } = uri_unescape( $2 );
-	};
+	my %head;
+	$self->{driver_raw}->headers_in->do( sub {
+		my ($key, $val) = @_;
+		push $head{$key}, $val;
+	});
 
-	return \%cook;
+	return HTTP::Headers->new( %head );
 };
 
 =head2 do_get_upload( "name" )
@@ -91,16 +115,6 @@ sub do_get_upload {
 		tempfile => $upload->tempname,
 		filename => $upload->filename,
 	} : ();
-};
-
-=head2 do_get_referer() - unlike others, this won't die if unimplemented
-
-=cut
-
-sub do_get_referer {
-	my $self = shift;
-
-	return scalar $self->{driver_raw}->headers_in->get( "Referer" );
 };
 
 =head2 do_reply( $status, \%headers, $content )
@@ -126,24 +140,11 @@ sub do_reply {
 	$r->print( $content );
 };
 
-
 =head2 handler( $apache_request )
 
 A valid Apache2/mod_perl handler.
 
-This invokes MCV::Neaf->handle_request, so that the following works:
-
-	LoadModule perl_module        modules/mod_perl.so
-		PerlSwitches -I[% YOUR_LIB_DIRECTORY %]
-	LoadModule apreq_module       [% modules %]/mod_apreq2.so
-
-	# later...
-	PerlModule MVC::Neaf::Request::Apache2
-	PerlPostConfigRequire [% YOUR_APPLICATION %]
-	<Location /[% SOME_URL_PREFIX %]>
-		SetHandler perl-script
-		PerlResponseHandler MVC::Neaf::Request::Apache2
-	</Location>
+This invokes MCV::Neaf->handle_request when called.
 
 Unfortunately, libapreq (in addition to mod_perl) is required currently.
 

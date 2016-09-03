@@ -3,9 +3,10 @@ package MVC::Neaf::Request::CGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.03;
+our $VERSION = 0.0401;
 use Carp;
 use Encode;
+use HTTP::Headers;
 
 use base qw(MVC::Neaf::Request);
 
@@ -64,22 +65,6 @@ sub do_get_path {
 	return $self->{driver}->url(-absolute => 1, -path => 1);
 };
 
-=head2 do_get_cookies
-
-=cut
-
-sub do_get_cookies {
-	my $self = shift;
-
-	my @cook = $self->{driver}->cookie;
-	my %ret;
-	foreach (@cook) {
-		$ret{$_} = $self->{driver}->cookie( $_ );
-	};
-
-	return \%ret;
-};
-
 =head2 do_get_upload( "name" )
 
 =cut
@@ -93,16 +78,23 @@ sub do_get_upload {
 	return $handle ? { handle => $handle, filename => $filename } : ();
 };
 
-=head2 do_get_referer()
+=head2 do_get_header_in
 
 =cut
 
-sub do_get_referer {
+sub do_get_header_in {
 	my $self = shift;
 
-	return $self->{driver}->referer;
-};
+	my $head = HTTP::Headers->new;
+	foreach ($self->{driver}->http) {
+		$_ = lc $_;
+		s/-/_/g;
+		s/^http_//;
+		$head->header( $_ => [ split /, /, $self->{driver}->http( $_ ) ] );
+	};
 
+	return $head;
+};
 
 =head2 do_reply
 

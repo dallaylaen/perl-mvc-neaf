@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0402;
+our $VERSION = 0.0403;
 
 =head1 NAME
 
@@ -22,14 +22,14 @@ Here's a brief overview of what a Neaf request returns:
 	http(s)://server.name:1337/mathing/route/some/more/slashes?foo=1&bar=2
 
 	# What is being returned:
-	$req->proto       = HTTP/1.0 or HTTP/1.1   # UNIMPLEMENTED YET
-	$req->scheme      = http or https          # UNIMPLEMENTED YET
-	$req->method      = GET
-	$req->hostname    = server.name            # UNIMPLEMENTED YET
-	$req->port        = 1337                   # UNIMPLEMENTED YET
-	$req->path        = /mathing/route/some/more/slashes
-	$req->script_name = /mathing/route
-	$req->path_info   = /some/more/slashes
+	$req->http_version = HTTP/1.0 or HTTP/1.1   # UNIMPLEMENTED YET
+	$req->scheme       = http or https          # UNIMPLEMENTED YET
+	$req->method       = GET
+	$req->hostname     = server.name            # UNIMPLEMENTED YET
+	$req->port         = 1337                   # UNIMPLEMENTED YET
+	$req->path         = /mathing/route/some/more/slashes
+	$req->script_name  = /mathing/route
+	$req->path_info    = /some/more/slashes
 
 	$req->param( foo => '\d+' ) = 1
 
@@ -62,6 +62,52 @@ sub new {
 	return bless \%args, $class;
 };
 
+# TODO A lot of copypasted methods down here.
+# Should we join them all? Maybe...
+
+=head2 http_version()
+
+Returns version number of http protocol.
+
+=cut
+
+sub http_version {
+	my $self = shift;
+
+	if (!exists $self->{http_version}) {
+		$self->{http_version} = $self->do_get_http_version;
+	};
+
+	return $self->{http_version};
+};
+
+=head2 scheme()
+
+Returns http or https, depending on how the request was done.
+
+=cut
+
+sub scheme {
+	my $self = shift;
+
+	if (!exists $self->{scheme}) {
+		$self->{scheme} = $self->do_get_scheme;
+	};
+
+	return $self->{scheme};
+};
+
+=head2 secure()
+
+Returns true if https:// is used, false otherwise.
+
+=cut
+
+sub secure {
+	my $self = shift;
+	return $self->scheme eq 'https';
+};
+
 =head2 method()
 
 Return the HTTP method being used.
@@ -72,6 +118,31 @@ GET is the default value (useful for CLI debugging).
 sub method {
 	my $self = shift;
 	return $self->{method} ||= $self->do_get_method || "GET";
+};
+
+=head2 hostname()
+
+Returns the hostname which was requested, or "localhost" if cannot detect.
+
+=cut
+
+sub hostname {
+	my $self = shift;
+
+	return $self->{hostname} ||= $self->do_get_hostname || "localhost";
+	# TODO what if http://0/?
+};
+
+=head2 port()
+
+Returns the port number.
+
+=cut
+
+sub port {
+	my $self = shift;
+
+	return $self->{port} ||= $self->do_get_port;
 };
 
 =head2 path()
@@ -357,7 +428,14 @@ sub get_cookie {
 	croak( (ref $self)."->get_cookie: validation regex is REQUIRED")
 		unless defined $regex;
 
-    $self->{neaf_cookie_in} ||= $self->do_get_cookies;
+    $self->{neaf_cookie_in} ||= do {
+		my %hash;
+		foreach ($self->header_in("cookie")) {
+			/^(\S+?)=(.*)/ or next;
+			$hash{$1} = decode_utf8(uri_unescape($2));
+		};
+		\%hash;
+	};
     return unless $self->{neaf_cookie_in}{ $name };
     my $value = $self->{neaf_cookie_in}{ $name };
 
@@ -393,6 +471,8 @@ Set HTTP cookie. %options may include:
 
 =back
 
+Returns self.
+
 =cut
 
 sub set_cookie {
@@ -405,7 +485,13 @@ sub set_cookie {
         $opt{expires} = time + $opt{ttl};
     };
 
-    $self->{neaf_cookie_out}{ $name } = [ $cook, $opt{regex}, $opt{domain}, $opt{path}, $opt{expires}, $opt{secure}, $opt{httponly} ];
+    $self->{neaf_cookie_out}{ $name } = [
+		$cook, $opt{regex},
+		$opt{domain}, $opt{path}, $opt{expires}, $opt{secure}, $opt{httponly}
+	];
+
+	# TODO also set cookie_in for great consistency, but don't
+	# break reading cookies from backend by cache vivification!!!
     return $self;
 };
 
@@ -460,6 +546,56 @@ sub redirect {
 	};
 };
 
+=head2 header_in()
+
+=head2 header_in( "header_name" )
+
+Fetch HTTP header sent by client.
+Header names are lowercased, dashes converted to underscores.
+So "Http-Header", "HTTP_HEADER" and "http_header" are all the same.
+
+Without argument, returns a L<HTTP::Headers> object.
+
+With a name, returns all values for that header in list context,
+or ", " - joined value as one scalar in scalar context -
+this is actually a frontend to HTTP::Headers header() method.
+
+B<EXPERIMENTAL> The return value format MAY change in the near future.
+
+=cut
+
+sub header_in {
+	my ($self, $name) = @_;
+
+	$self->{header_in} ||= $self->do_get_header_in;
+	return $self->{header_in} unless defined $name;
+
+	$name = lc $name;
+	$name =~ s/-/_/g;
+	return $self->{header_in}->header( $name );
+};
+
+=head2 header_in_keys ()
+
+Return all keys in header_in object as a list.
+
+B<EXPERIMENTAL>. This may change or disappear altogether.
+
+=cut
+
+sub header_in_keys {
+	my $self = shift;
+
+	my $head = $self->header_in;
+	my %hash;
+	$head->scan( sub {
+		my ($k, $v) = @_;
+		$hash{$k}++;
+	} );
+
+	return keys %hash;
+};
+
 =head2 referer
 
 Get/set referer.
@@ -473,30 +609,28 @@ sub referer {
 	if (@_) {
 		$self->{referer} = shift
 	} else {
-		$self->{referer} = $self->do_get_referer
-			unless exists $self->{referer};
-		return $self->{referer};
+		return $self->{referer} ||= $self->header_in( "referer" );
 	};
 };
 
-=head1 INTERNAL METHODS
+=head2 user_agent
 
-The following methods are executed inside the MVC::Neaf core.
-They are not expected to be called directly within an application.
+Get/set user_agent.
 
-=head2 set_path_info( $script_name, $path_info )
-
-Split path() into script_name (the route we're currently executing)
-and path_info (whatever follows the matched route).
-
-Will die if given $script_name and $path_info don't combine into path().
-
-This is not to be used directly.
-
-Returns self.
+B<NOTE> Avoid using user_agent for anything serious - too easy to forge.
 
 =cut
 
+sub user_agent {
+	my $self = shift;
+	if (@_) {
+		$self->{user_agent} = shift
+	} else {
+		$self->{user_agent} = $self->header_in("user_agent")
+			unless exists $self->{user_agent};
+		return $self->{user_agent};
+	};
+};
 
 =head1 DRIVER METHODS
 
@@ -513,11 +647,9 @@ They shall not generally be called directly inside the app.
 
 =item * do_get_params()
 
-=item * do_get_cookies()
-
 =item * do_get_upload()
 
-=item * do_get_referer() - unlike others, this won't die if unimplemented
+=item * do_get_header_in() - returns a HTTP::Headers object.
 
 =item * do_reply( $status, \%headers, $content )
 
@@ -525,7 +657,16 @@ They shall not generally be called directly inside the app.
 
 =cut
 
-foreach (qw(do_get_method do_get_params do_get_cookies do_get_path do_reply do_get_upload )) {
+# TODO
+# 	do_get_client_ip
+# 	do_get_hostname
+# 	do_get_port
+# 	do_get_scheme
+
+foreach (qw(
+	do_get_method do_get_path
+	do_get_params do_get_upload do_get_header_in
+	do_reply )) {
 	my $method = $_;
 	my $code = sub {
 		my $self = shift;
@@ -533,10 +674,6 @@ foreach (qw(do_get_method do_get_params do_get_cookies do_get_path do_reply do_g
 	};
 	no strict 'refs'; ## no critic
 	*$method = $code;
-};
-
-sub do_get_referer {
-	return '';
 };
 
 1;

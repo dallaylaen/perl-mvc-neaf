@@ -25,6 +25,7 @@ my %cgi = (qw(
 	03-upload 03-upload.neaf
 	04-image 04-raw-content.neaf
 	forms/04-img 04-raw-content.neaf
+	08-header 08-header.neaf
 ));
 # skipping 05-lang for now - won't work under apache as CGI
 my $dir = "$Bin/nocommit-apache";
