@@ -11,10 +11,10 @@ use MVC::Neaf::Request;
 my $copy = uri_unescape( "%C2%A9" ); # a single (c) symbol
 
 my $req = MVC::Neaf::Request->new(
-	path => "/foo/bar",
 	all_params => { x => 42 },
 	neaf_cookie_in => { cook => $copy },
 );
+$req->set_full_path("/foo/bar");
 
 $copy = decode_utf8($copy);
 
@@ -24,10 +24,8 @@ is ($req->param( foo => qr/.*/), '', "Empty param - no undef");
 $req->set_param( foo => 137 );
 is ($req->param( foo => qr/.*/), 137, "set_param round trip" );
 
-$req->set_path( "" );
+$req->set_full_path( "" );
 is ($req->path, "/", "set_path round trip" );
-$req->set_path( "//////" );
-is ($req->path, "/", "set_path round trip - extra slashes" );
 
 # TODO more thorough unicode testing
 is ($req->get_cookie( cook => qr/.*/ ), $copy, "Cookie round-trip");

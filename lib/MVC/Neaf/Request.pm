@@ -3,19 +3,40 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0401;
+our $VERSION = 0.0402;
 
 =head1 NAME
 
-MVC::Neaf::Request - Base request class for Neaf.
+MVC::Neaf::Request - Request class for Neaf.
 
-=head1 OVERVIEW
+=head1 DESCRIPTION
 
-This is what your application is going to get as the only input.
+This is what your application is going to get as its ONLY input.
+
+Here's a brief overview of what a Neaf request returns:
+
+	# How the application was configured:
+	MVC::Neaf->route( "/matching/route" => sub { my $req = shift; ... } );
+
+	# What was requested:
+	http(s)://server.name:1337/mathing/route/some/more/slashes?foo=1&bar=2
+
+	# What is being returned:
+	$req->proto       = HTTP/1.0 or HTTP/1.1   # UNIMPLEMENTED YET
+	$req->scheme      = http or https          # UNIMPLEMENTED YET
+	$req->method      = GET
+	$req->hostname    = server.name            # UNIMPLEMENTED YET
+	$req->port        = 1337                   # UNIMPLEMENTED YET
+	$req->path        = /mathing/route/some/more/slashes
+	$req->script_name = /mathing/route
+	$req->path_info   = /some/more/slashes
+
+	$req->param( foo => '\d+' ) = 1
 
 =head1 METHODS
 
-These methods are common for ALL Neaf::Request::* classes.
+The concrete Request object the App gets is going to be a subclass of this.
+Thus it is expected to have the following methods.
 
 =cut
 
@@ -28,7 +49,11 @@ use MVC::Neaf::Upload;
 
 =head2 new( %args )
 
+The application is not supposed to make its own requests,
+so this constructor is really for testing purposes only.
+
 For now, just swallows whatever given to it.
+Restrictions MAY BE added in the future though.
 
 =cut
 
@@ -39,6 +64,9 @@ sub new {
 
 =head2 method()
 
+Return the HTTP method being used.
+GET is the default value (useful for CLI debugging).
+
 =cut
 
 sub method {
@@ -48,37 +76,116 @@ sub method {
 
 =head2 path()
 
-Returns the path part of the uri.
+Returns the path part of the uri. Path is guaranteed to start with a slash.
 
 =cut
 
 sub path {
 	my $self = shift;
 
-	return $self->{path} ||= do {
-		my $path = $self->do_get_path;
-		$path = '' unless defined $path;
-		$path =~ s#^/*#/#;
-		$self->{original_path} = $path;
-		$path;
-	};
+	$self->set_full_path
+		unless exists $self->{path};
+
+	return $self->{path};
 };
 
-=head2 set_path
+=head2 script_name()
 
-Set new path which will be returned onward.
-Undef value resets the path to whatever returned by the underlying driver.
+The part of the request that mathed the route to the
+application being executed.
+Guaranteed to start with slash and be a prefix of path().
 
 =cut
 
-sub set_path {
-	my ($self, $path) = @_;
+sub script_name {
+	my $self = shift;
 
-	$path = $self->do_get_path
-		unless defined $path;
-	$path =~ s#^/*#/#;
+	$self->set_full_path
+		unless exists $self->{script_name};
 
-	$self->{path} = $path;
+	return $self->{script_name};
+};
+
+=head2 path_info( [ $trim = 0|1 ])
+
+Return path_info, the part of URL between script_name and parameters.
+Empty if no such part exists.
+
+If trim=1 is given, removed the leading slashes.
+
+=cut
+
+sub path_info {
+	my ($self, $trim) = @_;
+
+	return '' unless exists $self->{path_info};
+
+	my $path = $self->{path_info};
+	$path =~ s#^/+## if $trim;
+	return $path;
+};
+
+=head2 set_full_path( $path )
+
+=head2 set_full_path( $script_name, $path_info )
+
+Set new path elements which will be returned from this point onward.
+
+Also updates path() value so that path = script_name + path_info
+still holds.
+
+set_full_path(undef) resets script_name to whatever returned
+by the underlying driver.
+
+Returns self.
+
+=cut
+
+sub set_full_path {
+	my ($self, $script_name, $path_info) = @_;
+
+	if (!defined $script_name) {
+		$script_name = $self->do_get_path;
+	};
+
+	$script_name =~ s#^/*#/#;
+	$self->{script_name} = $script_name;
+
+	if (defined $path_info) {
+		# Make sure path_info always has a slash if nonempty
+		$path_info = "/$path_info" if $path_info =~ /^[^\/]/;
+		$self->{path_info} = Encode::is_utf8($path_info)
+				? $path_info
+				: decode_utf8(uri_unescape($path_info));
+	} elsif (!defined $self->{path_info}) {
+		$self->{path_info} = '';
+	};
+
+	$self->{path} = "$self->{script_name}$self->{path_info}";
+	return $self;
+};
+
+=head2 set_path_info ( $path_info )
+
+Sets path_info to new value.
+
+Also updates path() value so that path = script_name + path_info
+still holds.
+
+Returns self.
+
+=cut
+
+sub set_path_info {
+	my ($self, $path_info) = @_;
+
+	$path_info = '' unless defined $path_info;
+	$path_info = "/$path_info" if $path_info =~ /^[^\/]/;
+
+	$self->{path_info} = $path_info;
+
+	$self->{path} = "$self->{script_name}$self->{path_info}";
+	return $self;
 };
 
 =head2 param($name, $regex [, $default])
@@ -106,7 +213,7 @@ sub param {
 		: ( $self->{cached_params}{ $name }
 			= decode_utf8( $self->_all_params->{ $name } ) );
 
-	return (defined $value and $value =~ /^$regex$/)
+	return (defined $value and $value =~ /^$regex$/s)
 		? $value
 		: $default;
 };
@@ -371,6 +478,25 @@ sub referer {
 		return $self->{referer};
 	};
 };
+
+=head1 INTERNAL METHODS
+
+The following methods are executed inside the MVC::Neaf core.
+They are not expected to be called directly within an application.
+
+=head2 set_path_info( $script_name, $path_info )
+
+Split path() into script_name (the route we're currently executing)
+and path_info (whatever follows the matched route).
+
+Will die if given $script_name and $path_info don't combine into path().
+
+This is not to be used directly.
+
+Returns self.
+
+=cut
+
 
 =head1 DRIVER METHODS
 

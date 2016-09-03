@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.04;
+our $VERSION = 0.0401;
 
 =head1 NAME
 
@@ -303,7 +303,7 @@ sub _make_route_re {
 	$hash ||= $self->{route};
 
 	my $re = join "|", map { quotemeta } reverse sort keys %$hash;
-	return qr{^($re)(?:[?/]|$)};
+	return qr{^($re)(/[^?]*)?(?:\?|$)};
 };
 
 =head1 INTERNAL API
@@ -349,6 +349,9 @@ sub handle_request {
 	my ($self, $req) = @_;
 	$self = $Inst unless ref $self;
 
+	exists $self->{stat} and $self->{stat}->record(1);
+
+	# ROUTE REQUEST
 	my $data = eval {
 		# First, try running the pre-routing callback.
 		if (exists $self->{pre_route}) {
@@ -359,6 +362,7 @@ sub handle_request {
 
 		# Run the controller!
 		$req->path =~ $self->{route_re} || die '404\n';
+		$req->set_full_path( $1, $2 );
 		return $self->{route}{$1}{code}->($req);
 	};
 
@@ -373,6 +377,12 @@ sub handle_request {
 		# Fall back to error page
 		$data = _error_to_reply( $@ );
 	};
+
+	# END ROUTE REQUEST
+
+	exists $self->{stat} and $self->{stat}->record(2, $req->script_name);
+
+	# PROCESS REPLY
 
     # Render content if needed. This may alter type, so
     # produce headers later.
@@ -400,6 +410,10 @@ sub handle_request {
 	my $headers = $self->make_headers( $data );
 	$headers->{'Set-Cookie'} = $req->format_cookies;
 	$headers->{'Content-Length'} = length $content;
+
+	# END PROCESS REPLY
+
+	exists $self->{stat} and $self->{stat}->record(3, $data->{status});
 
 	# This "return" is mostly for PSGI
 	return $req->do_reply( $data->{-status}, $headers,

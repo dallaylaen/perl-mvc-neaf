@@ -29,7 +29,7 @@ MVC::Neaf->pre_route( sub {
 
 	if ($path =~ s#^/([a-z][a-z])/#/#) {
 		$req->set_param( lang => $1 );
-		$req->set_path($path);
+		$req->set_full_path($path);
 	};
 });
 
