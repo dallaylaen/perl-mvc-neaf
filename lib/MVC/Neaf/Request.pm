@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0403;
+our $VERSION = 0.0404;
 
 =head1 NAME
 
@@ -641,7 +641,15 @@ They shall not generally be called directly inside the app.
 
 =over
 
+=item * do_get_client_ip()
+
 =item * do_get_method()
+
+=item * do_get_scheme()
+
+=item * do_get_hostname()
+
+=item * do_get_port()
 
 =item * do_get_path()
 
@@ -657,14 +665,9 @@ They shall not generally be called directly inside the app.
 
 =cut
 
-# TODO
-# 	do_get_client_ip
-# 	do_get_hostname
-# 	do_get_port
-# 	do_get_scheme
-
 foreach (qw(
-	do_get_method do_get_path
+	do_get_method do_get_scheme do_get_hostname do_get_port do_get_path
+	do_get_client_ip
 	do_get_params do_get_upload do_get_header_in
 	do_reply )) {
 	my $method = $_;
