@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0401;
+our $VERSION = 0.0402;
 
 =head1 NAME
 
@@ -262,11 +262,52 @@ sub set_default {
 	return $self;
 };
 
+=head2 server_stat ( MVC::Neaf::X::ServerStat->new( ... ) )
+
+Record server performance statistics during run.
+
+The interface of ServerStat is as follows:
+
+    my $stat = MVC::Neaf::X::ServerStat->new (
+		write_threshold_count => 100,
+		write_threshold_time  => 1,
+		on_write => sub {
+			my $array_of_arrays = shift;
+
+			foreach (@$array_of_arrays) {
+				# @$_ = (script_name, http_status,
+				#       controller_duration, total_duration, start_time)
+				# do something with this data
+				warn "$_->[0] returned $_->[1] in $_->[3] sec\n";
+			};
+		},
+	);
+
+on_write will be executed as soon as either count data points are accumulated,
+or time is exceeded by difference between first and last request in batch.
+
+Returns self.
+
+=cut
+
+sub server_stat {
+	my ($self, $obj) = @_;
+	$self = $Inst unless ref $self;
+
+	if ($obj) {
+		$self->{stat} = $obj;
+	} else {
+		delete $self->{stat};
+	};
+
+	return $self;
+};
+
 =head2 run()
 
 Run the applicaton.
 
-Returns a coderef under PSGI.
+Returns a (PSGI-compliant) coderef under PSGI.
 
 =cut
 
@@ -349,7 +390,7 @@ sub handle_request {
 	my ($self, $req) = @_;
 	$self = $Inst unless ref $self;
 
-	exists $self->{stat} and $self->{stat}->record(1);
+	exists $self->{stat} and $self->{stat}->record_start;
 
 	# ROUTE REQUEST
 	my $data = eval {
@@ -380,7 +421,8 @@ sub handle_request {
 
 	# END ROUTE REQUEST
 
-	exists $self->{stat} and $self->{stat}->record(2, $req->script_name);
+	exists $self->{stat}
+		and $self->{stat}->record_controller($req->script_name);
 
 	# PROCESS REPLY
 
@@ -413,7 +455,8 @@ sub handle_request {
 
 	# END PROCESS REPLY
 
-	exists $self->{stat} and $self->{stat}->record(3, $data->{status});
+	exists $self->{stat}
+		and $self->{stat}->record_finish($data->{-status}, $req);
 
 	# This "return" is mostly for PSGI
 	return $req->do_reply( $data->{-status}, $headers,
