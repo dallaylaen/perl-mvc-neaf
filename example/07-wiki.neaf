@@ -1,0 +1,126 @@
+#!/usr/bin/env perl
+
+#####################################################
+#  This example shows a real primitive Wiki engine   #
+#  running under Neaf.                              #
+#  It was originally written to demonstrate          #
+#  the path_info() method.                          #
+#                                                    #
+#  Since it uses no persistent storage,             #
+#  it should be run as one-threaded PSGI app         #
+#  to be of any use.                                #
+######################################################
+
+use strict;
+use warnings;
+use URI::Escape;
+
+# always use latest and gratest libraries, not the system ones
+use FindBin qw($Bin);
+use File::Basename qw(dirname);
+use lib dirname($Bin)."/lib";
+use MVC::Neaf;
+$SIG{__WARN__} = \&Carp::cluck;
+
+# Define some escaping routines first
+# (Should these really be part of # View::TT?)
+# I'm not using HTML::Entities since it's not used
+# in the library itself as of current
+my %replace = (qw( < &lt; > &gt; & &amp; " &quot; ));
+my $replace_re = join "", "[", keys %replace, "]";
+$replace_re = qr/$replace_re/;
+sub html {
+	my $str = shift;
+	$str =~ s/($replace_re)/$replace{$1}/g;
+	return $str;
+};
+sub uri {
+	return uri_escape_utf8(shift);
+};
+MVC::Neaf->set_default( uri => \&uri );
+MVC::Neaf->set_default( html => \&html );
+
+# Now some templates.
+# The head/foot part is also TDB in View::TT.
+my $head = <<"TT";
+<html>
+<head>
+	<title>[% html(topic) %] - [% action %]</title>
+</head>
+<html>
+<h1>[% html(topic) %]</h1>
+TT
+
+my $show = <<"TT";
+$head
+<a href="/edit?topic=[% uri(topic) %]">
+	[%- IF article %]Edit[% ELSE %]Start[% END %]</a></br>
+<div>
+[% article %]
+</div>
+TT
+
+my $edit = <<"TT";
+$head
+<form method="POST" action="/update">
+<input type="hidden" name="topic" value="[% html(topic) %]"><br>
+<textarea name="article" rows="10" cols="65">[% html(article) %]</textarea><br>
+<input type="submit" value="Save">
+</form>
+TT
+
+# Your favourite key-value persistent storage should be here!
+my %art;
+
+# Display article
+MVC::Neaf->route( wiki => sub {
+	my $req = shift;
+
+	# This whole 100+-line example was made for the next line!
+	my $topic = $req->path_info(1);
+
+	# Get some wiki formatting. Don't want to spend too much on it.
+	my $article = $art{$topic} || '';
+	$article =~ s#\s*\n\s*\n\s*#\n<br><br>\n#gs; # tex paragraph
+	$article =~ s#\[([^\]]+)\]#'<a href="/wiki/'.uri($1).'">'.html($1).'</a>'#ge; # links
+
+	return {
+		-template => \$show,
+		topic => $topic,
+		action => "Wiki",
+		article => $article,
+	};
+});
+
+# Update article - POST only, redirect in the end.
+MVC::Neaf->route( update => sub {
+	my $req = shift;
+
+	$req->method eq 'POST' or die 404;
+
+	my $topic = $req->param( topic => '[^<>&]+' );
+	my $article = $req->param( article => '.*', undef );
+	length $topic and defined $article or die 422;
+
+	$art{$topic} = $article;
+	$req->redirect( "/wiki/" . uri( $topic ) );
+});
+
+# Edit article. Not really much to discuss here...
+MVC::Neaf->route( edit => sub {
+	my $req = shift;
+
+    my $topic = $req->param( topic => '[^<>&]+' );
+	my $article = $art{$topic};
+	length $topic or die 422;
+
+	return {
+		-template => \$edit,
+		article => $article,
+		action => "Edit",
+		topic => $topic,
+	};
+});
+
+# Bring the whole thing together.
+MVC::Neaf->run;
