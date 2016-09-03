@@ -8,6 +8,15 @@ use FindBin qw($Bin);
 use File::Basename qw(dirname);
 use lib dirname($Bin)."/lib";
 use MVC::Neaf;
+use MVC::Neaf::X::ServerStat;
+
+MVC::Neaf->server_stat( MVC::Neaf::X::ServerStat->new (
+	on_write => sub {
+		foreach (@{ +shift }) {
+			warn "STAT $_->[0] returned $_->[1] in $_->[3] sec\n";
+		};
+	},
+));
 
 my $tpl = <<"TT";
 <h1>Hello, [% name %]!</h1>
@@ -30,6 +39,8 @@ MVC::Neaf->route( "/" => sub {
 		-callback => $jsonp,
 	};
 });
+
+$SIG{INT} = sub { exit; }; # Civilized shutdown if interrupted
 
 MVC::Neaf->run;
 
