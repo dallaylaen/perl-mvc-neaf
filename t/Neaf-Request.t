@@ -40,5 +40,11 @@ is_deeply ( \@form_l, [ 42, undef, undef, undef ], "List form validation" );
 @form_l = $req->get_form_as_list( [ '\d+', -1 ], qw(x y z t) );
 is_deeply ( \@form_l, [ 42, -1, -1, -1 ], "List form validation w/default" );
 
+my $flag = 0;
+$req->postpone( sub { $flag++ } );
+is ($flag, 0, "postpone(): no immediate effect");
+
+undef $req;
+is ($flag, 1, "postpone(): executed in destroy");
 
 done_testing;

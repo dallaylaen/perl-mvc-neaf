@@ -11,7 +11,7 @@ MVC::Neaf::Request::PSGI - Not Even A Framework: PSGI driver.
 
 =cut
 
-our $VERSION = 0.0401;
+our $VERSION = 0.0402;
 use URI::Escape qw(uri_unescape);
 use Encode;
 use Plack::Request;
@@ -133,6 +133,22 @@ sub do_reply {
 
 	# HACK - we're being returned by handler in MVC::Neaf itself in case of
 	# PSGI being used.
+
+	if ($self->{postponed}) {
+		# Even hackier HACK. If we have a postponed action,
+		# we must use PSGI functional interface to ensure
+		# reply is sent to client BEFORE
+		# postponed calls get executed.
+		return sub {
+			my $responder = shift;
+			my $writer = $responder->( [ $status, \@header_array ] );
+			$writer->write( $content );
+			$writer->close;
+			$self->execute_postponed;
+		};
+	};
+
+	# Otherwise just return plain data.
 	return [ $status, \@header_array, [ $content ]];
 };
 

@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0404;
+our $VERSION = 0.0405;
 
 =head1 NAME
 
@@ -630,6 +630,66 @@ sub user_agent {
 			unless exists $self->{user_agent};
 		return $self->{user_agent};
 	};
+};
+
+=head2 postpone( CODEREF->(req) )
+
+Execute a function right after the request is served.
+
+Can be called multiple times.
+
+B<CAVEAT>: If CODEREF contains reference to the request,
+the request will never be destroyed due to circular reference.
+Thus CODEREF may not be executed.
+
+Don't pass request to CODEREF, use C<my $req = shift>
+instead if really needed.
+
+Returns self.
+
+=cut
+
+sub postpone {
+	my ($self, $code) = @_;
+
+	ref $code eq 'CODE'
+		or croak( (ref $self)."->postpone(): argument must be a function" );
+
+	push @{ $self->{postpone} }, $code;
+	return $self;
+};
+
+=head2 execute_postponed()
+
+NOT TO BE CALLED BY USER.
+
+Execute postponed functions. This is called in DESTROY by default,
+but request driver may decide it knows better.
+
+Flushes postponed queue. Ignores exceptions in functions being executed.
+
+Returns self.
+
+=cut
+
+sub execute_postponed {
+	my $self = shift;
+
+	my $todo = delete $self->{postpone};
+	foreach my $code (@$todo) {
+		# avoid dying in DESTROY, as well as when serving request.
+		eval { $code->($self); };
+		carp "WARN ".(ref $self).": postponed action failed: $@"
+			if $@;
+	};
+	return $self;
+};
+
+sub DESTROY {
+	my $self = shift;
+
+	$self->execute_postponed
+		if (exists $self->{postpone});
 };
 
 =head1 DRIVER METHODS
