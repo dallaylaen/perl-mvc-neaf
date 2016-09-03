@@ -13,14 +13,15 @@
 
 use strict;
 use warnings;
+use FindBin qw($Bin);
 use URI::Escape;
+use JSON::XS;
 
 # always use latest and gratest libraries, not the system ones
 use FindBin qw($Bin);
 use File::Basename qw(dirname);
 use lib dirname($Bin)."/lib";
 use MVC::Neaf;
-$SIG{__WARN__} = \&Carp::cluck;
 
 # Define some escaping routines first
 # (Should these really be part of # View::TT?)
@@ -48,7 +49,11 @@ my $head = <<"TT";
 	<title>[% html(topic) %] - [% action %]</title>
 </head>
 <html>
-<h1>[% html(topic) %]</h1>
+[% IF topic %]<h1>[% html(topic) %]</h1>[% END %]
+<form method="GET" action="/search">
+	<input name="q"[% IF query %] value="[% html(query) %][% END %]">
+	<input type="submit" value="Search!">
+</form>
 TT
 
 my $show = <<"TT";
@@ -69,8 +74,45 @@ $head
 </form>
 TT
 
+my $search = <<"TT";
+$head
+<ol>
+[% FOREACH item IN result %]
+	<li><a href="/wiki/[% uri(item.0) %]">
+		[% html( item.1 ) %]
+		<span style="color: red">[% html( item.2 ) %]</span>
+		[% html( item.3 ) %]
+	</a></li>
+[% END %]
+</ol>
+TT
+
 # Your favourite key-value persistent storage should be here!
-my %art;
+my $art = {};
+
+# Load-save data to a plain file between runs.
+my $save = "$Bin/nocommit-07-save.js";
+$SIG{INT} = sub { exit(0); }; # exit normally on interrupt
+if (-f $save) {
+	eval {
+		open my $fd, "<", $save
+			or die "$!: $save";
+		local $/;
+		$art = decode_json(<$fd>);
+	};
+	warn "Going without content: load failed: $@"
+		if $@;
+};
+END {
+	eval {
+		open my $fd, ">", $save
+			or die "$!: $save";
+		print $fd encode_json($art);
+		close $fd or die "$!: $save";
+	};
+	warn "Couldn't save content: $@"
+		if $@;
+};
 
 # Display article
 MVC::Neaf->route( wiki => sub {
@@ -80,7 +122,7 @@ MVC::Neaf->route( wiki => sub {
 	my $topic = $req->path_info(1);
 
 	# Get some wiki formatting. Don't want to spend too much on it.
-	my $article = $art{$topic} || '';
+	my $article = $art->{$topic} || '';
 	$article =~ s#\s*\n\s*\n\s*#\n<br><br>\n#gs; # tex paragraph
 	$article =~ s#\[([^\]]+)\]#'<a href="/wiki/'.uri($1).'">'.html($1).'</a>'#ge; # links
 
@@ -102,7 +144,7 @@ MVC::Neaf->route( update => sub {
 	my $article = $req->param( article => '.*', undef );
 	length $topic and defined $article or die 422;
 
-	$art{$topic} = $article;
+	$art->{$topic} = $article;
 	$req->redirect( "/wiki/" . uri( $topic ) );
 });
 
@@ -111,7 +153,7 @@ MVC::Neaf->route( edit => sub {
 	my $req = shift;
 
     my $topic = $req->param( topic => '[^<>&]+' );
-	my $article = $art{$topic};
+	my $article = $art->{$topic};
 	length $topic or die 422;
 
 	return {
@@ -119,6 +161,30 @@ MVC::Neaf->route( edit => sub {
 		article => $article,
 		action => "Edit",
 		topic => $topic,
+	};
+});
+
+# Make the wiki searchable
+MVC::Neaf->route( search => sub {
+	my $req = shift;
+
+	my $q = $req->param( q => qr/.*/ );
+	$q =~ s/\s+/\\s+/g;
+	$q =~ s/\(/\(?:/g;
+
+	my @ret;
+	foreach (keys %$art) {
+		/^(.*?)($q)(.*)$/ or $art->{$_} =~ /(.{0,40})($q)(.{0,40})/s or next;
+
+		push @ret, [ $_, $1, $2, $3 ];
+	};
+
+	return {
+		-template => \$search,
+		query => $q,
+		result => \@ret,
+		topic => "Search results for \"$q\"",
+		action => "Wiki",
 	};
 });
 
