@@ -3,7 +3,7 @@ package MVC::Neaf::Request::CGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.0401;
+our $VERSION = 0.0402;
 use Carp;
 use Encode;
 use HTTP::Headers;
@@ -38,6 +38,55 @@ Return GET/POST.
 sub do_get_method {
 	my $self = shift;
 	return $self->{driver}->request_method;
+};
+
+=head2 do_get_http_version
+
+HTTP/1.0 or HTTP/1.1
+
+B<NOTE> This currently returns based on the presence of Host header,
+which is a HACK. Haven't found a better way yet...
+
+=cut
+
+sub do_get_http_version {
+	my $req = shift;
+
+	return $req->header_in("host") ? "1.1" : "1.0";
+};
+
+=head2 do_get_scheme
+
+Returns http or https.
+
+=cut
+
+sub do_get_scheme {
+	my $self = shift;
+	my @arr = $self->{driver}->https;
+	return @arr ? "https" : "http";
+};
+
+=head2 do_get_hostname
+
+Returns server hostname.
+
+=cut
+
+sub do_get_hostname {
+	my $self = shift;
+	return $self->{driver}->server_name;
+};
+
+=head2 do_get_port
+
+Returns server port.
+
+=cut
+
+sub do_get_port {
+	my $self = shift;
+	return $self->{driver}->server_port;
 };
 
 =head2 do_get_params
