@@ -10,7 +10,7 @@ For the lazy, by the lazy.
 **Model** is assumed to be a regular Perl module, and is totally out of scope.
 
 **View** is assumed to have just one method, `render()`,
-which receives a hashref and returns rendered context as scalar.
+which receives a hashref and returns a pair of (content, content-type).
 
 **Controller** is reduced to just one function, which gets a request object
 and is expected to return a hashref.
