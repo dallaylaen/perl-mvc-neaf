@@ -3,7 +3,7 @@ package MVC::Neaf::Request::Apache2;
 use strict;
 use warnings;
 
-our $VERSION = 0.0404;
+our $VERSION = 0.0405;
 
 =head1 NAME
 
@@ -65,6 +65,8 @@ if (%fail_apache) {
             ."apache modules failed to load on startup: "
             . join ", ", keys %fail_apache);
     };
+} else {
+    Apache2::Const->import( -compile => 'OK' );
 };
 
 use MVC::Neaf;
