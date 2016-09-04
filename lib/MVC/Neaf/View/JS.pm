@@ -3,7 +3,7 @@ package MVC::Neaf::View::JS;
 use strict;
 use warnings;
 
-our $VERSION = 0.05;
+our $VERSION = 0.0501;
 
 =head1 NAME
 
@@ -26,16 +26,24 @@ instead or rendering a template.
 
 use JSON::XS;
 
+use parent qw(MVC::Neaf::View);
+
 my $codec = JSON::XS->new->allow_blessed->convert_blessed;
 my $jsonp_re = qr/^(?:[A-Z_a-z][A-Z_a-z\d]*)(?:\.(?:[A-Z_a-z][A-Z_a-z\d]*))*$/;
 
-=head2 show( \%data )
+=head2 new( %options )
+
+
+
+=cut
+
+=head2 render( \%data )
 
 Returns a scalar with JSON-encoded data.
 
 =cut
 
-sub show {
+sub render {
     my ($self, $data) = @_;
 
     my $callback = $data->{-callback};
@@ -44,13 +52,15 @@ sub show {
     # TODO sanitize data in a more efficient way
     my %copy;
     foreach (keys %$data) {
-        /^-/ or $copy{$_} = $data->{$_};
+        /^-/ and next;
+        ref $data->{$_} eq 'CODE' and next;
+        $copy{$_} = $data->{$_};
     };
 
     my $content = $codec->encode( \%copy );
     return $callback && $callback =~ $jsonp_re
-        ? ("$callback($content);", "application/json; charset=utf-8")
-        : ($content, "application/javascript; charset=utf-8");
+        ? ("$callback($content);", "application/javascript; charset=utf-8")
+        : ($content, "application/json; charset=utf-8");
 };
 
 1;

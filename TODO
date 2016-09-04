@@ -1,21 +1,24 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.03    0.06    API Unspecified length reply - -download => sub { ... }
 0.01    0.06    MOD Session - cookie-based + BE callbacks - N::Session + N::Session::Store
 0.03    0.06    REF Make view real objects, rename show to render, can sub {}
 0.01    0.06    TST Unit tests for what can be tested
 0.01    0.06    API Route-based defaults, cached view objs
 0.01    0.06    REF Own exception class for signalling
+0.05    0.06    DOC Update README
 
 -- backlog --
-0.03    0.10    API Add form pre-validatoin to route() [see Input::Validator]
+0.05    0.20    TST smoke test for all examples under different servers
+0.03    0.10    API Unspecified length reply - -download => sub { ... }
+0.03    0.10    API Form validatoin in route() [Input::Validator? LIVR?]
 0.03    0.10    NET Content-Length header - read on it
+0.02    0.10    MOD Add enveloping, dumper to TT view
+0.05    0.10    REF Use THHP::Headers everywhere, remove wheels.
 0.03    0.90    REF Split core into route_request and process_reply
 0.04    0.90    REF Req https detection: change to is_secure? http:https.
 0.01    0.90    DEV REPL - MVC::Neaf::Cli? with term session etc
 0.02    0.90    REF Allow overriding route of existing app
-0.02    0.10    MOD Add enveloping, dumper to TT view
 0.02    0.90    MOD Add TT caching
 
 -- think --

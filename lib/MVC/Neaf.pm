@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.05;
+our $VERSION = 0.0501;
 
 =head1 NAME
 
@@ -23,7 +23,7 @@ The Controller is reduced to just one function which receives a Request object
 and returns a \%hashref with a mix
 of actual data and minus-prefixed control parameters.
 
-The View is expected to have one method, C<show>, receiving such hash
+The View is expected to have one method, C<render>, receiving such hash
 and returning scalar of rendered context.
 
 The principals of Neaf are as follows:
@@ -242,12 +242,12 @@ sub load_view {
         if exists $self->{seen_view}{$view};
 
     $module ||= $known_view{ $view } || $view;
-    eval "require $module" ## no critic
-        unless ref $module;
-
-    # TODO report app error if during request
-    croak "Failed to load view $view: $@"
-        if $@;
+    if (!ref $module) {
+        eval "require $module"; ## no critic
+        croak "Failed to load view $view: $@"
+            if $@;
+        $module = $module->new;
+    };
 
     $self->{seen_view}{$view} = $module;
 
@@ -522,7 +522,7 @@ sub handle_request {
     } else {
         # TODO route defaults, global default
         my $view = $self->load_view( $data->{-view} );
-        eval { ($content, $type) = $view->show( $data ); };
+        eval { ($content, $type) = $view->render( $data ); };
         if (!defined $content) {
             warn "ERROR: In view: $@";
             $data = {

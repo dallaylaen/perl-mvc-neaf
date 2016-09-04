@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.05;
+our $VERSION = 0.0501;
 
 =head1 NAME
 
@@ -27,23 +27,44 @@ MVC::Neaf::View::TT - Template toolkit-based view module for Neaf.
 use Carp;
 use Template;
 
-=head2 show( \%data )
+use parent qw(MVC::Neaf::View);
 
-Returns processed data.
+=head2 new( %options )
+
+
 
 =cut
 
-my $tt = Template->new;
+sub new {
+    my ($class, %opt) = @_;
 
-sub show {
+    # TODO some options for template, eh?
+    $opt{engine} ||= Template->new;
+
+    return $class->SUPER::new(%opt);
+};
+
+=head2 render( \%data )
+
+Returns a pair of values: ($content, $content_type).
+
+Content-type defaults to text/html.
+
+The template is determined from (1) -template in data (2) template in new().
+If neither is present, empty string and "text/plain" are returned.
+
+=cut
+
+sub render {
     my ($self, $data) = @_;
 
-    my $template = $data->{-template};
-    return '' unless $template;
+    my $template = $data->{-template} || $self->{template};
+    return ('', "text/plain")
+        unless $template;
 
     my $out;
-    $tt->process( $template, $data, \$out )
-        or die $tt->error;
+    $self->{engine}->process( $template, $data, \$out )
+        or croak $self->{engine}->error;
 
     return ($out, "text/html");
 };
