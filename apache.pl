@@ -20,14 +20,14 @@ use Time::HiRes qw(sleep);
 # Some config here
 # /forms/ is just the same, but does not spoil our shiny index
 my %cgi = (qw(
-	01-get 01-hello-get.neaf
-	02-post 02-cookie-post-redirect.neaf
-	forms/02-post 02-cookie-post-redirect.neaf
-	03-upload 03-upload.neaf
-	04-image 04-raw-content.neaf
-	forms/04-img 04-raw-content.neaf
-	08-header 08-header.neaf
-	09-request 09-request.neaf
+	01-get 01-hello-get.pl
+	02-post 02-cookie-post-redirect.pl
+	forms/02-post 02-cookie-post-redirect.pl
+	03-upload 03-upload.pl
+	04-image 04-raw-content.pl
+	forms/04-img 04-raw-content.pl
+	08-header 08-header.pl
+	09-request 09-request.pl
 ));
 # skipping 05-lang for now - won't work under apache as CGI
 my $dir = "$Bin/nocommit-apache";
@@ -62,14 +62,14 @@ ErrorLog [% dir %]/error.log
 Alias /forms [% dir %]/forms
 <Directory [% dir %]/forms>
 	SetEnv PERL5LIB [% lib %]
-	AddHandler cgi-script cgi pl neaf
+	AddHandler cgi-script cgi pl
 	Options +Indexes +ExecCGI +FollowSymlinks
 </Directory>
 
 Alias /cgi [% dir %]/cgi
 <Directory [% dir %]/cgi>
 	SetEnv PERL5LIB [% lib %]
-	AddHandler cgi-script cgi pl neaf
+	AddHandler cgi-script cgi pl
 	Options +Indexes +ExecCGI +FollowSymlinks
 </Directory>
 
@@ -77,15 +77,15 @@ Alias /cgi [% dir %]/cgi
 #   mod_perl part  #
 ####################
 PerlModule MVC::Neaf
-# PerlPostConfigRequire [% parent %]/example/01-hello-get.neaf
-# PerlPostConfigRequire [% parent %]/example/03-upload.neaf
+# PerlPostConfigRequire [% parent %]/example/01-hello-get.pl
+# PerlPostConfigRequire [% parent %]/example/03-upload.pl
 # <Location /perl>
 #    SetHandler perl-script
 #	PerlResponseHandler MVC::Neaf::Request::Apache2
 # </Location>
 
 PerlSetEnv EXAMPLE_PATH_REQUEST /request/parser
-PerlPostConfigRequire [% parent %]/example/09-request.neaf
+PerlPostConfigRequire [% parent %]/example/09-request.pl
 <Location /request/parser>
     SetHandler perl-script
     PerlResponseHandler MVC::Neaf::Request::Apache2
@@ -186,7 +186,7 @@ sub wait_for_port {
 	my ($port, $on_off) = @_;
 
 	local $SIG{ALRM} = sub { die "Failed to wait for socket to "
-		.$on_off ? "start" : "stop" };
+		.($on_off ? "start" : "stop") };
 	alarm 10;
 
 	while ( 1 ) {

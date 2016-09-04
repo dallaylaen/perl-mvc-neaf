@@ -15,7 +15,7 @@ check_fail () {
 # find files affected by commit
 # exclude deleted files
 FILES=`(git diff --cached --name-only --diff-filter=A; git diff --cached --name-only) |\
-	egrep '\.cgi$|\.pl$|\.t$|\.pm$|\.psgi$|\.neaf$' | sort -u `
+	egrep '\.cgi$|\.pl$|\.t$|\.pm$|\.psgi$' | sort -u `
 # echo "Commit (w/deleted): $FILES"
 
 FILES=`for i in $FILES; do [ -f "$i" ] && echo "$i"; done`
