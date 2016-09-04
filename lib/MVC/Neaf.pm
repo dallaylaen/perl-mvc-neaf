@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0402;
+our $VERSION = 0.0403;
 
 =head1 NAME
 
@@ -303,6 +303,27 @@ sub server_stat {
 	return $self;
 };
 
+=head2 on_error( sub { my ($req, $err) = @_ } )
+
+Install custom error handler (e.g. write to log).
+
+=cut
+
+sub on_error {
+	my ($self, $code) = @_;
+	$self = $Inst unless ref $self;
+
+	if (defined $code) {
+		ref $code eq 'CODE'
+			or croak( (ref $self)."->on_error: argument MUST be a callback" );
+		$self->{on_error} = $code;
+	} else {
+		delete $self->{on_error};
+	};
+
+	return $self;
+};
+
 =head2 run()
 
 Run the applicaton.
@@ -375,6 +396,12 @@ sub new {
 	$opt{-type}     ||= "text/html";
 	$opt{-view}     ||= "TT";
 	$opt{defaults}  ||= { -status => 200 };
+	$opt{on_error}  ||= sub {
+		my ($req, $err, $where) = @_;
+		my $msg = "ERROR: ".$req->script_name.": $err";
+		$msg .= " in $where->[0] line $where->[1]" if $where;
+		warn "$msg\n";
+	};
 
 	return bless \%opt, $class;
 };
@@ -416,7 +443,7 @@ sub handle_request {
 		exists $data->{$_} or $data->{$_} = $GD->{$_} for keys %$GD;
 	} else {
 		# Fall back to error page
-		$data = _error_to_reply( $@ );
+		$data = $self->_error_to_reply( $req, $@ );
 	};
 
 	# END ROUTE REQUEST
@@ -464,7 +491,7 @@ sub handle_request {
 }; # End handle_request()
 
 sub _error_to_reply {
-	my ($err, $where) = @_;
+	my ($self, $req, $err, $where) = @_;
 
 	if (ref $err eq 'HASH') {
 		# TODO use own excp class
@@ -473,13 +500,8 @@ sub _error_to_reply {
 	} else {
 		my $status = (!ref $err && $err =~ /^(\d\d\d)/) ? $1 : 500;
 		if( !$1 ) {
-			# TODO error reporting CB?
-			my $warn = "ERROR: $err";
-			if ($where) {
-				$warn =~ s/\n+$//s;
-				$warn .= " in controller at $where->[0] line $where->[1]\n";
-			};
-			warn $warn;
+			exists $self->{on_error}
+				and $self->{on_error}->($req, $err, $where);
 		};
 
 		return {
