@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0503;
+our $VERSION = 0.0504;
 
 =head1 NAME
 
@@ -571,8 +571,7 @@ sub handle_request {
 sub _error_to_reply {
     my ($self, $req, $err, $where) = @_;
 
-    if (ref $err eq 'HASH') {
-        # TODO use own excp class
+    if (blessed $err and $err->isa("MVC::Neaf::Exception")) {
         $err->{-status} ||= 500;
         return $err;
     };

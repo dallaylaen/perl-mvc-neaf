@@ -40,6 +40,12 @@ is_deeply ( \@form_l, [ 42, undef, undef, undef ], "List form validation" );
 @form_l = $req->get_form_as_list( [ '\d+', -1 ], qw(x y z t) );
 is_deeply ( \@form_l, [ 42, -1, -1, -1 ], "List form validation w/default" );
 
+eval {
+    $req->redirect("https://spacex.com");
+};
+is (ref $@, "MVC::Neaf::Exception", "Redirect throws an MVC::Neaf::Exception" );
+like ($@, qr/^MVC::Neaf/, "Exception tells who it is");
+
 my $flag = 0;
 $req->postpone( sub { $flag++ } );
 is ($flag, 0, "postpone(): no immediate effect");

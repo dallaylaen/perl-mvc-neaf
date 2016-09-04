@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.05;
+our $VERSION = 0.0501;
 
 =head1 NAME
 
@@ -46,6 +46,7 @@ use POSIX qw(strftime);
 use Encode;
 
 use MVC::Neaf::Upload;
+use MVC::Neaf::Exception;
 
 =head2 new( %args )
 
@@ -545,20 +546,51 @@ sub format_cookies {
     return \@out;
 };
 
+=head2 error ( status )
+
+Report error to the CORE.
+
+This throws an MVC::Neaf::Exception object.
+
+If you're planning calling $req->error within eval block,
+consider using neaf_err function to let it propagate:
+
+    use MVC::Neaf::Exception qw(neaf_err);
+
+    eval {
+        $req->error(422)
+            if ($foo);
+        $req->redirect( "http://google.com" )
+            if ($bar);
+    };
+    if ($@) {
+        neaf_err($@);
+        # The rest of the catch block
+    };
+
+=cut
+
+sub error {
+    my $self = shift;
+    die MVC::Neaf::Exception->new(@_);
+};
 
 =head2 redirect( $location )
 
-Redirect to a new location, currently by dying.
+Redirect to a new location.
+
+This throws an MVC::Neaf::Exception object.
+See C<error()> dsicussion above.
 
 =cut
 
 sub redirect {
     my ($self, $location) = @_;
 
-    die {
+    die MVC::Neaf::Exception->new(
         -status => 302,
         -location => $location,
-    };
+    );
 };
 
 =head2 header_in()

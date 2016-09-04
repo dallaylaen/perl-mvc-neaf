@@ -2,12 +2,12 @@ SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
 0.01    0.06    MOD Session - cookie-based + BE callbacks - N::Session + N::Session::Store
-0.01    0.06    TST Unit tests for what can be tested
-0.01    0.06    API Route-based defaults, cached view objs
 0.01    0.06    REF Own exception class for signalling
 0.05    0.06    DOC Update README
 
 -- backlog --
+0.01    0.20    API Route-based defaults - do we even need it??
+0.01    0.20    TST Unit tests - get 70% coverage
 0.05    0.20    TST smoke test for all examples under different servers
 0.03    0.10    API Unspecified length reply - -download => sub { ... }
 0.03    0.10    API Form validatoin in route() [Input::Validator? LIVR?]
@@ -21,5 +21,5 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.02    0.90    MOD Add TT caching
 
 -- think --
-0.01    0.99    MOD Seamless caching
+0.01    0.99    MOD Caching: LIVR form( key present, nocache missing) => sub{}
 0.04    0.99    MOD CGI wrapper: use wrapper; route(/) {...}; run();
