@@ -3,7 +3,7 @@ package MVC::Neaf::Request::Apache2;
 use strict;
 use warnings;
 
-our $VERSION = 0.0402;
+our $VERSION = 0.0403;
 
 =head1 NAME
 
@@ -20,17 +20,17 @@ BOTH Apache2::RequestRec and Apache2::Request from libapreq.
 
 The following apache configuration should work with this module:
 
-	LoadModule perl_module        modules/mod_perl.so
-		PerlSwitches -I[% YOUR_LIB_DIRECTORY %]
-	LoadModule apreq_module       [% modules %]/mod_apreq2.so
+    LoadModule perl_module        modules/mod_perl.so
+        PerlSwitches -I[% YOUR_LIB_DIRECTORY %]
+    LoadModule apreq_module       [% modules %]/mod_apreq2.so
 
-	# later...
-	PerlModule MVC::Neaf::Request::Apache2
-	PerlPostConfigRequire [% YOUR_APPLICATION %]
-	<Location /[% SOME_URL_PREFIX %]>
-		SetHandler perl-script
-		PerlResponseHandler MVC::Neaf::Request::Apache2
-	</Location>
+    # later...
+    PerlModule MVC::Neaf::Request::Apache2
+    PerlPostConfigRequire [% YOUR_APPLICATION %]
+    <Location /[% SOME_URL_PREFIX %]>
+        SetHandler perl-script
+        PerlResponseHandler MVC::Neaf::Request::Apache2
+    </Location>
 
 =head1 METHODS
 
@@ -55,10 +55,10 @@ use parent qw(MVC::Neaf::Request);
 =cut
 
 sub do_get_client_ip {
-	my $self = shift;
+    my $self = shift;
 
-	my $conn = $self->{driver_raw}->connection;
-	return $conn->remote_ip;
+    my $conn = $self->{driver_raw}->connection;
+    return $conn->remote_ip;
 };
 
 =head2 do_get_http_version
@@ -66,10 +66,10 @@ sub do_get_client_ip {
 =cut
 
 sub do_get_http_version {
-	my $self = shift;
-	my $proto = $self->{driver_raw}->proto_num;
-	$proto =~ /^\D*(\d+?)\D*(\d\d?\d?)$/;
-	return join ".", 0+$1, 0+$2;
+    my $self = shift;
+    my $proto = $self->{driver_raw}->proto_num;
+    $proto =~ /^\D*(\d+?)\D*(\d\d?\d?)$/;
+    return join ".", 0+$1, 0+$2;
 };
 
 =head2 do_get_scheme
@@ -77,11 +77,11 @@ sub do_get_http_version {
 =cut
 
 sub do_get_scheme {
-	my $self = shift;
+    my $self = shift;
 
-	# Shamelessly stolen from Catalyst
-	my $https = $self->{driver_raw}->subprocess_env('HTTPS');
-	return $https and uc $https eq 'ON' ? "https" : "http";
+    # Shamelessly stolen from Catalyst
+    my $https = $self->{driver_raw}->subprocess_env('HTTPS');
+    return $https and uc $https eq 'ON' ? "https" : "http";
 };
 
 =head2 do_get_hostname
@@ -89,8 +89,8 @@ sub do_get_scheme {
 =cut
 
 sub do_get_hostname {
-	my $self = shift;
-	return $self->{driver_raw}->hostname;
+    my $self = shift;
+    return $self->{driver_raw}->hostname;
 };
 
 =head2 do_get_port()
@@ -98,10 +98,10 @@ sub do_get_hostname {
 =cut
 
 sub do_get_port {
-	my $self = shift;
+    my $self = shift;
 
-	my $conn = $self->{driver_raw}->connection;
-	return $conn->local_addr->port;
+    my $conn = $self->{driver_raw}->connection;
+    return $conn->local_addr->port;
 };
 
 =head2 do_get_method()
@@ -109,9 +109,9 @@ sub do_get_port {
 =cut
 
 sub do_get_method {
-	my $self = shift;
+    my $self = shift;
 
-	return $self->{driver_raw}->method;
+    return $self->{driver_raw}->method;
 };
 
 =head2 do_get_path()
@@ -119,9 +119,9 @@ sub do_get_method {
 =cut
 
 sub do_get_path {
-	my $self = shift;
+    my $self = shift;
 
-	return $self->{driver_raw}->uri;
+    return $self->{driver_raw}->uri;
 };
 
 =head2 do_get_params()
@@ -129,13 +129,13 @@ sub do_get_path {
 =cut
 
 sub do_get_params {
-	my $self = shift;
+    my $self = shift;
 
-	my %hash;
-	my $r = $self->{driver};
-	$hash{$_} = $r->param($_) for $r->param;
+    my %hash;
+    my $r = $self->{driver};
+    $hash{$_} = $r->param($_) for $r->param;
 
-	return \%hash;
+    return \%hash;
 };
 
 =head2 do_get_header_in()
@@ -143,15 +143,15 @@ sub do_get_params {
 =cut
 
 sub do_get_header_in {
-	my $self = shift;
+    my $self = shift;
 
-	my %head;
-	$self->{driver_raw}->headers_in->do( sub {
-		my ($key, $val) = @_;
-		push @{ $head{$key} }, $val;
-	});
+    my %head;
+    $self->{driver_raw}->headers_in->do( sub {
+        my ($key, $val) = @_;
+        push @{ $head{$key} }, $val;
+    });
 
-	return HTTP::Headers->new( %head );
+    return HTTP::Headers->new( %head );
 };
 
 =head2 do_get_upload( "name" )
@@ -161,16 +161,16 @@ Convert apache upload object into MCV::Neaf::Upload.
 =cut
 
 sub do_get_upload {
-	my ($self, $name) = @_;
+    my ($self, $name) = @_;
 
-	my $r = $self->{driver};
-	my $upload = $r->upload($name);
+    my $r = $self->{driver};
+    my $upload = $r->upload($name);
 
-	return $upload ? {
-		handle => $upload->fh,
-		tempfile => $upload->tempname,
-		filename => $upload->filename,
-	} : ();
+    return $upload ? {
+        handle => $upload->fh,
+        tempfile => $upload->tempname,
+        filename => $upload->filename,
+    } : ();
 };
 
 =head2 do_reply( $status, \%headers, $content )
@@ -178,22 +178,22 @@ sub do_get_upload {
 =cut
 
 sub do_reply {
-	my ($self, $status, $header, $content) = @_;
+    my ($self, $status, $header, $content) = @_;
 
-	my $r = $self->{driver_raw};
+    my $r = $self->{driver_raw};
 
-	$r->status( $status );
-	$r->content_type( delete $header->{'Content-Type'} );
+    $r->status( $status );
+    $r->content_type( delete $header->{'Content-Type'} );
 
-	my $head = $r->headers_out;
-	foreach my $name (keys %$header) {
-		my $val = $header->{$name};
-		$val = [ $val ]
-			if (ref $val ne 'ARRAY');
-		$head->add( $name, $_ ) for @$val;
-	};
+    my $head = $r->headers_out;
+    foreach my $name (keys %$header) {
+        my $val = $header->{$name};
+        $val = [ $val ]
+            if (ref $val ne 'ARRAY');
+        $head->add( $name, $_ ) for @$val;
+    };
 
-	$r->print( $content );
+    $r->print( $content );
 };
 
 =head2 handler( $apache_request )
@@ -207,15 +207,15 @@ Unfortunately, libapreq (in addition to mod_perl) is required currently.
 =cut
 
 sub handler : method {
-	my ($class, $r) = @_;
+    my ($class, $r) = @_;
 
-	my $self = $class->new(
-		driver_raw => $r,
-		driver => Apache2::Request->new($r),
-	);
-	my $reply = MVC::Neaf->handle_request( $self );
+    my $self = $class->new(
+        driver_raw => $r,
+        driver => Apache2::Request->new($r),
+    );
+    my $reply = MVC::Neaf->handle_request( $self );
 
-	return Apache2::Const::OK;
+    return Apache2::Const::OK;
 };
 
 1;

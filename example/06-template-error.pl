@@ -10,9 +10,9 @@ use lib dirname($Bin)."/lib";
 use MVC::Neaf;
 
 MVC::Neaf->route( "/" => sub {
-	return {
-		-template => \"[% IF %]", # this dies
-	};
+    return {
+        -template => \"[% IF %]", # this dies
+    };
 });
 
 MVC::Neaf->run;

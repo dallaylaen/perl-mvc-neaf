@@ -11,8 +11,8 @@ use MVC::Neaf::Request;
 my $copy = uri_unescape( "%C2%A9" ); # a single (c) symbol
 
 my $req = MVC::Neaf::Request->new(
-	all_params => { x => 42 },
-	neaf_cookie_in => { cook => $copy },
+    all_params => { x => 42 },
+    neaf_cookie_in => { cook => $copy },
 );
 $req->set_full_path("/foo/bar");
 

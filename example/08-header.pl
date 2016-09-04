@@ -10,13 +10,13 @@ use lib dirname($Bin)."/lib";
 use MVC::Neaf;
 
 MVC::Neaf->route( "/" => sub {
-	my $req = shift;
+    my $req = shift;
 
-	return {
-		-type => "text/plain",
-		-content => join( ";", $req->header_in_keys ). "\n\n"
-			. $req->header_in->as_string,
-	};
+    return {
+        -type => "text/plain",
+        -content => join( ";", $req->header_in_keys ). "\n\n"
+            . $req->header_in->as_string,
+    };
 } );
 
 MVC::Neaf->run;

@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0405;
+our $VERSION = 0.0406;
 
 =head1 NAME
 
@@ -47,18 +47,18 @@ either from under a plack server, or as a standalone script.
 
     use MVC::Neaf;
 
-	MVC::Neaf->route( "/app" => sub {
-		my $req = shift;
+    MVC::Neaf->route( "/app" => sub {
+        my $req = shift;
 
-		my $name = $req->param( name => qr/[\w\s]+/, "Yet another perl hacker" );
+        my $name = $req->param( name => qr/[\w\s]+/, "Yet another perl hacker" );
 
-		return {
-			-template => \"Hello, [% name %]",
-			-type     => "text/plain",
-			name      => $name,
-		};
-	});
-	MVC::Neaf->run;
+        return {
+            -template => \"Hello, [% name %]",
+            -type     => "text/plain",
+            name      => $name,
+        };
+    });
+    MVC::Neaf->run;
 
 =head1 CREATING AN APPLICATION
 
@@ -144,9 +144,9 @@ use MVC::Neaf::Request;
 
 our $Inst = __PACKAGE__->new;
 sub import {
-	my ($class, %args) = @_;
+    my ($class, %args) = @_;
 
-	$args{view} and $Inst->{force_view} = $args{view};
+    $args{view} and $Inst->{force_view} = $args{view};
 };
 
 =head2 route( path => CODEREF, %options )
@@ -166,34 +166,34 @@ Exactly one leading slash will be prepended no matter what you do.
 =cut
 
 sub route {
-	my ($self, $path, $sub, %args) = @_;
-	$self = $Inst unless ref $self;
+    my ($self, $path, $sub, %args) = @_;
+    $self = $Inst unless ref $self;
 
-	# Sanitize path so that we have exactly one leading slash
-	# root becomes nothing (which is OK with us).
-	$path =~ s#^/*#/#;
-	$path =~ s#/+$##;
-	croak( "MVC::Neaf: Attempting to set duplicate handler for path $path" )
-		if $self->{route}{ $path };
+    # Sanitize path so that we have exactly one leading slash
+    # root becomes nothing (which is OK with us).
+    $path =~ s#^/*#/#;
+    $path =~ s#/+$##;
+    croak( "MVC::Neaf: Attempting to set duplicate handler for path $path" )
+        if $self->{route}{ $path };
 
-	# reset cache
-	$self->{route_re} = undef;
+    # reset cache
+    $self->{route_re} = undef;
 
-	# Do the work
-	$self->{route}{ $path }{code}     = $sub;
-	$self->{route}{ $path }{defaults} = \%args;
-	$self->{route}{ $path }{caller}   = [caller(0)]; # file,line
+    # Do the work
+    $self->{route}{ $path }{code}     = $sub;
+    $self->{route}{ $path }{defaults} = \%args;
+    $self->{route}{ $path }{caller}   = [caller(0)]; # file,line
 
-	if ($args{method}) {
-		$args{method} = [ $args{method} ] unless ref $args{method} eq 'ARRAY';
-		my %allowed;
-		foreach (@{ $args{method} }) {
-			$allowed{ uc $_ }++;
-		};
-		$self->{route}{ $path }{allowed_methods} = \%allowed;
-	};
+    if ($args{method}) {
+        $args{method} = [ $args{method} ] unless ref $args{method} eq 'ARRAY';
+        my %allowed;
+        foreach (@{ $args{method} }) {
+            $allowed{ uc $_ }++;
+        };
+        $self->{route}{ $path }{allowed_methods} = \%allowed;
+    };
 
-	return $self;
+    return $self;
 };
 
 =head2 pre_route( sub { ... } )
@@ -209,11 +209,11 @@ but beware!
 =cut
 
 sub pre_route {
-	my ($self, $code) = @_;
-	$self = $Inst unless ref $self;
+    my ($self, $code) = @_;
+    $self = $Inst unless ref $self;
 
-	$self->{pre_route} = $code;
-	return $self;
+    $self->{pre_route} = $code;
+    return $self;
 };
 
 =head2 load_view( $view_name )
@@ -223,34 +223,34 @@ Load a view module by name.
 =cut
 
 my %known_view = (
-	TT     => 'MVC::Neaf::View::TT',
-	JS     => 'MVC::Neaf::View::JS',
-	Dumper => 'MVC::Neaf::View::Dumper',
+    TT     => 'MVC::Neaf::View::TT',
+    JS     => 'MVC::Neaf::View::JS',
+    Dumper => 'MVC::Neaf::View::Dumper',
 );
 sub load_view {
-	my ($self, $view, $module) = @_;
-	$self = $Inst unless ref $self;
+    my ($self, $view, $module) = @_;
+    $self = $Inst unless ref $self;
 
-	$view = $self->{force_view}
-		if exists $self->{force_view};
-	$view = $self->{-view}
-		unless defined $view;
+    $view = $self->{force_view}
+        if exists $self->{force_view};
+    $view = $self->{-view}
+        unless defined $view;
 
-	# Agressive caching FTW!
-	return $self->{seen_view}{$view}
-		if exists $self->{seen_view}{$view};
+    # Agressive caching FTW!
+    return $self->{seen_view}{$view}
+        if exists $self->{seen_view}{$view};
 
-	$module ||= $known_view{ $view } || $view;
-	eval "require $module" ## no critic
-		unless ref $module;
+    $module ||= $known_view{ $view } || $view;
+    eval "require $module" ## no critic
+        unless ref $module;
 
-	# TODO report app error if during request
-	croak "Failed to load view $view: $@"
-		if $@;
+    # TODO report app error if during request
+    croak "Failed to load view $view: $@"
+        if $@;
 
-	$self->{seen_view}{$view} = $module;
+    $self->{seen_view}{$view} = $module;
 
-	return $module;
+    return $module;
 };
 
 =head2 set_default ( key => value, ... )
@@ -264,11 +264,11 @@ Returns self.
 =cut
 
 sub set_default {
-	my ($self, %data) = @_;
-	$self = $Inst unless ref $self;
+    my ($self, %data) = @_;
+    $self = $Inst unless ref $self;
 
-	$self->{defaults}{$_} = $data{$_} for keys %data;
-	return $self;
+    $self->{defaults}{$_} = $data{$_} for keys %data;
+    return $self;
 };
 
 =head2 server_stat ( MVC::Neaf::X::ServerStat->new( ... ) )
@@ -278,19 +278,19 @@ Record server performance statistics during run.
 The interface of ServerStat is as follows:
 
     my $stat = MVC::Neaf::X::ServerStat->new (
-		write_threshold_count => 100,
-		write_threshold_time  => 1,
-		on_write => sub {
-			my $array_of_arrays = shift;
+        write_threshold_count => 100,
+        write_threshold_time  => 1,
+        on_write => sub {
+            my $array_of_arrays = shift;
 
-			foreach (@$array_of_arrays) {
-				# @$_ = (script_name, http_status,
-				#       controller_duration, total_duration, start_time)
-				# do something with this data
-				warn "$_->[0] returned $_->[1] in $_->[3] sec\n";
-			};
-		},
-	);
+            foreach (@$array_of_arrays) {
+                # @$_ = (script_name, http_status,
+                #       controller_duration, total_duration, start_time)
+                # do something with this data
+                warn "$_->[0] returned $_->[1] in $_->[3] sec\n";
+            };
+        },
+    );
 
 on_write will be executed as soon as either count data points are accumulated,
 or time is exceeded by difference between first and last request in batch.
@@ -300,16 +300,16 @@ Returns self.
 =cut
 
 sub server_stat {
-	my ($self, $obj) = @_;
-	$self = $Inst unless ref $self;
+    my ($self, $obj) = @_;
+    $self = $Inst unless ref $self;
 
-	if ($obj) {
-		$self->{stat} = $obj;
-	} else {
-		delete $self->{stat};
-	};
+    if ($obj) {
+        $self->{stat} = $obj;
+    } else {
+        delete $self->{stat};
+    };
 
-	return $self;
+    return $self;
 };
 
 =head2 on_error( sub { my ($req, $err) = @_ } )
@@ -319,18 +319,18 @@ Install custom error handler (e.g. write to log).
 =cut
 
 sub on_error {
-	my ($self, $code) = @_;
-	$self = $Inst unless ref $self;
+    my ($self, $code) = @_;
+    $self = $Inst unless ref $self;
 
-	if (defined $code) {
-		ref $code eq 'CODE'
-			or croak( (ref $self)."->on_error: argument MUST be a callback" );
-		$self->{on_error} = $code;
-	} else {
-		delete $self->{on_error};
-	};
+    if (defined $code) {
+        ref $code eq 'CODE'
+            or croak( (ref $self)."->on_error: argument MUST be a callback" );
+        $self->{on_error} = $code;
+    } else {
+        delete $self->{on_error};
+    };
 
-	return $self;
+    return $self;
 };
 
 =head2 error_template ( status => { ... } )
@@ -359,19 +359,19 @@ Returns self.
 =cut
 
 sub error_template {
-	my ($self, $status, $tpl) = @_;
-	$self = $Inst unless ref $self;
+    my ($self, $status, $tpl) = @_;
+    $self = $Inst unless ref $self;
 
-	$status =~ /^(\d\d\d|view)$/
-		or croak( (ref $self)."->error_template: "
-			. "1st arg must be http status or a special value (see perldoc)");
-	ref $tpl eq 'HASH'
-		or croak( (ref $self)."->error_template: "
-			."2nd arg must be a hash (just as controller return)");
+    $status =~ /^(\d\d\d|view)$/
+        or croak( (ref $self)."->error_template: "
+            . "1st arg must be http status or a special value (see perldoc)");
+    ref $tpl eq 'HASH'
+        or croak( (ref $self)."->error_template: "
+            ."2nd arg must be a hash (just as controller return)");
 
-	$self->{error_template}{$status} = $tpl;
+    $self->{error_template}{$status} = $tpl;
 
-	return $self;
+    return $self;
 };
 
 =head2 run()
@@ -383,39 +383,39 @@ Returns a (PSGI-compliant) coderef under PSGI.
 =cut
 
 sub run {
-	my $self = shift;
-	$self = $Inst unless ref $self;
-	# TODO Better detection still wanted
+    my $self = shift;
+    $self = $Inst unless ref $self;
+    # TODO Better detection still wanted
 
-	$self->{route_re} ||= $self->_make_route_re;
+    $self->{route_re} ||= $self->_make_route_re;
 
-	if (defined wantarray) {
-		# The run method is being called in non-void context
-		# This is the case for PSGI, but not CGI (where it's just
-		# the last statement in the script).
+    if (defined wantarray) {
+        # The run method is being called in non-void context
+        # This is the case for PSGI, but not CGI (where it's just
+        # the last statement in the script).
 
-		# PSGI
-		require MVC::Neaf::Request::PSGI;
-		return sub {
-			my $env = shift;
-			my $req = MVC::Neaf::Request::PSGI->new( env => $env );
-			return $self->handle_request( $req );
-		};
-	} else {
-		# void context - CGI called.
-		require MVC::Neaf::Request::CGI;
-		my $req = MVC::Neaf::Request::CGI->new;
-		$self->handle_request( $req );
-	};
+        # PSGI
+        require MVC::Neaf::Request::PSGI;
+        return sub {
+            my $env = shift;
+            my $req = MVC::Neaf::Request::PSGI->new( env => $env );
+            return $self->handle_request( $req );
+        };
+    } else {
+        # void context - CGI called.
+        require MVC::Neaf::Request::CGI;
+        my $req = MVC::Neaf::Request::CGI->new;
+        $self->handle_request( $req );
+    };
 };
 
 sub _make_route_re {
-	my ($self, $hash) = @_;
+    my ($self, $hash) = @_;
 
-	$hash ||= $self->{route};
+    $hash ||= $self->{route};
 
-	my $re = join "|", map { quotemeta } reverse sort keys %$hash;
-	return qr{^($re)(/[^?]*)?(?:\?|$)};
+    my $re = join "|", map { quotemeta } reverse sort keys %$hash;
+    return qr{^($re)(/[^?]*)?(?:\?|$)};
 };
 
 =head1 INTERNAL API
@@ -441,22 +441,22 @@ that handles MVC::Neaf->... requests.
 =cut
 
 sub new {
-	my ($class, %opt) = @_;
+    my ($class, %opt) = @_;
 
-	$opt{-type}     ||= "text/html";
-	$opt{-view}     ||= "TT";
-	$opt{defaults}  ||= { -status => 200 };
-	$opt{on_error}  ||= sub {
-		my ($req, $err, $where) = @_;
-		my $msg = "ERROR: ".$req->script_name.": $err";
-		if ($where) {
-			$msg =~ s/\s+$//s;
-			$msg .= " in $where->[1] line $where->[2]";
-		};
-		warn "$msg\n";
-	};
+    $opt{-type}     ||= "text/html";
+    $opt{-view}     ||= "TT";
+    $opt{defaults}  ||= { -status => 200 };
+    $opt{on_error}  ||= sub {
+        my ($req, $err, $where) = @_;
+        my $msg = "ERROR: ".$req->script_name.": $err";
+        if ($where) {
+            $msg =~ s/\s+$//s;
+            $msg .= " in $where->[1] line $where->[2]";
+        };
+        warn "$msg\n";
+    };
 
-	return bless \%opt, $class;
+    return bless \%opt, $class;
 };
 
 =head2 handle_request( MVC::Neaf::request->new )
@@ -467,49 +467,49 @@ Should not be called directly - use run() instead.
 =cut
 
 sub handle_request {
-	my ($self, $req) = @_;
-	$self = $Inst unless ref $self;
+    my ($self, $req) = @_;
+    $self = $Inst unless ref $self;
 
-	exists $self->{stat} and $self->{stat}->record_start;
+    exists $self->{stat} and $self->{stat}->record_start;
 
-	# ROUTE REQUEST
-	my $route;
-	my $data = eval {
-		# First, try running the pre-routing callback.
-		if (exists $self->{pre_route}) {
-			my $new_req = $self->{pre_route}->( $req );
-			blessed $new_req and $new_req->isa("MVC::Neaf::Request")
-				and $req = $new_req;
-		};
+    # ROUTE REQUEST
+    my $route;
+    my $data = eval {
+        # First, try running the pre-routing callback.
+        if (exists $self->{pre_route}) {
+            my $new_req = $self->{pre_route}->( $req );
+            blessed $new_req and $new_req->isa("MVC::Neaf::Request")
+                and $req = $new_req;
+        };
 
-		# Run the controller!
-		$req->path =~ $self->{route_re} and $route = $self->{route}{$1}
-			or die "404\n";
-		!exists $route->{allowed_methods}
-			or $route->{allowed_methods}{ $req->method }
-			or die "405\n";
-		$req->set_full_path( $1, $2 );
-		return $route->{code}->($req);
-	};
+        # Run the controller!
+        $req->path =~ $self->{route_re} and $route = $self->{route}{$1}
+            or die "404\n";
+        !exists $route->{allowed_methods}
+            or $route->{allowed_methods}{ $req->method }
+            or die "405\n";
+        $req->set_full_path( $1, $2 );
+        return $route->{code}->($req);
+    };
 
-	if ($data) {
-		# post-process data - fill in request(RD) & global(GD) defaults.
-		# TODO fill in per-location defaults, too - but do we need them?
-		my $RD = $req->get_default;
-		my $GD = $self->{defaults};
-		exists $data->{$_} or $data->{$_} = $RD->{$_} for keys %$RD;
-		exists $data->{$_} or $data->{$_} = $GD->{$_} for keys %$GD;
-	} else {
-		# Fall back to error page
-		$data = $self->_error_to_reply( $req, $@, $route->{caller} );
-	};
+    if ($data) {
+        # post-process data - fill in request(RD) & global(GD) defaults.
+        # TODO fill in per-location defaults, too - but do we need them?
+        my $RD = $req->get_default;
+        my $GD = $self->{defaults};
+        exists $data->{$_} or $data->{$_} = $RD->{$_} for keys %$RD;
+        exists $data->{$_} or $data->{$_} = $GD->{$_} for keys %$GD;
+    } else {
+        # Fall back to error page
+        $data = $self->_error_to_reply( $req, $@, $route->{caller} );
+    };
 
-	# END ROUTE REQUEST
+    # END ROUTE REQUEST
 
-	exists $self->{stat}
-		and $self->{stat}->record_controller($req->script_name);
+    exists $self->{stat}
+        and $self->{stat}->record_controller($req->script_name);
 
-	# PROCESS REPLY
+    # PROCESS REPLY
 
     # Render content if needed. This may alter type, so
     # produce headers later.
@@ -519,67 +519,67 @@ sub handle_request {
         $data->{-type} ||= $content =~ /^.{0,512}[^\s\x20-\x7F]/
             ? 'text/plain' : 'application/octet-stream';
     } else {
-		# TODO route defaults, global default
-		my $view = $self->load_view( $data->{-view} );
+        # TODO route defaults, global default
+        my $view = $self->load_view( $data->{-view} );
         eval { ($content, $type) = $view->show( $data ); };
-		if (!defined $content) {
-			warn "ERROR: In view: $@";
-			$data = {
-				-status => 500,
-				-type   => "text/plain",
-			};
-			$content = "Template error.";
-		};
+        if (!defined $content) {
+            warn "ERROR: In view: $@";
+            $data = {
+                -status => 500,
+                -type   => "text/plain",
+            };
+            $content = "Template error.";
+        };
         $data->{-type} ||= $type || 'text/html';
     };
 
     # Handle headers
-	my $headers = $self->make_headers( $data );
-	$headers->{'Set-Cookie'} = $req->format_cookies;
-	$headers->{'Content-Length'} = length $content;
+    my $headers = $self->make_headers( $data );
+    $headers->{'Set-Cookie'} = $req->format_cookies;
+    $headers->{'Content-Length'} = length $content;
 
-	# END PROCESS REPLY
+    # END PROCESS REPLY
 
-	exists $self->{stat}
-		and $self->{stat}->record_finish($data->{-status}, $req);
+    exists $self->{stat}
+        and $self->{stat}->record_finish($data->{-status}, $req);
 
-	# This "return" is mostly for PSGI
-	return $req->do_reply( $data->{-status}, $headers,
-		($req->method eq 'HEAD' ? '' : $content) );
+    # This "return" is mostly for PSGI
+    return $req->do_reply( $data->{-status}, $headers,
+        ($req->method eq 'HEAD' ? '' : $content) );
 }; # End handle_request()
 
 sub _error_to_reply {
-	my ($self, $req, $err, $where) = @_;
+    my ($self, $req, $err, $where) = @_;
 
-	if (ref $err eq 'HASH') {
-		# TODO use own excp class
-		$err->{-status} ||= 500;
-		return $err;
-	};
+    if (ref $err eq 'HASH') {
+        # TODO use own excp class
+        $err->{-status} ||= 500;
+        return $err;
+    };
 
-	# A generic error...
-	my $status = (!ref $err && $err =~ /^(\d\d\d)/) ? $1 : 500;
-	if( !$1 ) {
-		exists $self->{on_error}
-			and eval { $self->{on_error}->($req, $err, $where) };
-		# ignore errors in error handler
-		warn "ERROR: Error handler failed: $@"
-			if $@;
-	};
+    # A generic error...
+    my $status = (!ref $err && $err =~ /^(\d\d\d)/) ? $1 : 500;
+    if( !$1 ) {
+        exists $self->{on_error}
+            and eval { $self->{on_error}->($req, $err, $where) };
+        # ignore errors in error handler
+        warn "ERROR: Error handler failed: $@"
+            if $@;
+    };
 
-	if (exists $self->{error_template}{$status}) {
-		my %ret = %{ $self->{error_template}{$status} }; # don't spoil the original
-		$ret{-status} = $status;
-		$ret{caller} = $where;
-		$ret{error} = $err;
-		return \%ret;
-	} else {
-		return {
-			-status     => $status,
-			-type       => 'text/plain',
-			-content    => "Error $status",
-		};
-	};
+    if (exists $self->{error_template}{$status}) {
+        my %ret = %{ $self->{error_template}{$status} }; # don't spoil the original
+        $ret{-status} = $status;
+        $ret{caller} = $where;
+        $ret{error} = $err;
+        return \%ret;
+    } else {
+        return {
+            -status     => $status,
+            -type       => 'text/plain',
+            -content    => "Error $status",
+        };
+    };
 };
 
 =head2 make_headers( $data )
@@ -589,17 +589,17 @@ Extract header data from application reply.
 =cut
 
 sub make_headers {
-	my ($self, $data) = @_;
-	$self = $Inst unless ref $self;
+    my ($self, $data) = @_;
+    $self = $Inst unless ref $self;
 
-	my %head;
-	$head{'Content-Type'} = $data->{-type} || $self->{-type};
-	$head{'Location'} = $data->{-location}
-		if $data->{-location};
-	$head{'Content-Type'} =~ m#^text/[-\w]+$#
-		and $head{'Content-Type'} .= "; charset=utf-8";
+    my %head;
+    $head{'Content-Type'} = $data->{-type} || $self->{-type};
+    $head{'Location'} = $data->{-location}
+        if $data->{-location};
+    $head{'Content-Type'} =~ m#^text/[-\w]+$#
+        and $head{'Content-Type'} .= "; charset=utf-8";
 
-	return \%head;
+    return \%head;
 };
 
 =head1 AUTHOR

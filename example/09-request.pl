@@ -18,10 +18,10 @@ my $path = $ENV{EXAMPLE_PATH_REQUEST} || "/cgi/$scriptname";
 
 my $tpl = <<"TT";
 <head>
-	<title>Http request in a nutshell</title>
-	<style>
-		span { border: dotted 1px red; }
-	</style>
+    <title>Http request in a nutshell</title>
+    <style>
+        span { border: dotted 1px red; }
+    </style>
 </head>
 <b>Hover over dotted rectangles to see the function returning this part.</b>
 <br><br>
@@ -49,21 +49,21 @@ Host: <span title="hostname">[% hostname %]</span>
 TT
 
 MVC::Neaf->route( $path => sub {
-	my $req = shift;
+    my $req = shift;
 
-	$req->redirect( "$path/and/beyond" )
-		unless $req->path_info;
+    $req->redirect( "$path/and/beyond" )
+        unless $req->path_info;
 
-	my @error;
-	local $SIG{__DIE__} = sub { push @error, shift };
-	return {
-		-template => \$tpl,
-		error => \@error,
-		map {
-			$_ => eval { $req->$_ } || "unimplemented: $_";
-		} qw(method path http_version scheme hostname port
-			script_name path_info client_ip ),
-	};
+    my @error;
+    local $SIG{__DIE__} = sub { push @error, shift };
+    return {
+        -template => \$tpl,
+        error => \@error,
+        map {
+            $_ => eval { $req->$_ } || "unimplemented: $_";
+        } qw(method path http_version scheme hostname port
+            script_name path_info client_ip ),
+    };
 } );
 
 MVC::Neaf->run;

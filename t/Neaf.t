@@ -8,23 +8,23 @@ use MVC::Neaf;
 
 # first, prepare some test subs
 MVC::Neaf->route( foo => sub {
-	my $req = shift;
+    my $req = shift;
 
-	my $bar = $req->param( "bar" ); # this dies
+    my $bar = $req->param( "bar" ); # this dies
 
-	return {
-		-content => "Got me wrong",
-	};
+    return {
+        -content => "Got me wrong",
+    };
 });
 
 MVC::Neaf->route( bar => sub {
-	my $req = shift;
+    my $req = shift;
 
-	my $bar = $req->param( bar => qr/.*/ );
+    my $bar = $req->param( bar => qr/.*/ );
 
-	return {
-		-content => $bar,
-	};
+    return {
+        -content => $bar,
+    };
 });
 
 my $code = MVC::Neaf->run;
@@ -32,10 +32,10 @@ my $code = MVC::Neaf->run;
 is (ref $code, 'CODE', "run returns sub in scalar context");
 
 my %request = (
-	REQUEST_METHOD => 'GET',
-	REQUEST_URI => "/",
-	QUERY_STRING => "bar=137",
-	SERVER_PROTOCOL => "HTTP/1.0",
+    REQUEST_METHOD => 'GET',
+    REQUEST_URI => "/",
+    QUERY_STRING => "bar=137",
+    SERVER_PROTOCOL => "HTTP/1.0",
 );
 
 my $root = $code->( \%request ); # not found

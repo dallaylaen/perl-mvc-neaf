@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.03;
+our $VERSION = 0.0401;
 
 =head1 NAME
 
@@ -36,16 +36,16 @@ Returns processed data.
 my $tt = Template->new;
 
 sub show {
-	my ($self, $data) = @_;
+    my ($self, $data) = @_;
 
-	my $template = $data->{-template};
-	return '' unless $template;
+    my $template = $data->{-template};
+    return '' unless $template;
 
-	my $out;
-	$tt->process( $template, $data, \$out )
-		or die $tt->error;
+    my $out;
+    $tt->process( $template, $data, \$out )
+        or die $tt->error;
 
-	return ($out, "text/html");
+    return ($out, "text/html");
 };
 
 =head1 SEE ALSO

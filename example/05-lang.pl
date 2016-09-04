@@ -10,9 +10,9 @@ use lib dirname($Bin)."/lib";
 use MVC::Neaf;
 
 my %message = (
-	en => "Dear friends",
-	de => "Liebe Freunde",
-	fr => "Chers amis",
+    en => "Dear friends",
+    de => "Liebe Freunde",
+    fr => "Chers amis",
 );
 
 my $tpl = <<"TT";
@@ -23,26 +23,26 @@ my $tpl = <<"TT";
 TT
 
 MVC::Neaf->pre_route( sub {
-	my $req = shift;
+    my $req = shift;
 
-	my $path = $req->path;
+    my $path = $req->path;
 
-	if ($path =~ s#^/([a-z][a-z])/#/#) {
-		$req->set_param( lang => $1 );
-		$req->set_full_path($path);
-	};
+    if ($path =~ s#^/([a-z][a-z])/#/#) {
+        $req->set_param( lang => $1 );
+        $req->set_full_path($path);
+    };
 });
 
 MVC::Neaf->route("/" => sub {
-	my $req = shift;
+    my $req = shift;
 
-	my $lang = $req->param( lang => qr/[a-z][a-z]/, 'en' );
+    my $lang = $req->param( lang => qr/[a-z][a-z]/, 'en' );
 
-	return {
-		-template => \$tpl,
-		message => ($message{$lang} || die 404),
-		menu => [ sort keys %message ],
-	};
+    return {
+        -template => \$tpl,
+        message => ($message{$lang} || die 404),
+        menu => [ sort keys %message ],
+    };
 });
 
 MVC::Neaf->run;

@@ -8,9 +8,9 @@ use MVC::Neaf::X::ServerStat;
 
 my @data;
 my $stat = MVC::Neaf::X::ServerStat->new(
-	write_thresh_time => 9**9**9, # never
-	write_thresh_count => 2,
-	on_write => sub { @data = @{ +shift } },
+    write_thresh_time => 9**9**9, # never
+    write_thresh_count => 2,
+    on_write => sub { @data = @{ +shift } },
 );
 
 $stat->record_start;

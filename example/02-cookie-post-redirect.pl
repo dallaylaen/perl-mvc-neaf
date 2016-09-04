@@ -14,38 +14,38 @@ $SIG{__WARN__} = \&Carp::cluck;
 my $tpl = <<"TT";
 <html>
 <head>
-	<title>[% title %]</title>
+    <title>[% title %]</title>
 </head>
 <body>
 <h1>[% IF name %]Hello, [% name %]![% ELSE %]What's your name?[% END %]</h1>
 <form method="POST" action="/forms/02-post.cgi">
-	Change name: <input name="name"/><input type="submit" value="&gt;&gt;"/>
+    Change name: <input name="name"/><input type="submit" value="&gt;&gt;"/>
 </form>
 </body>
 </html>
 TT
 
 MVC::Neaf->route("/forms/02-post.cgi" => sub {
-	my $req = shift;
+    my $req = shift;
 
-	my $name = $req->param( name => qr/[-\w ]+/, '' );
-	if (length $name) {
+    my $name = $req->param( name => qr/[-\w ]+/, '' );
+    if (length $name) {
         $req->set_cookie( name => $name );
-	};
+    };
 
-	$req->redirect( $req->referer || "/" );
+    $req->redirect( $req->referer || "/" );
 }, method => "POST");
 
 MVC::Neaf->route("/" => sub {
-	my $req = shift;
+    my $req = shift;
 
-	my $name = $req->get_cookie( name => qr/[-\w ]+/ );
-	return {
-		-view => 'TT',
-		-template => \$tpl,
-		title => 'Hello',
-		name => $name,
-	};
+    my $name = $req->get_cookie( name => qr/[-\w ]+/ );
+    return {
+        -view => 'TT',
+        -template => \$tpl,
+        title => 'Hello',
+        name => $name,
+    };
 });
 
 MVC::Neaf->run;

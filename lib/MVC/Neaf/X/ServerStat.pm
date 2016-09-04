@@ -3,7 +3,7 @@ package MVC::Neaf::X::ServerStat;
 use strict;
 use warnings;
 
-our $VERSION = 0.04;
+our $VERSION = 0.0401;
 
 =head1 NAME
 
@@ -59,14 +59,14 @@ No checks are done whatsoever, but this MAY change in the future.
 =cut
 
 sub new {
-	my ($class, %opt) = @_;
+    my ($class, %opt) = @_;
 
-	$opt{write_thresh_count} ||= 100;
-	$opt{write_thresh_time}  ||= 10;
-	ref $opt{on_write} eq 'CODE'
-		or croak "$class->new(): on_write must be a coderef";
+    $opt{write_thresh_count} ||= 100;
+    $opt{write_thresh_time}  ||= 10;
+    ref $opt{on_write} eq 'CODE'
+        or croak "$class->new(): on_write must be a coderef";
 
-	return bless \%opt, $class;
+    return bless \%opt, $class;
 };
 
 =head2 record_start()
@@ -76,15 +76,15 @@ Start motinoring a request.
 =cut
 
 sub record_start {
-	my $self = shift;
+    my $self = shift;
 
-	carp "WARN: ".(ref $self)
-		. "->record_start() called but previous still running: "
-		. $self->{current_request}->[0] || "(unknown)"
-			if exists $self->{current_request};
+    carp "WARN: ".(ref $self)
+        . "->record_start() called but previous still running: "
+        . $self->{current_request}->[0] || "(unknown)"
+            if exists $self->{current_request};
 
-	$self->{current_request} = [ undef, undef, undef, undef, time ];
-	return $self;
+    $self->{current_request} = [ undef, undef, undef, undef, time ];
+    return $self;
 };
 
 =head2 record_controller( $req->script_name )
@@ -96,18 +96,18 @@ B<EXPERIMENTAL>. The name may change in the future.
 =cut
 
 sub record_controller {
-	my ($self, $path) = @_;
+    my ($self, $path) = @_;
 
-	if (!exists $self->{current_request}) {
-		carp "WARN: ".(ref $self)
-			."->record_controller() called but no request was started";
-		return;
-	};
+    if (!exists $self->{current_request}) {
+        carp "WARN: ".(ref $self)
+            ."->record_controller() called but no request was started";
+        return;
+    };
 
-	$self->{current_request}->[0] = $path;
-	$self->{current_request}->[2] = time - $self->{current_request}->[4];
+    $self->{current_request}->[0] = $path;
+    $self->{current_request}->[2] = time - $self->{current_request}->[4];
 
-	return $self;
+    return $self;
 };
 
 =head2 record_finish( $status [, $req] )
@@ -123,39 +123,39 @@ if either threshold (see new()) has been exceeded.
 =cut
 
 sub record_finish {
-	my ($self, $status, $req) = @_;
+    my ($self, $status, $req) = @_;
 
-	if (!exists $self->{current_request}) {
-		carp "WARN: ".(ref $self)
-			."->record_finish() called but no request was started";
-		return;
-	};
+    if (!exists $self->{current_request}) {
+        carp "WARN: ".(ref $self)
+            ."->record_finish() called but no request was started";
+        return;
+    };
 
-	$self->{current_request}->[1] = $status;
-	$self->{current_request}->[3] = time - $self->{current_request}->[4];
+    $self->{current_request}->[1] = $status;
+    $self->{current_request}->[3] = time - $self->{current_request}->[4];
 
-	my $q = $self->{queue} ||= [];
-	push @$q, delete $self->{current_request};
+    my $q = $self->{queue} ||= [];
+    push @$q, delete $self->{current_request};
 
-	if ( scalar @$q >= $self->{write_thresh_count}
-		or $q->[-1][4] - $q->[0][4] >= $self->{write_thresh_time} ) {
-			delete $self->{queue};
-			my $do_write = $self->{on_write};
-			$req
-				? $req->postpone( sub { $do_write->($q) } )
-				: $do_write->($q);
-	};
+    if ( scalar @$q >= $self->{write_thresh_count}
+        or $q->[-1][4] - $q->[0][4] >= $self->{write_thresh_time} ) {
+            delete $self->{queue};
+            my $do_write = $self->{on_write};
+            $req
+                ? $req->postpone( sub { $do_write->($q) } )
+                : $do_write->($q);
+    };
 
-	return $self;
+    return $self;
 };
 
 sub DESTROY {
-	my $self = shift;
+    my $self = shift;
 
-	# always write stats on exit
-	if ($self->{on_write} and $self->{queue}) {
-		$self->{on_write}->( delete $self->{queue} );
-	};
+    # always write stats on exit
+    if ($self->{on_write} and $self->{queue}) {
+        $self->{on_write}->( delete $self->{queue} );
+    };
 };
 
 1;

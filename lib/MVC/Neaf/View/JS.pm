@@ -3,7 +3,7 @@ package MVC::Neaf::View::JS;
 use strict;
 use warnings;
 
-our $VERSION = 0.03;
+our $VERSION = 0.0401;
 
 =head1 NAME
 
@@ -13,8 +13,8 @@ MVC::Neaf::View::JS - JSON-base view for Not Even A Framework.
 
     return {
         # your data ...
-		-view => 'JS',
-		-callback => 'my.jsonp.callback', # this is optional
+        -view => 'JS',
+        -callback => 'my.jsonp.callback', # this is optional
     }
 
 Will result in your application returning raw data in JSON/JSONP format
@@ -36,21 +36,21 @@ Returns a scalar with JSON-encoded data.
 =cut
 
 sub show {
-	my ($self, $data) = @_;
+    my ($self, $data) = @_;
 
-	my $callback = $data->{-callback};
-	my $type = $data->{-type};
+    my $callback = $data->{-callback};
+    my $type = $data->{-type};
 
-	# TODO sanitize data in a more efficient way
-	my %copy;
-	foreach (keys %$data) {
-		/^-/ or $copy{$_} = $data->{$_};
-	};
+    # TODO sanitize data in a more efficient way
+    my %copy;
+    foreach (keys %$data) {
+        /^-/ or $copy{$_} = $data->{$_};
+    };
 
-	my $content = $codec->encode( \%copy );
-	return $callback && $callback =~ $jsonp_re
-		? ("$callback($content);", "application/json; charset=utf-8")
-		: ($content, "application/javascript; charset=utf-8");
+    my $content = $codec->encode( \%copy );
+    return $callback && $callback =~ $jsonp_re
+        ? ("$callback($content);", "application/json; charset=utf-8")
+        : ($content, "application/javascript; charset=utf-8");
 };
 
 1;

@@ -3,7 +3,7 @@ package MVC::Neaf::View::Dumper;
 use strict;
 use warnings;
 
-our $VERSION = 0.03;
+our $VERSION = 0.0401;
 
 =head1 NAME
 
@@ -31,11 +31,11 @@ Return a Perl dump and "text/plain".
 =cut
 
 sub show {
-	my ($self, $data) = @_;
+    my ($self, $data) = @_;
 
-	local $Data::Dumper::Indent = 1;
+    local $Data::Dumper::Indent = 1;
 
-	return (Dumper($data), "text/plain");
+    return (Dumper($data), "text/plain");
 };
 
 1;

@@ -14,7 +14,7 @@ L<MVC::Neaf::Request> object.
 
 =cut
 
-our $VERSION = 0.02;
+our $VERSION = 0.0401;
 use Carp;
 
 =head2 new(%options)
@@ -36,15 +36,15 @@ use Carp;
 =cut
 
 sub new {
-	my ($class, %args) = @_;
+    my ($class, %args) = @_;
 
-	defined $args{id}
-		or croak( "$class->new(): id option is required" );
-	defined $args{tempfile} || defined $args{handle}
-		or croak( "$class->new(): Either tempfile or handle option required" );
+    defined $args{id}
+        or croak( "$class->new(): id option is required" );
+    defined $args{tempfile} || defined $args{handle}
+        or croak( "$class->new(): Either tempfile or handle option required" );
 
-	my $self = bless \%args, $class;
-	return $self;
+    my $self = bless \%args, $class;
+    return $self;
 };
 
 =head2 id()
@@ -54,8 +54,8 @@ Return upload id.
 =cut
 
 sub id {
-	my $self = shift;
-	return $self->{id};
+    my $self = shift;
+    return $self->{id};
 };
 
 =head2 filename()
@@ -65,10 +65,10 @@ Get user-supplied file name. Don't trust this value.
 =cut
 
 sub filename {
-	my $self = shift;
+    my $self = shift;
 
-	$self->{filename} = '/dev/null' unless defined $self->{filename};
-	return $self->{filename};
+    $self->{filename} = '/dev/null' unless defined $self->{filename};
+    return $self->{filename};
 };
 
 =head2 size()
@@ -80,14 +80,14 @@ B<CAVEAT> May return 0 if file is a pipe.
 =cut
 
 sub size {
-	my $self = shift;
+    my $self = shift;
 
-	return $self->{size} ||= do {
-		# calc size
-		my $fd = $self->handle;
-		my @stat = stat $fd;
-		$stat[7] || 0;
-	};
+    return $self->{size} ||= do {
+        # calc size
+        my $fd = $self->handle;
+        my @stat = stat $fd;
+        $stat[7] || 0;
+    };
 };
 
 =head2 handle()
@@ -97,14 +97,14 @@ Return file handle, opening temp file if needed.
 =cut
 
 sub handle {
-	my $self = shift;
+    my $self = shift;
 
-	return $self->{handle} ||= do {
-		# need write?
-		open my $fd, "<", $self->{tempfile}
-			or die "Upload $self->{id}: Failed to open(r) $self->{tempfile}: $!";
-		$fd;
-	};
+    return $self->{handle} ||= do {
+        # need write?
+        open my $fd, "<", $self->{tempfile}
+            or die "Upload $self->{id}: Failed to open(r) $self->{tempfile}: $!";
+        $fd;
+    };
 };
 
 =head2 content()
@@ -118,24 +118,24 @@ B<NOTE> This breaks file current position, resetting it to the beginning.
 =cut
 
 sub content {
-	my $self = shift;
+    my $self = shift;
 
-	if (!defined $self->{content}) {
-		$self->rewind;
-		my $fd = $self->handle;
+    if (!defined $self->{content}) {
+        $self->rewind;
+        my $fd = $self->handle;
 
-		local $/;
-		my $content = <$fd>;
-		if (!defined $content) {
-			my $fname = $self->{tempfile} || $fd;
-			croak( "Upload $self->{id}: failed to read file $fname: $!");
-		};
+        local $/;
+        my $content = <$fd>;
+        if (!defined $content) {
+            my $fname = $self->{tempfile} || $fd;
+            croak( "Upload $self->{id}: failed to read file $fname: $!");
+        };
 
-		$self->rewind;
-		$self->{content} = $content;
-	};
+        $self->rewind;
+        $self->{content} = $content;
+    };
 
-	return $self->{content};
+    return $self->{content};
 };
 
 =head2 rewind()
@@ -147,15 +147,15 @@ Returns self.
 =cut
 
 sub rewind {
-	my $self = shift;
+    my $self = shift;
 
-	my $fd = $self->handle;
-	seek $fd, 0, 0;
-	return $self;
+    my $fd = $self->handle;
+    seek $fd, 0, 0;
+    return $self;
 };
 
 sub DESTROY {
-	# TODO kill the file
+    # TODO kill the file
 };
 
 1;

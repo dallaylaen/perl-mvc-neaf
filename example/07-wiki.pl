@@ -31,12 +31,12 @@ my %replace = (qw( < &lt; > &gt; & &amp; " &quot; ));
 my $replace_re = join "", "[", keys %replace, "]";
 $replace_re = qr/$replace_re/;
 sub html {
-	my $str = shift;
-	$str =~ s/($replace_re)/$replace{$1}/g;
-	return $str;
+    my $str = shift;
+    $str =~ s/($replace_re)/$replace{$1}/g;
+    return $str;
 };
 sub uri {
-	return uri_escape_utf8(shift);
+    return uri_escape_utf8(shift);
 };
 MVC::Neaf->set_default( uri => \&uri );
 MVC::Neaf->set_default( html => \&html );
@@ -46,20 +46,20 @@ MVC::Neaf->set_default( html => \&html );
 my $head = <<"TT";
 <html>
 <head>
-	<title>[% html(topic) %] - [% action %]</title>
+    <title>[% html(topic) %] - [% action %]</title>
 </head>
 <html>
 [% IF topic %]<h1>[% html(topic) %]</h1>[% END %]
 <form method="GET" action="/search">
-	<input name="q"[% IF query %] value="[% html(query) %][% END %]">
-	<input type="submit" value="Search!">
+    <input name="q"[% IF query %] value="[% html(query) %][% END %]">
+    <input type="submit" value="Search!">
 </form>
 TT
 
 my $show = <<"TT";
 $head
 <a href="/edit?topic=[% uri(topic) %]">
-	[%- IF article %]Edit[% ELSE %]Start[% END %]</a></br>
+    [%- IF article %]Edit[% ELSE %]Start[% END %]</a></br>
 <div>
 [% article %]
 </div>
@@ -78,11 +78,11 @@ my $search = <<"TT";
 $head
 <ol>
 [% FOREACH item IN result %]
-	<li><a href="/wiki/[% uri(item.0) %]">
-		[% html( item.1 ) %]
-		<span style="color: red">[% html( item.2 ) %]</span>
-		[% html( item.3 ) %]
-	</a></li>
+    <li><a href="/wiki/[% uri(item.0) %]">
+        [% html( item.1 ) %]
+        <span style="color: red">[% html( item.2 ) %]</span>
+        [% html( item.3 ) %]
+    </a></li>
 [% END %]
 </ol>
 TT
@@ -94,98 +94,98 @@ my $art = {};
 my $save = "$Bin/nocommit-07-save.js";
 $SIG{INT} = sub { exit(0); }; # exit normally on interrupt
 if (-f $save) {
-	eval {
-		open my $fd, "<", $save
-			or die "$!: $save";
-		local $/;
-		$art = decode_json(<$fd>);
-	};
-	warn "Going without content: load failed: $@"
-		if $@;
+    eval {
+        open my $fd, "<", $save
+            or die "$!: $save";
+        local $/;
+        $art = decode_json(<$fd>);
+    };
+    warn "Going without content: load failed: $@"
+        if $@;
 };
 END {
-	eval {
-		open my $fd, ">", $save
-			or die "$!: $save";
-		print $fd encode_json($art);
-		close $fd or die "$!: $save";
-	};
-	warn "Couldn't save content: $@"
-		if $@;
+    eval {
+        open my $fd, ">", $save
+            or die "$!: $save";
+        print $fd encode_json($art);
+        close $fd or die "$!: $save";
+    };
+    warn "Couldn't save content: $@"
+        if $@;
 };
 
 # Display article
 MVC::Neaf->route( wiki => sub {
-	my $req = shift;
+    my $req = shift;
 
-	# This whole 100+-line example was made for the next line!
-	my $topic = $req->path_info(1);
+    # This whole 100+-line example was made for the next line!
+    my $topic = $req->path_info(1);
 
-	# Get some wiki formatting. Don't want to spend too much on it.
-	my $article = $art->{$topic} || '';
-	$article =~ s#\s*\n\s*\n\s*#\n<br><br>\n#gs; # tex paragraph
-	$article =~ s#\[([^\]]+)\]#'<a href="/wiki/'.uri($1).'">'.html($1).'</a>'#ge; # links
+    # Get some wiki formatting. Don't want to spend too much on it.
+    my $article = $art->{$topic} || '';
+    $article =~ s#\s*\n\s*\n\s*#\n<br><br>\n#gs; # tex paragraph
+    $article =~ s#\[([^\]]+)\]#'<a href="/wiki/'.uri($1).'">'.html($1).'</a>'#ge; # links
 
-	return {
-		-template => \$show,
-		topic => $topic,
-		action => "Wiki",
-		article => $article,
-	};
+    return {
+        -template => \$show,
+        topic => $topic,
+        action => "Wiki",
+        article => $article,
+    };
 });
 
 # Update article - POST only, redirect in the end.
 MVC::Neaf->route( update => sub {
-	my $req = shift;
+    my $req = shift;
 
-	$req->method eq 'POST' or die 404;
+    $req->method eq 'POST' or die 404;
 
-	my $topic = $req->param( topic => '[^<>&]+' );
-	my $article = $req->param( article => '.*', undef );
-	length $topic and defined $article or die 422;
+    my $topic = $req->param( topic => '[^<>&]+' );
+    my $article = $req->param( article => '.*', undef );
+    length $topic and defined $article or die 422;
 
-	$art->{$topic} = $article;
-	$req->redirect( "/wiki/" . uri( $topic ) );
+    $art->{$topic} = $article;
+    $req->redirect( "/wiki/" . uri( $topic ) );
 });
 
 # Edit article. Not really much to discuss here...
 MVC::Neaf->route( edit => sub {
-	my $req = shift;
+    my $req = shift;
 
     my $topic = $req->param( topic => '[^<>&]+' );
-	my $article = $art->{$topic};
-	length $topic or die 422;
+    my $article = $art->{$topic};
+    length $topic or die 422;
 
-	return {
-		-template => \$edit,
-		article => $article,
-		action => "Edit",
-		topic => $topic,
-	};
+    return {
+        -template => \$edit,
+        article => $article,
+        action => "Edit",
+        topic => $topic,
+    };
 });
 
 # Make the wiki searchable
 MVC::Neaf->route( search => sub {
-	my $req = shift;
+    my $req = shift;
 
-	my $q = $req->param( q => qr/.*/ );
-	$q =~ s/\s+/\\s+/g;
-	$q =~ s/\(/\(?:/g;
+    my $q = $req->param( q => qr/.*/ );
+    $q =~ s/\s+/\\s+/g;
+    $q =~ s/\(/\(?:/g;
 
-	my @ret;
-	foreach (keys %$art) {
-		/^(.*?)($q)(.*)$/ or $art->{$_} =~ /(.{0,40})($q)(.{0,40})/s or next;
+    my @ret;
+    foreach (keys %$art) {
+        /^(.*?)($q)(.*)$/ or $art->{$_} =~ /(.{0,40})($q)(.{0,40})/s or next;
 
-		push @ret, [ $_, $1, $2, $3 ];
-	};
+        push @ret, [ $_, $1, $2, $3 ];
+    };
 
-	return {
-		-template => \$search,
-		query => $q,
-		result => \@ret,
-		topic => "Search results for \"$q\"",
-		action => "Wiki",
-	};
+    return {
+        -template => \$search,
+        query => $q,
+        result => \@ret,
+        topic => "Search results for \"$q\"",
+        action => "Wiki",
+    };
 });
 
 # Bring the whole thing together.
