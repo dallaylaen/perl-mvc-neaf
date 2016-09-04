@@ -1,24 +1,23 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.03	0.05	REF Cleanup code for make install - MANIFEST etc
+0.03    0.06    API Unspecified length reply - -download => sub { ... }
+0.01    0.06    MOD Session - cookie-based + BE callbacks - N::Session + N::Session::Store
+0.03    0.06    REF Make view real objects, rename show to render, can sub {}
+0.01    0.06    TST Unit tests for what can be tested
+0.01    0.06    API Route-based defaults, cached view objs
+0.01    0.06    REF Own exception class for signalling
 
 -- backlog --
-0.03	0.10	API Add form pre-validatoin to route() [see Input::Validator]
-0.03	0.10	API Unspecified length reply - -download => sub { ... }
-0.01	0.10	MOD Session - cookie-based + BE callbacks - N::Session + N::Session::Store
-0.03	0.10	NET Content-Length header - read on it
-0.01	0.10	TST Unit tests for what can be tested
-0.01	0.10	API Route-based defaults, cached view objs
-0.03	0.10	REF Make view real objects, rename show to render
-0.03	1.00	REF Split core into route_request and process_reply
-0.04	1.00	REF Req https detection: change to is_secure? http:https.
-0.01	1.00	DEV REPL - MVC::Neaf::Cli? with term session etc
-0.01	1.00	REF Own exception class for signalling
-0.02	1.00	REF Allow overriding route of existing app
-0.02	0.10	MOD Add enveloping, dumper to TT view
-0.02	1.00	MOD Add TT caching
+0.03    0.10    API Add form pre-validatoin to route() [see Input::Validator]
+0.03    0.10    NET Content-Length header - read on it
+0.03    0.90    REF Split core into route_request and process_reply
+0.04    0.90    REF Req https detection: change to is_secure? http:https.
+0.01    0.90    DEV REPL - MVC::Neaf::Cli? with term session etc
+0.02    0.90    REF Allow overriding route of existing app
+0.02    0.10    MOD Add enveloping, dumper to TT view
+0.02    0.90    MOD Add TT caching
 
 -- think --
-0.01	2.00	MOD Seamless caching
-0.04	2.00	MOD CGI wrapper: use wrapper; route(/) {...}; run();
+0.01    0.99    MOD Seamless caching
+0.04    0.99    MOD CGI wrapper: use wrapper; route(/) {...}; run();

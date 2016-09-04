@@ -1,5 +1,16 @@
 Revision history for MVC-Neaf
 
+0.05    Sun Sep 4 2016
+        API Add method => [GET, POST] restrictions to MVC::Neaf->route
+        API Add fancy error templates via MVC::Neaf->error_template
+        DEV Add custom error handler via MVC::Neaf->on_error
+        DEV Add MVC::Neaf->server_stat and MVC::Neaf::X::ServerStat plugin
+        API Add req->postpone(CODEREF) method to delay execution
+        API Add a ton of getters to Request.
+        TST Add examples: http request breakdown and a tiny 200-line wiki
+        BUG Bugs fixed, even more introduced
+        Semireal PSGI app actually released to the net, using Neaf now
+
 0.04    Fri Sep 2 2016
         NET HEAD request handled, Content-Length served
         API Add multiparameter form validation EXPERIMENTAL

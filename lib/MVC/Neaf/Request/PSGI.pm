@@ -11,7 +11,7 @@ MVC::Neaf::Request::PSGI - Not Even A Framework: PSGI driver.
 
 =cut
 
-our $VERSION = 0.0405;
+our $VERSION = 0.05;
 use URI::Escape qw(uri_unescape);
 use Encode;
 use Plack::Request;
