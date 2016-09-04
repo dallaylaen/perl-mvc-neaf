@@ -1,8 +1,3 @@
-.githooks/commit-msg
-.githooks/pre-commit
-.githooks/setup.sh
-.gitignore
-apache.pl
 Changes
 example/01-hello-get.pl
 example/02-cookie-post-redirect.pl

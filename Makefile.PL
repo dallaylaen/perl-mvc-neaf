@@ -13,7 +13,12 @@ WriteMakefile(
       : ()),
     PL_FILES            => {},
     PREREQ_PM => {
-        'Test::More' => 0,
+        'Test::More'     => 0.87,
+		'URI::Escape'    => 0,
+		'LWP::UserAgent' => 0,
+		'Plack::Request' => 0,
+		'Template'       => 0,
+		'JSON::XS'       => 1.4,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'MVC-Neaf-*' },

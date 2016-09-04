@@ -9,6 +9,10 @@
 #  into apache's cgi dir, allowing to test
 #  CGI behaviour in real life.
 
+# TODO Now this file is obviously NOT a cgi script.
+# However, naming it as apache.pl make MakeMaker install it into the lib
+# which was not what I wanted.
+
 use strict;
 use warnings;
 use FindBin qw($Bin);

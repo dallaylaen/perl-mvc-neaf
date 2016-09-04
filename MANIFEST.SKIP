@@ -16,3 +16,5 @@ nocommit-.*
 MYMETA.*
 nytprof.*
 .*\.(bak|old|orig|rej)
+^apache.cgi
+^\.
