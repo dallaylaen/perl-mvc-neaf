@@ -1,8 +1,6 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.02	0.05	DEV Attribute errors to calling controller
-0.02	0.05	Fancy Error templates - dynamic + fallback
 0.03	0.05	API Add allowed methods to route()
 0.03	0.05	REF Make view real objects, rename show to render
 0.03	0.05	REF Cleanup code for make install - MANIFEST etc

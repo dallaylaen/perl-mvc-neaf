@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0403;
+our $VERSION = 0.0404;
 
 =head1 NAME
 
@@ -182,7 +182,7 @@ sub route {
 	# Do the work
 	$self->{route}{ $path }{code}     = $sub;
 	$self->{route}{ $path }{defaults} = \%args;
-	$self->{route}{ $path }{caller}   = [caller(0)]->[1,2]; # file,line
+	$self->{route}{ $path }{caller}   = [caller(0)]; # file,line
 
 	return $self;
 };
@@ -324,6 +324,47 @@ sub on_error {
 	return $self;
 };
 
+=head2 error_template ( status => { ... } )
+
+Set custom error handler.
+
+Status must be either a 3-digit number (as in HTTP), or "view".
+Other allowed keys MAY appear in the future.
+
+The second argument follows the same rules as controller return.
+
+The following fields are expected to exist if this handler fires:
+
+=over
+
+=item * -status - defaults to actual status (e.g. 500);
+
+=item * caller - array with the point where MVC::Neaf->route was set up;
+
+=item * error - in case of exception, this will be the error.
+
+=back
+
+Returns self.
+
+=cut
+
+sub error_template {
+	my ($self, $status, $tpl) = @_;
+	$self = $Inst unless ref $self;
+
+	$status =~ /^(\d\d\d|view)$/
+		or croak( (ref $self)."->error_template: "
+			. "1st arg must be http status or a special value (see perldoc)");
+	ref $tpl eq 'HASH'
+		or croak( (ref $self)."->error_template: "
+			."2nd arg must be a hash (just as controller return)");
+
+	$self->{error_template}{$status} = $tpl;
+
+	return $self;
+};
+
 =head2 run()
 
 Run the applicaton.
@@ -399,7 +440,10 @@ sub new {
 	$opt{on_error}  ||= sub {
 		my ($req, $err, $where) = @_;
 		my $msg = "ERROR: ".$req->script_name.": $err";
-		$msg .= " in $where->[0] line $where->[1]" if $where;
+		if ($where) {
+			$msg =~ s/\s+$//s;
+			$msg .= " in $where->[1] line $where->[2]";
+		};
 		warn "$msg\n";
 	};
 
@@ -420,6 +464,7 @@ sub handle_request {
 	exists $self->{stat} and $self->{stat}->record_start;
 
 	# ROUTE REQUEST
+	my $route;
 	my $data = eval {
 		# First, try running the pre-routing callback.
 		if (exists $self->{pre_route}) {
@@ -429,9 +474,10 @@ sub handle_request {
 		};
 
 		# Run the controller!
-		$req->path =~ $self->{route_re} || die '404\n';
+		$req->path =~ $self->{route_re} and $route = $self->{route}{$1}
+			or die "404\n";
 		$req->set_full_path( $1, $2 );
-		return $self->{route}{$1}{code}->($req);
+		return $route->{code}->($req);
 	};
 
 	if ($data) {
@@ -443,7 +489,7 @@ sub handle_request {
 		exists $data->{$_} or $data->{$_} = $GD->{$_} for keys %$GD;
 	} else {
 		# Fall back to error page
-		$data = $self->_error_to_reply( $req, $@ );
+		$data = $self->_error_to_reply( $req, $@, $route->{caller} );
 	};
 
 	# END ROUTE REQUEST
@@ -497,18 +543,29 @@ sub _error_to_reply {
 		# TODO use own excp class
 		$err->{-status} ||= 500;
 		return $err;
-	} else {
-		my $status = (!ref $err && $err =~ /^(\d\d\d)/) ? $1 : 500;
-		if( !$1 ) {
-			exists $self->{on_error}
-				and $self->{on_error}->($req, $err, $where);
-		};
+	};
 
+	# A generic error...
+	my $status = (!ref $err && $err =~ /^(\d\d\d)/) ? $1 : 500;
+	if( !$1 ) {
+		exists $self->{on_error}
+			and eval { $self->{on_error}->($req, $err, $where) };
+		# ignore errors in error handler
+		warn "ERROR: Error handler failed: $@"
+			if $@;
+	};
+
+	if (exists $self->{error_template}{$status}) {
+		my %ret = %{ $self->{error_template}{$status} }; # don't spoil the original
+		$ret{-status} = $status;
+		$ret{caller} = $where;
+		$ret{error} = $err;
+		return \%ret;
+	} else {
 		return {
 			-status     => $status,
 			-type       => 'text/plain',
-			-view       => 'TT',
-			-template   => \"Error $status",
+			-content    => "Error $status",
 		};
 	};
 };
