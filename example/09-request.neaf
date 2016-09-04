@@ -1,0 +1,55 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+# always use latest and gratest libraries, not the system ones
+use FindBin qw($Bin);
+use File::Basename qw(dirname);
+use lib dirname($Bin)."/lib";
+use MVC::Neaf;
+
+my $tpl = <<"TT";
+<head>
+	<title>Http request in a nutshell</title>
+	<style>
+		span { border: dotted 1px red; }
+	</style>
+</head>
+<b>Hover over dotted rectangles to see the function returning this part.</b>
+<br><br>
+
+<span title="method">[% method %]</span>
+<span title="path">[% path %]</span>
+HTTP/<span title="http_version">[% http_version %]</span>
+<br>
+Host: <span title="hostname">[% hostname %]</span>
+<br><br>
+<span title="scheme">[% scheme %]</span>://
+<span title="hostname">[% hostname %]</span>:
+<span title="port">[% port %]</span>
+<span title="script_name">[% script_name %]</span>
+<span title="path_info">[% path_info %]</span>
+TT
+
+my $path = "/cgi/09-request.cgi";
+MVC::Neaf->route( $path => sub {
+	my $req = shift;
+
+	$req->redirect( "$path/and/beyond" )
+		unless $req->path_info;
+
+	return {
+		-template => \$tpl,
+		map {
+			$_ => $req->$_
+		} qw(method path http_version scheme hostname port script_name path_info)
+	};
+} );
+
+MVC::Neaf->route( "/" => sub {
+	my $req = shift;
+	$req->redirect( "$path/and/beyond" );
+} );
+
+MVC::Neaf->run;
