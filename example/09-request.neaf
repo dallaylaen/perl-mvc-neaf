@@ -19,6 +19,7 @@ my $tpl = <<"TT";
 <b>Hover over dotted rectangles to see the function returning this part.</b>
 <br><br>
 
+Client ip: <span title="client_ip">[% client_ip %]</span><br>
 <span title="method">[% method %]</span>
 <span title="path">[% path %]</span>
 HTTP/<span title="http_version">[% http_version %]</span>
@@ -42,8 +43,9 @@ MVC::Neaf->route( $path => sub {
 	return {
 		-template => \$tpl,
 		map {
-			$_ => $req->$_
-		} qw(method path http_version scheme hostname port script_name path_info)
+			$_ => eval { $req->$_ } || "unimplemented: $_";
+		} qw(method path http_version scheme hostname port
+			script_name path_info client_ip ),
 	};
 } );
 

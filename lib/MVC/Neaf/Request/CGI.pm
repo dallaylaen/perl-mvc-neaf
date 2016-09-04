@@ -3,7 +3,7 @@ package MVC::Neaf::Request::CGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.0402;
+our $VERSION = 0.0403;
 use Carp;
 use Encode;
 use HTTP::Headers;
@@ -27,6 +27,16 @@ sub new {
 
 	$args{driver} ||= $cgi->new;
 	return bless \%args, $class;
+};
+
+=head2 do_get_client_ip()
+
+=cut
+
+sub do_get_client_ip {
+	my $self = shift;
+
+	return $self->{driver}->remote_addr;
 };
 
 =head2 do_get_method()

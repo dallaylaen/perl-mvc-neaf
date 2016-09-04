@@ -11,7 +11,7 @@ MVC::Neaf::Request::PSGI - Not Even A Framework: PSGI driver.
 
 =cut
 
-our $VERSION = 0.0402;
+our $VERSION = 0.0403;
 use URI::Escape qw(uri_unescape);
 use Encode;
 use Plack::Request;
@@ -29,6 +29,60 @@ sub new {
 	my $self = $class->SUPER::new( @_ );
 	$self->{driver} ||= Plack::Request->new( $self->{env} || {} );
 	return $self;
+};
+
+=head2 do_get_client_ip
+
+=cut
+
+sub do_get_client_ip {
+	my $self = shift;
+
+	return $self->{driver}->address;
+};
+
+=head2 do_get_http_version()
+
+=cut
+
+sub do_get_http_version {
+	my $self = shift;
+
+	my $proto = $self->{driver}->protocol || 1.0;
+	$proto =~ s#^HTTP/##;
+
+	return $proto;
+};
+
+=head2 do_get_scheme()
+
+=cut
+
+sub do_get_scheme {
+	my $self = shift;
+	return $self->{driver}->scheme;
+};
+
+=head2 do_get_hostname()
+
+=cut
+
+sub do_get_hostname {
+	my $self = shift;
+	my $base = $self->{driver}->base;
+
+	return $base =~ m#//([^:?/]+)# ? $1 : "localhost";
+};
+
+=head2 do_get_port()
+
+=cut
+
+sub do_get_port {
+	my $self = shift;
+	my $base = $self->{driver}->base;
+
+	return $base =~ m#//([^:?/]+):(\d+)# ? $2 : "80";
 };
 
 =head2 do_get_method()

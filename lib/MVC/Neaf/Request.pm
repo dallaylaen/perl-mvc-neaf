@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0406;
+our $VERSION = 0.0407;
 
 =head1 NAME
 
@@ -64,6 +64,24 @@ sub new {
 
 # TODO A lot of copypasted methods down here.
 # Should we join them all? Maybe...
+
+=head2 client_ip()
+
+Returns the IP of the client. Note this may be mangled by proxy...
+
+=cut
+
+sub client_ip {
+	my $self = shift;
+
+	warn "In client ip, cached = " . ($self->{client_ip} // "(undef)");
+
+	return $self->{client_ip} ||= do {
+		my @fwd = $self->header_in( "X-Forwarded-For" );
+		warn "Getting client ip: header gives [@fwd]";
+		@fwd == 1 && $fwd[0] || $self->do_get_client_ip || "127.0.0.1";
+	};
+};
 
 =head2 http_version()
 
