@@ -2,7 +2,7 @@ package MVC::Neaf::View;
 
 use strict;
 use warnings;
-our $VERSION = 0.0501;
+our $VERSION = 0.0502;
 
 =head1 NAME
 
@@ -57,6 +57,8 @@ or a text error message as a last resort.
 
 sub render {
     my $self = shift;
+
+    return $self->{callback}->(shift) if exists $self->{callback};
 
     croak( (ref $self)."->render() unimplemented (in MVC::Neaf::View)" );
 };

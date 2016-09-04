@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use Test::More;
 
+use MVC::Neaf::View;
 use MVC::Neaf::View::TT;
 use MVC::Neaf::View::JS;
 
@@ -22,6 +23,7 @@ is_deeply ([ $js->render( { -callback => 'alert("pwned!");foo.bar' } ) ],
     , ['{}', "application/json; charset=utf-8" ]
     , "jsonp exploit didn't work" );
 
-
+my $plain = MVC::Neaf::View->new( callback => sub { foo => 'text/plain' } );
+is_deeply( [$plain->render( {} )], [ foo => 'text/plain' ], "callback in view");
 
 done_testing;

@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0501;
+our $VERSION = 0.0502;
 
 =head1 NAME
 
@@ -180,10 +180,12 @@ sub route {
     # reset cache
     $self->{route_re} = undef;
 
+    my %profile;
+
     # Do the work
-    $self->{route}{ $path }{code}     = $sub;
-    $self->{route}{ $path }{defaults} = \%args;
-    $self->{route}{ $path }{caller}   = [caller(0)]; # file,line
+    $profile{code}     = $sub;
+    $profile{defaults} = \%args;
+    $profile{caller}   = [caller(0)]; # file,line
 
     if ($args{method}) {
         $args{method} = [ $args{method} ] unless ref $args{method} eq 'ARRAY';
@@ -191,9 +193,23 @@ sub route {
         foreach (@{ $args{method} }) {
             $allowed{ uc $_ }++;
         };
-        $self->{route}{ $path }{allowed_methods} = \%allowed;
+        $profile{allowed_methods} = \%allowed;
     };
 
+    if (my $view = $args{view}) {
+        if (!ref $view) {
+            $view = $self->load_view( $view );
+        } elsif (ref $view eq 'CODE') {
+            $view = MVC::Neaf::View->new( callback => $view );
+        };
+
+        $self->_croak( "view must be a coderef or a MVC::Neaf::View object" )
+            unless blessed $view and $view->isa("MVC::Neaf::View");
+
+        $profile{view} = $view;
+    };
+
+    $self->{route}{ $path } = \%profile;
     return $self;
 };
 
@@ -605,6 +621,13 @@ sub make_headers {
         and $head{'Content-Type'} .= "; charset=utf-8";
 
     return \%head;
+};
+
+sub _croak {
+    my ($self, $msg) = @_;
+
+    my $where = [caller(0)]->[3];
+    croak( (ref $self)."->$where: $msg" );
 };
 
 =head1 AUTHOR
