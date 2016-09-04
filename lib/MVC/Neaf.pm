@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0404;
+our $VERSION = 0.0405;
 
 =head1 NAME
 
@@ -183,6 +183,15 @@ sub route {
 	$self->{route}{ $path }{code}     = $sub;
 	$self->{route}{ $path }{defaults} = \%args;
 	$self->{route}{ $path }{caller}   = [caller(0)]; # file,line
+
+	if ($args{method}) {
+		$args{method} = [ $args{method} ] unless ref $args{method} eq 'ARRAY';
+		my %allowed;
+		foreach (@{ $args{method} }) {
+			$allowed{ uc $_ }++;
+		};
+		$self->{route}{ $path }{allowed_methods} = \%allowed;
+	};
 
 	return $self;
 };
@@ -476,6 +485,9 @@ sub handle_request {
 		# Run the controller!
 		$req->path =~ $self->{route_re} and $route = $self->{route}{$1}
 			or die "404\n";
+		!exists $route->{allowed_methods}
+			or $route->{allowed_methods}{ $req->method }
+			or die "405\n";
 		$req->set_full_path( $1, $2 );
 		return $route->{code}->($req);
 	};

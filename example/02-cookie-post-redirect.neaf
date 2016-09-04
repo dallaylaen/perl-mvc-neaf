@@ -28,15 +28,13 @@ TT
 MVC::Neaf->route("/forms/02-post.cgi" => sub {
 	my $req = shift;
 
-	die 403 unless $req->method eq 'POST';
-
 	my $name = $req->param( name => qr/[-\w ]+/, '' );
 	if (length $name) {
         $req->set_cookie( name => $name );
 	};
 
 	$req->redirect( $req->referer || "/" );
-});
+}, method => "POST");
 
 MVC::Neaf->route("/" => sub {
 	my $req = shift;
