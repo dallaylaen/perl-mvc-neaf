@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0406;
+our $VERSION = 0.0407;
 
 =head1 NAME
 
@@ -139,6 +139,7 @@ They have nothing to do with serving the request.
 
 use Carp;
 use Scalar::Util qw(blessed);
+use Encode;
 
 use MVC::Neaf::Request;
 
@@ -532,6 +533,10 @@ sub handle_request {
         };
         $data->{-type} ||= $type || 'text/html';
     };
+
+    # Encode content NOW so that we don't lie about its length
+    $content = encode_utf8( $content )
+        if Encode::is_utf8( $content );
 
     # Handle headers
     my $headers = $self->make_headers( $data );

@@ -11,7 +11,7 @@ MVC::Neaf::Request::PSGI - Not Even A Framework: PSGI driver.
 
 =cut
 
-our $VERSION = 0.0404;
+our $VERSION = 0.0405;
 use URI::Escape qw(uri_unescape);
 use Encode;
 use Plack::Request;
@@ -179,10 +179,6 @@ sub do_reply {
         } else {
             push @header_array, $k, $header->{$k};
         };
-    };
-
-    if (Encode::is_utf8($content)) {
-        $content = encode_utf8($content);
     };
 
     # HACK - we're being returned by handler in MVC::Neaf itself in case of
