@@ -3,7 +3,7 @@ package MVC::Neaf::Request::Apache2;
 use strict;
 use warnings;
 
-our $VERSION = 0.0403;
+our $VERSION = 0.0404;
 
 =head1 NAME
 
@@ -38,14 +38,34 @@ The following apache configuration should work with this module:
 
 use URI::Escape;
 use HTTP::Headers;
+use Carp;
 
-use Apache2::RequestRec ();
-use Apache2::RequestIO ();
-use Apache2::Connection;
-use APR::SockAddr;
-use Apache2::Request;
-use Apache2::Upload;
-use Apache2::Const -compile => 'OK';
+my %fail_apache;
+foreach my $mod (qw(
+    Apache2::RequestRec
+    Apache2::RequestIO
+    Apache2::Connection
+    APR::SockAddr
+    Apache2::Request
+    Apache2::Upload
+    Apache2::Const
+)) {
+    eval "require $mod" and next; ## no critic
+    # warn "Failed to load $mod: $@";
+    $fail_apache{$mod} = $@;
+};
+
+if (%fail_apache) {
+    carp "WARNING: Some Apache2 modules failed to load, "
+        . __PACKAGE__ . " may not be fully operational";
+    no warnings 'redefine'; ## no critic
+    *do_get_path = sub {
+        my $self = shift;
+        croak( (ref $self)."->do_get_path: "
+            ."apache modules failed to load on startup: "
+            . join ", ", keys %fail_apache);
+    };
+};
 
 use MVC::Neaf;
 use parent qw(MVC::Neaf::Request);
@@ -215,7 +235,22 @@ sub handler : method {
     );
     my $reply = MVC::Neaf->handle_request( $self );
 
-    return Apache2::Const::OK;
+    return Apache2::Const::OK();
+};
+
+=head2 failed_startup()
+
+If Apache modules failed to load on startup, report error here.
+
+This is done so because adding Apache2::* as dependencies would impose
+a HUGE headache on PSGI users.
+
+Ideally, this module should be mover out of the repository altogether.
+
+=cut
+
+sub failed_startup {
+       return %fail_apache ? \%fail_apache : ();
 };
 
 1;

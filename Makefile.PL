@@ -19,6 +19,7 @@ WriteMakefile(
         'Plack::Request' => 0,
         'Template'       => 0,
         'JSON::XS'       => 1.4,
+        'HTTP::Headers'  => 0,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'MVC-Neaf-*' },
