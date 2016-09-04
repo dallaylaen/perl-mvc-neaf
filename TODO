@@ -2,7 +2,6 @@ SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
 0.01    0.06    MOD Session - cookie-based + BE callbacks - N::Session + N::Session::Store
-0.03    0.06    REF Make view real objects, rename show to render, can sub {}
 0.01    0.06    TST Unit tests for what can be tested
 0.01    0.06    API Route-based defaults, cached view objs
 0.01    0.06    REF Own exception class for signalling

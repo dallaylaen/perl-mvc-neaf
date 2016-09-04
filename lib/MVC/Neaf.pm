@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0502;
+our $VERSION = 0.0503;
 
 =head1 NAME
 
@@ -536,8 +536,7 @@ sub handle_request {
         $data->{-type} ||= $content =~ /^.{0,512}[^\s\x20-\x7F]/
             ? 'text/plain' : 'application/octet-stream';
     } else {
-        # TODO route defaults, global default
-        my $view = $self->load_view( $data->{-view} );
+        my $view = $self->load_view( $data->{-view} || $route->{view} );
         eval { ($content, $type) = $view->render( $data ); };
         if (!defined $content) {
             warn "ERROR: In view: $@";
