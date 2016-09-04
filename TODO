@@ -6,7 +6,6 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.03	0.05	API Add allowed methods to route()
 0.03	0.05	REF Make view real objects, rename show to render
 0.03	0.05	REF Cleanup code for make install - MANIFEST etc
-0.04	0.05	NET Implement the rest of Req getters
 
 -- backlog --
 0.03	0.10	API Add form pre-validatoin to route() [see Input::Validator]
@@ -15,6 +14,7 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.03	0.10	NET Content-Length header - read on it
 0.01	0.10	TST Unit tests for what can be tested
 0.03	0.10	REF Split core into route_request and process_reply
+0.04	1.00	REF Req https detection: change to is_secure? http:https.
 0.01	1.00	API Route-based defaults, cached view objs
 0.01	1.00	DEV REPL - MVC::Neaf::Cli? with term session etc
 0.01	1.00	REF Own exception class for signalling

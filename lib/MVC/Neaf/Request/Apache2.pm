@@ -3,7 +3,7 @@ package MVC::Neaf::Request::Apache2;
 use strict;
 use warnings;
 
-our $VERSION = 0.0401;
+our $VERSION = 0.0402;
 
 =head1 NAME
 
@@ -41,12 +41,68 @@ use HTTP::Headers;
 
 use Apache2::RequestRec ();
 use Apache2::RequestIO ();
+use Apache2::Connection;
+use APR::SockAddr;
 use Apache2::Request;
 use Apache2::Upload;
 use Apache2::Const -compile => 'OK';
 
 use MVC::Neaf;
 use parent qw(MVC::Neaf::Request);
+
+=head2 do_get_client_ip
+
+=cut
+
+sub do_get_client_ip {
+	my $self = shift;
+
+	my $conn = $self->{driver_raw}->connection;
+	return $conn->remote_ip;
+};
+
+=head2 do_get_http_version
+
+=cut
+
+sub do_get_http_version {
+	my $self = shift;
+	my $proto = $self->{driver_raw}->proto_num;
+	$proto =~ /^\D*(\d+?)\D*(\d\d?\d?)$/;
+	return join ".", 0+$1, 0+$2;
+};
+
+=head2 do_get_scheme
+
+=cut
+
+sub do_get_scheme {
+	my $self = shift;
+
+	# Shamelessly stolen from Catalyst
+	my $https = $self->{driver_raw}->subprocess_env('HTTPS');
+	return $https and uc $https eq 'ON' ? "https" : "http";
+};
+
+=head2 do_get_hostname
+
+=cut
+
+sub do_get_hostname {
+	my $self = shift;
+	return $self->{driver_raw}->hostname;
+};
+
+=head2 do_get_port()
+
+=cut
+
+sub do_get_port {
+	my $self = shift;
+
+	my $conn = $self->{driver_raw}->connection;
+	return $conn->local_addr->port;
+};
 
 =head2 do_get_method()
 
@@ -82,17 +138,17 @@ sub do_get_params {
 	return \%hash;
 };
 
-=head2 go_get_header_in()
+=head2 do_get_header_in()
 
 =cut
 
-sub go_get_header_in {
+sub do_get_header_in {
 	my $self = shift;
 
 	my %head;
 	$self->{driver_raw}->headers_in->do( sub {
 		my ($key, $val) = @_;
-		push $head{$key}, $val;
+		push @{ $head{$key} }, $val;
 	});
 
 	return HTTP::Headers->new( %head );
