@@ -15,6 +15,7 @@ use FindBin qw($Bin);
 use File::Basename qw(dirname);
 use Template;
 use IO::Socket::INET;
+use Time::HiRes qw(sleep);
 
 # Some config here
 # /forms/ is just the same, but does not spoil our shiny index
@@ -31,17 +32,11 @@ my %cgi = (qw(
 # skipping 05-lang for now - won't work under apache as CGI
 my $dir = "$Bin/nocommit-apache";
 my $conf = "$dir/httpd.conf";
-my $httpd = "/usr/sbin/apache2"; # TODO hardcode, autodetect!
 my $port = 8000;
 
-# Here we go...
-my $action = shift || '';
-if ($action !~ /^(start|stop|make)$/) {
-	print "Usage: $0 start|stop|make";
-	exit 0;
-};
-
 my $tpl = <<"TT";
+ServerRoot [% dir %]
+ServerName localhost
 DocumentRoot [% dir %]/html
 
 LogLevel info
@@ -55,7 +50,7 @@ LoadModule cgi_module         [% modules %]/mod_cgi.so
 LoadModule env_module         [% modules %]/mod_env.so
 LoadModule mime_module        [% modules %]/mod_mime.so
 	# this fixes mod_mime loading on my ubuntu
-	TypesConfig  magic
+	TypesConfig [% magic %]
 LoadModule perl_module        [% modules %]/mod_perl.so
 	PerlSwitches -I[% lib %]
 LoadModule apreq_module       [% modules %]/mod_apreq2.so
@@ -78,18 +73,60 @@ Alias /cgi [% dir %]/cgi
 	Options +Indexes +ExecCGI +FollowSymlinks
 </Directory>
 
-# mod_perl part
+####################
+#   mod_perl part  #
+####################
 PerlModule MVC::Neaf
 # PerlPostConfigRequire [% parent %]/example/01-hello-get.neaf
-PerlPostConfigRequire [% parent %]/example/03-upload.neaf
-<Location /perl>
+# PerlPostConfigRequire [% parent %]/example/03-upload.neaf
+# <Location /perl>
+#    SetHandler perl-script
+#	PerlResponseHandler MVC::Neaf::Request::Apache2
+# </Location>
+
+PerlSetEnv EXAMPLE_PATH_REQUEST /request/parser
+PerlPostConfigRequire [% parent %]/example/09-request.neaf
+<Location /request/parser>
     SetHandler perl-script
-	PerlResponseHandler MVC::Neaf::Request::Apache2
+    PerlResponseHandler MVC::Neaf::Request::Apache2
 </Location>
 
 TT
 
-# Stop apache
+# Process command line before doing the heavilifting
+my $action = shift || '';
+if ($action !~ /^(start|stop|make)$/) {
+	print "Usage: $0 start|stop|make";
+	exit 0;
+};
+
+# Autodetect where Apache sits
+# TODO I only have Ubuntu, need input from people with other systems
+my $httpd = "/usr/sbin/apache2";
+foreach (qw(/usr/sbin/httpd)
+	, map { chomp } `which httpd`, `which apache2`, `which apache`) {
+	$_ and -x $_ or next;
+	$httpd = $_;
+	last;
+};
+
+my $modules = "/usr/lib/apache2/modules";
+foreach (qw(/etc/apache2), dirname($httpd), dirname(dirname($httpd)) ) {
+	$_ and -d $_ and -d "$_/modules" and -f "$_/modules/mod_cgi.so" or next;
+	$modules = $_;
+	last;
+};
+
+my $magic = "/etc/apache2/mime.types";
+foreach( qw(/etc/apache2/magic), dirname($httpd)."/conf"
+	, dirname(dirname($httpd))."/conf", "/etc/magic") {
+	$_ and -r $_ and -s $_ or next;
+	$magic = $_;
+	last;
+};
+
+# Stop apache anyway
+print "Stopping apache before mangling config...\n";
 system $httpd, -f => $conf, -k => "stop"
 	if -f $conf and -x $httpd;
 
@@ -114,7 +151,8 @@ my %vars = (
 	dir       => "$dir",
 	port      => $port,
 	parent    => $Bin,
-	modules   => "/usr/lib/apache2/modules",
+	modules   => $modules,
+	magic     => $magic,
 );
 
 my $tt = Template->new;
@@ -125,25 +163,42 @@ close $fd or die "Failed to close $conf: $!";
 
 # restart server if asked to
 if ($action eq 'start' and -x $httpd) {
+	# First, wait for stop above to take effect
+	print "Waiting for port $port to clear...\n";
+	wait_for_port( $port, 0 );
+	print "Port $port free, starting $httpd\n";
+
 	system $httpd, -f => $conf, -k => "start";
+	print "Check logs at $dir/error.log\n";
 
 	if ($?) {
-		print "Server start failed, check logs at $dir/error.log";
+		print "Server start failed!\n";
 		exit 1;
 	};
 
-	foreach (1 .. 10) {
+	print "Waiting for port $port to become active\n";
+	wait_for_port( $port, 1 );
+
+	print "Check server at http://localhost:$port/cgi/";
+};
+
+sub wait_for_port {
+	my ($port, $on_off) = @_;
+
+	local $SIG{ALRM} = sub { die "Failed to wait for socket to "
+		.$on_off ? "start" : "stop" };
+	alarm 10;
+
+	while ( 1 ) {
 		my $sock = IO::Socket::INET->new(
 			Proto => "tcp",
 			PeerHost => "localhost",
 			PeerPort => $port,
 		);
+		close $sock if $sock;
 
-		last if ($sock);
-		sleep 1;
+		last unless $sock xor $on_off; # sock and on_off must be both true | both false
+		sleep 0.01;
 	};
-
-	print "Check server at http://localhost:$port/cgi/";
+	alarm 0;
 };
-
-
