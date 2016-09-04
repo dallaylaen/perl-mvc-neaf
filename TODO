@@ -2,8 +2,6 @@ SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
 0.01    0.06    MOD Session - cookie-based + BE callbacks - N::Session + N::Session::Store
-0.01    0.06    REF Own exception class for signalling
-0.05    0.06    DOC Update README
 
 -- backlog --
 0.01    0.20    API Route-based defaults - do we even need it??

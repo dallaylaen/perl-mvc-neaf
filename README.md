@@ -9,7 +9,7 @@ For the lazy, by the lazy.
 
 **Model** is assumed to be a regular Perl module, and is totally out of scope.
 
-**View** is assumed to have just one method, `show()`,
+**View** is assumed to have just one method, `render()`,
 which receives a hashref and returns rendered context as scalar.
 
 **Controller** is reduced to just one function, which gets a request object
@@ -26,13 +26,18 @@ Apache handler.
 
 * Start out simple, then scale up.
 
-* Enough magic already.
+* Enough magic already. Use simple constructs where possible.
 
 * Zeroconf: everything can be configured, nothing needs to.
 
 * It's not software unless you can run it.
 
+* Trust nobody. Validate the data.
+
 # EXAMPLE
+
+The following would produce a greeting message depending
+on the `?name=` parameter.
 
     use strict;
     use warnings;
@@ -53,18 +58,37 @@ Apache handler.
 # FEATURES
 
 * GET, POST requests, uploads, redirects, and cookies are supported
+(not quite impressive, but it's 95% of what's needed);
 
-* Template::Toolkit view out of the box
+* Template::Toolkit view out of the box;
 
-* json/jsonp view out of the box
+* json/jsonp view out of the box (with sanitized callbacks);
 
-* can serve raw content (e.g. generated images)
+* can serve raw content (e.g. generated images);
 
-* sanitized query parameters out of the box
+* sanitized query parameters and cookies out of the box
+(LIVR-based form validation planned);
+
+# NOT SO BORING FEATURES
+
+* CLI-based debugging via `perl -MMVC::Neaf=view,Dumper controller.pl /?foo=bar`
+
+* Can gather request performance statistics if needed;
+
+* Can postpone lengthly actions until the request is served;
+
+# EXAMPLES
+
+The `example/` directory has an app explaining HTTP in a nutshell,
+jsonp app and some 200-line wiki engine.
 
 # BUGS
 
 Lots of them. Still in alpha stage.
+
+* Http headers handling is a mess;
+
+* Apache handler is a mess;
 
 Patches and proposals are welcome.
 
