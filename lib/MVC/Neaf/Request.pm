@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0501;
+our $VERSION = 0.0502;
 
 =head1 NAME
 
@@ -107,7 +107,7 @@ sub scheme {
     my $self = shift;
 
     if (!exists $self->{scheme}) {
-        $self->{scheme} = $self->do_get_scheme;
+        $self->{scheme} = $self->do_get_scheme || 'http';
     };
 
     return $self->{scheme};
