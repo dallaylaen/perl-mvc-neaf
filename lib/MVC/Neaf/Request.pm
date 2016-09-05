@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0502;
+our $VERSION = 0.0503;
 
 =head1 NAME
 
@@ -452,8 +452,8 @@ sub get_cookie {
         };
         \%hash;
     };
-    return unless $self->{neaf_cookie_in}{ $name };
     my $value = $self->{neaf_cookie_in}{ $name };
+    return $default unless defined $value;
 
     if (!Encode::is_utf8($value)) {
         # HACK non-utf8 => do what the driver forgot.

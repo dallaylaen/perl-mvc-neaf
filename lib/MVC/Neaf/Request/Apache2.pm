@@ -3,7 +3,7 @@ package MVC::Neaf::Request::Apache2;
 use strict;
 use warnings;
 
-our $VERSION = 0.05;
+our $VERSION = 0.0501;
 
 =head1 NAME
 
@@ -103,7 +103,7 @@ sub do_get_scheme {
 
     # Shamelessly stolen from Catalyst
     my $https = $self->{driver_raw}->subprocess_env('HTTPS');
-    return $https and uc $https eq 'ON' ? "https" : "http";
+    return( ($https && uc $https eq 'ON') ? "https" : "http" );
 };
 
 =head2 do_get_hostname

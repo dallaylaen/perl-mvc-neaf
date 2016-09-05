@@ -45,6 +45,12 @@ eval {
 };
 is (ref $@, "MVC::Neaf::Exception", "Redirect throws an MVC::Neaf::Exception" );
 like ($@, qr/^MVC::Neaf/, "Exception tells who it is");
+like ($@, qr/spacex.com/, "Exception tells where to the redirect is when str" );
+eval {
+    $req->error(404);
+};
+is (ref $@, "MVC::Neaf::Exception", "Erro throws an MVC::Neaf::Exception" );
+like ($@, qr/^MVC::Neaf/, "Exception tells who it is");
 
 my $flag = 0;
 $req->postpone( sub { $flag++ } );

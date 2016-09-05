@@ -23,7 +23,8 @@ MVC::Neaf->route( bar => sub {
     my $bar = $req->param( bar => qr/.*/ );
 
     return {
-        -content => $bar,
+        -template => \"[% content %]",
+        content => $bar,
     };
 });
 

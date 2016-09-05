@@ -8,7 +8,7 @@ use LWP::UserAgent;
 use IO::Socket::INET;
 
 use FindBin qw($Bin);
-use File::Basename qw(dirname);
+use File::Basename qw(dirname basename);
 use lib dirname($Bin)."/lib";
 
 my $root = dirname( $Bin );
@@ -16,10 +16,12 @@ my $root = dirname( $Bin );
 my $port_attempts = 100;
 my $run_attempts  = 10;
 
-my ($example) = glob ("$root/example/01*");
+# use 09-request example which calls most getters
+my ($example) = glob ("$root/example/09*");
 if (!$example or !-f $example) {
     die "No example found in $root/example";
 };
+my $cginame = basename($example);
 
 # make sure example compiles at all
 my $sub = eval { require $example };
@@ -76,7 +78,7 @@ if (!defined $invite) {
     die "Failed to get any prompt from plackup: $!";
 };
 
-my $url = "http://localhost:$port/";
+my $url = "http://localhost:$port/cgi/$cginame/some/foobar";
 
 my $agent = LWP::UserAgent->new;
 

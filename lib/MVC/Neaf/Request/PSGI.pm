@@ -2,6 +2,7 @@ package MVC::Neaf::Request::PSGI;
 
 use strict;
 use warnings;
+our $VERSION = 0.0501;
 
 =head1 NAME
 
@@ -11,7 +12,6 @@ MVC::Neaf::Request::PSGI - Not Even A Framework: PSGI driver.
 
 =cut
 
-our $VERSION = 0.05;
 use URI::Escape qw(uri_unescape);
 use Encode;
 use Plack::Request;
@@ -48,7 +48,7 @@ sub do_get_client_ip {
 sub do_get_http_version {
     my $self = shift;
 
-    my $proto = $self->{driver}->protocol || 1.0;
+    my $proto = $self->{driver}->protocol || '1.0';
     $proto =~ s#^HTTP/##;
 
     return $proto;

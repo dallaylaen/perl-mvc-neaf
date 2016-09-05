@@ -21,5 +21,9 @@ like( $MVC::Neaf::Request::PSGI::VERSION, qr/^\d+\.\d+$/, "Autoload ok");
 is ($capture_req->client_ip, "127.0.0.1", "localhost detected");
 
 is ($capture_req->scheme, "http", "No https in fake req");
+ok (!$capture_req->secure, "No https = no secure");
+is ($capture_req->user_agent, undef, "no user agent");
+
+is ($capture_req->upload("masha"), undef, "No uploads");
 
 done_testing;

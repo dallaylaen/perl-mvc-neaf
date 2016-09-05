@@ -38,5 +38,6 @@ like ($capture_stdout, qr#Content-Type: text/plain; charset=utf-8#
     , "content type ok");
 
 is ($capture_req->http_version, "1.0", "http 1.0 autodetected");
+is ($capture_req->upload("masha"), undef, "No uploads");
 
 done_testing;
