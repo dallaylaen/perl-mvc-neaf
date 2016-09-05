@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0504;
+our $VERSION = 0.0505;
 
 =head1 NAME
 
@@ -533,8 +533,8 @@ sub handle_request {
     my ($content, $type);
     if (defined $data->{-content}) {
         $content = $data->{-content};
-        $data->{-type} ||= $content =~ /^.{0,512}[^\s\x20-\x7F]/
-            ? 'text/plain' : 'application/octet-stream';
+        $data->{-type} ||= $content =~ /^.{0,512}([^\s\x20-\x7F])/s
+            ? 'application/octet-stream' : 'text/plain';
     } else {
         my $view = $self->load_view( $data->{-view} || $route->{view} );
         eval { ($content, $type) = $view->render( $data ); };
@@ -550,8 +550,10 @@ sub handle_request {
     };
 
     # Encode content NOW so that we don't lie about its length
-    $content = encode_utf8( $content )
-        if Encode::is_utf8( $content );
+    if (Encode::is_utf8( $content )) {
+        $content = encode_utf8( $content );
+        $data->{-type} .= "; charset=utf-8";
+    };
 
     # Handle headers
     my $headers = $self->make_headers( $data );
@@ -615,8 +617,6 @@ sub make_headers {
     $head{'Content-Type'} = $data->{-type} || $self->{-type};
     $head{'Location'} = $data->{-location}
         if $data->{-location};
-    $head{'Content-Type'} =~ m#^text/[-\w]+$#
-        and $head{'Content-Type'} .= "; charset=utf-8";
 
     return \%head;
 };
