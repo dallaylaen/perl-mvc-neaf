@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0505;
+our $VERSION = 0.0506;
 
 =head1 NAME
 
@@ -167,14 +167,25 @@ Exactly one leading slash will be prepended no matter what you do.
 =cut
 
 sub route {
-    my ($self, $path, $sub, %args) = @_;
+    my $self = shift;
+
+    # HACK!! pack path components together, i.e.
+    # foo => bar => \&handle eq "/foo/bar" => \&handle
+    my ( $path, $sub );
+    while ($sub = shift) {
+        last if ref $sub;
+        $path .= "/$sub";
+    };
+    $self->_croak( "Odd number of elements in hash assignment" )
+        if @_ % 2;
+    my (%args) = @_;
     $self = $Inst unless ref $self;
 
     # Sanitize path so that we have exactly one leading slash
     # root becomes nothing (which is OK with us).
     $path =~ s#^/*#/#;
     $path =~ s#/+$##;
-    croak( "MVC::Neaf: Attempting to set duplicate handler for path $path" )
+    $self->_croak( "Attempting to set duplicate handler for path $path" )
         if $self->{route}{ $path };
 
     # reset cache
@@ -260,7 +271,7 @@ sub load_view {
     $module ||= $known_view{ $view } || $view;
     if (!ref $module) {
         eval "require $module"; ## no critic
-        croak "Failed to load view $view: $@"
+        $self->_croak( "Failed to load view $view: $@" )
             if $@;
         $module = $module->new;
     };
@@ -341,7 +352,7 @@ sub on_error {
 
     if (defined $code) {
         ref $code eq 'CODE'
-            or croak( (ref $self)."->on_error: argument MUST be a callback" );
+            or $self->_croak( "Argument MUST be a callback" );
         $self->{on_error} = $code;
     } else {
         delete $self->{on_error};
@@ -380,11 +391,9 @@ sub error_template {
     $self = $Inst unless ref $self;
 
     $status =~ /^(\d\d\d|view)$/
-        or croak( (ref $self)."->error_template: "
-            . "1st arg must be http status or a special value (see perldoc)");
+        or $self->_croak( "1st arg must be http status or a const(see docs)");
     ref $tpl eq 'HASH'
-        or croak( (ref $self)."->error_template: "
-            ."2nd arg must be a hash (just as controller return)");
+        or $self->_croak( "2nd arg must be hash (just as controller returns)");
 
     $self->{error_template}{$status} = $tpl;
 
@@ -625,7 +634,7 @@ sub _croak {
     my ($self, $msg) = @_;
 
     my $where = [caller(0)]->[3];
-    croak( (ref $self)."->$where: $msg" );
+    croak( (ref $self || $self)."->$where: $msg" );
 };
 
 =head1 AUTHOR

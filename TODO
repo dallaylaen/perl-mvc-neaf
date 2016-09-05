@@ -1,17 +1,20 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.01    0.06    MOD Session - cookie-based + BE callbacks - N::Session + N::Session::Store
+0.05    0.06    API Fancy routes aka foo => bar => sub {} eq to "/foo/bar" 
+0.01    0.06    TST Unit tests - get 70% coverage
+0.03    0.06    API Unspecified length reply - -download => sub { ... }
 
 -- backlog --
-0.01    0.20    API Route-based defaults - do we even need it??
-0.01    0.20    TST Unit tests - get 70% coverage
+0.05    0.20    ??? MUST show several apps in Apache - how?
+0.05    0.20    ??? soft_root - will serve given route as root, if free
+0.01    0.10    MOD Session - cookie-based + BE callbacks - N::Session + N::Session::Store
+0.01    0.20    ??? Route-based defaults - do we even need it??
 0.05    0.20    TST smoke test for all examples under different servers
-0.03    0.10    API Unspecified length reply - -download => sub { ... }
 0.03    0.10    API Form validatoin in route() [Input::Validator? LIVR?]
-0.03    0.10    NET Content-Length header - read on it
+0.03    0.10    NET Fixup http header handling, read more
 0.02    0.10    MOD Add enveloping, dumper to TT view
-0.05    0.10    REF Use THHP::Headers everywhere, remove wheels.
+0.05    0.10    REF Use HTTP::Headers everywhere, remove wheels.
 0.03    0.90    REF Split core into route_request and process_reply
 0.04    0.90    REF Req https detection: change to is_secure? http:https.
 0.01    0.90    DEV REPL - MVC::Neaf::Cli? with term session etc

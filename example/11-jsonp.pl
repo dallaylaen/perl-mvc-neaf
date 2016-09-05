@@ -34,7 +34,7 @@ my $tpl = <<"TT";
 <body>
 <h1>JSON example</h1>
 <div id="container">Not loaded...</div>
-<script lang="javascript" src="/forms/11-jsonp?callback=foo&delay=1"></script>
+<script lang="javascript" src="/forms/11/jsonp?callback=foo&delay=1"></script>
 </body>
 TT
 
@@ -46,7 +46,7 @@ MVC::Neaf->route("/" => sub {
 });
 
 # callback
-MVC::Neaf->route("/forms/11-jsonp" => sub {
+MVC::Neaf->route( forms => 11 => jsonp => sub {
     my $req = shift;
 
     # This is ugly, but it makes loading process look
