@@ -3,7 +3,7 @@ package MVC::Neaf::Request::CGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.0501;
+our $VERSION = 0.0502;
 use Carp;
 use Encode;
 use HTTP::Headers;
@@ -151,7 +151,9 @@ sub do_get_header_in {
         $_ = lc $_;
         s/-/_/g;
         s/^http_//;
-        $head->header( $_ => [ split /, /, $self->{driver}->http( $_ ) ] );
+        my $raw = $self->{driver}->http( $_ );
+        $raw = '' unless defined $raw;
+        $head->header( $_ => [ split /, /, $raw ] );
     };
 
     return $head;

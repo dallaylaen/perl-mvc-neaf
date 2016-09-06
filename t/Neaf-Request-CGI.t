@@ -12,7 +12,12 @@ my $capture_stdout;
 MVC::Neaf->route( "/my/script" => sub {
     $capture_req = shift; # "my" omitted on purpose
     return {
-        -content => $capture_req->param( foo => '\w+' => '<undef>' ),
+        -content  => '%', # hack - make Neaf autodetect utf8
+        -continue => sub {
+            my $req = shift;
+            $req->write( $req->param( foo => '\w+' => '<undef>' )."\n" );
+            $req->close;
+        },
     }
 } );
 
@@ -25,7 +30,14 @@ is ($MVC::Neaf::Request::CGI::VERSION, undef, "Module NOT loaded yet");
     open STDOUT, ">", \$capture_stdout;
 
     MVC::Neaf->run;
-    1;
+
+    is ($capture_req->http_version, "1.0", "http 1.0 autodetected");
+    is ($capture_req->upload("masha"), undef, "No uploads");
+
+    # HACK - make postponed actions execute
+    # HACK - we need STDERR localized until this point
+    undef $capture_req;
+    1; # make sure undef() executes BEFORE leaving the block
 };
 
 note $capture_stdout;
@@ -33,11 +45,9 @@ note $capture_stdout;
 like ($MVC::Neaf::Request::CGI::VERSION, qr/\d+\.\d+/, "Module auto-loaded")
     or die "Nothing to test here, bailing out";
 
-like ($capture_stdout, qr/\n\n42$/s, "Reply as expected");
-like ($capture_stdout, qr#Content-Type: text/plain; charset=utf-8#
+like ($capture_stdout, qr/\n\n%42\n$/s, "Reply as expected");
+like ($capture_stdout, qr#Content-Type: text/plain#
     , "content type ok");
 
-is ($capture_req->http_version, "1.0", "http 1.0 autodetected");
-is ($capture_req->upload("masha"), undef, "No uploads");
 
 done_testing;
