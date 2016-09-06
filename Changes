@@ -1,5 +1,13 @@
 Revision history for MVC-Neaf
 
+0.06    Tue Sep 6 2016
+        API Add async content serving via -continue, write(), close()
+        API Add per-route view defaults, add MVC::Neaf::View
+        API Add fancy foo=>bar=>baz paths in MVC::Neaf->route
+        API Add MVC::Neaf::Exception signalling, add neaf_err
+        TST Increase cover -t to 70%, add autotest to load ALL modules
+        BUG Bugs fixed, even more added
+
 0.05    Sun Sep 4 2016
         API Add method => [GET, POST] restrictions to MVC::Neaf->route
         API Add fancy error templates via MVC::Neaf->error_template

@@ -1,0 +1,45 @@
+# Perform these checks before releasing a version
+
+% git status
+- no extra files
+
+% prove -I lib xt t
+- no warnings
+
+% perl Makefile.PL
+
+% cover -t
+- must exceed 70%
+
+% ./apache.cgi start
+- http://localhost:8000/cgi
+- Click on ALL cgis
+- http://localhost:8000/request/parser
+- must redirect, no "unimplemented"
+
+% plackup example/09*
+- http://localhost:5000/cgi/09-request.pl
+- no "unimplemented" show up
+
+% plackup example/07*
+- http://localhost:5000/wiki
+- search
+- click
+- edit an article
+
+# got here - commit!
+
+% make manifest
+
+% grep -r VERSION lib | grep '[0-9][0-9][0-9]' | sed 's/:/ /'
+- version-bump ALL except 0.0x (didn't change since last release)
+
+% vim -p Changes TODO
+- :r !git log --oneline | head -n 20
+- remove completed, add new, sort by target version
+
+% git commit -m "^_^ Version X.XX released NOCODE"
+
+% git tag v.X.XX -m "Version X.XX released"
+
+% git push && git push --tags
