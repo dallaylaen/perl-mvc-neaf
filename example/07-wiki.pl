@@ -120,6 +120,7 @@ MVC::Neaf->route( wiki => sub {
 
     # This whole 100+-line example was made for the next line!
     my $topic = $req->path_info(1);
+    length $topic or $req->redirect( $req->script_name . "/Main%20page" );
 
     # Get some wiki formatting. Don't want to spend too much on it.
     my $article = $art->{$topic} || '';
