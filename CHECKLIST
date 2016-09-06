@@ -1,0 +1,37 @@
+# Perform these checks before releasing a version
+
+% git status
+- no extra files
+
+% prove -I lib xt t
+
+% cover -t
+- must exceed 70%
+
+% ./apache.cgi
+- http://localhost:8000/cgi
+- Click on ALL cgis
+- http://localhost:8000/perl/
+
+% plackup example/09*
+- http://localhost:5000/
+- no "unimplemented" show up
+
+% plackup example/07*
+- http://localhost:5000/wiki
+- search
+- click
+- edit an article
+
+# got here - commit!
+
+% grep -r VERSION lib
+- version-bump ALL except 0.0x (didn't change since last release)
+- edit Changes
+- edit TODO - remove completed, add new, sort by target version
+
+% git commit -m "^_^ Version X.XX released NOCODE"
+
+% git tag v.X.XX -m "Version X.XX released"
+
+% git push && git push --tags
