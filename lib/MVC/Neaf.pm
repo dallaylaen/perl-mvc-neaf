@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0506;
+our $VERSION = 0.0507;
 
 =head1 NAME
 
@@ -100,15 +100,20 @@ The small but growing list of these -options is as follows:
 =item * -callback - Used by JS view module to produce a
 L<jsonp|https://en.wikipedia.org/wiki/JSONP> response.
 Callback is ignored unless it is a set of identifiers separated by dots,
-for security reason.
+for security reasons.
 
 =item * -content - Return raw data and skip view processing.
 E.g. display generated image.
 
+=item * -continue - A callback which receives the Request object.
+It will be executed after the headers and pre-generated content
+are served to the client, and may use $req->write( $data )
+and $req->close to write more data.
+
 =item * -location - HTTP Location: header.
 
 =item * -status - HTTP status (200, 404, 500 etc).
-Default is 200 if the app managed to live through.
+Default is 200 if the app managed to live through, and 500 if it died.
 
 =item * -template - Set template name for TT (L<Template>-based view).
 
@@ -567,16 +572,26 @@ sub handle_request {
     # Handle headers
     my $headers = $self->make_headers( $data );
     $headers->{'Set-Cookie'} = $req->format_cookies;
-    $headers->{'Content-Length'} = length $content;
+    $headers->{'Content-Length'} ||= length $content
+        unless $data->{-continue};
+    $content = '' if $req->method eq 'HEAD';
 
     # END PROCESS REPLY
 
     exists $self->{stat}
         and $self->{stat}->record_finish($data->{-status}, $req);
 
-    # This "return" is mostly for PSGI
-    return $req->do_reply( $data->{-status}, $headers,
-        ($req->method eq 'HEAD' ? '' : $content) );
+    # DISPATCH CONTENT
+
+    if ($data->{-continue} and $req->method ne 'HEAD') {
+        $req->postpone( $data->{'-continue'}, 1 );
+        $req->postpone( sub { $_[0]->write( $content ); }, 1 );
+        return $req->do_reply( $data->{-status}, $headers );
+    } else {
+        return $req->do_reply( $data->{-status}, $headers, $content );
+    };
+
+    # END DISPATCH CONTENT
 }; # End handle_request()
 
 sub _error_to_reply {

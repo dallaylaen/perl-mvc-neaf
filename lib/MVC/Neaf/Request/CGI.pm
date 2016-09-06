@@ -3,7 +3,7 @@ package MVC::Neaf::Request::CGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.05;
+our $VERSION = 0.0501;
 use Carp;
 use Encode;
 use HTTP::Headers;
@@ -26,6 +26,8 @@ sub new {
     my ($class, %args) = @_;
 
     $args{driver} ||= $cgi->new;
+    $args{fd}     ||= \*STDOUT;
+
     return bless \%args, $class;
 };
 
@@ -162,17 +164,45 @@ sub do_get_header_in {
 sub do_reply {
     my ($self, $status, $header, $content) = @_;
 
-    print "Status: $status\n";
+    my $fd = $self->{fd};
+
+    print $fd "Status: $status\n";
     foreach my $name (keys %$header) {
         my $value = $header->{$name};
-        if (ref $value eq 'ARRAY') {
-            print "$name: $_\n" for @$value;
-        } else {
-            print "$name: $value\n";
-        };
+        $value = [ $value ]
+            unless ref $value eq 'ARRAY';
+        print $fd "$name: $_\n"
+            for @$value;
     };
-    print "\n";
-    print $content;
+    print $fd "\n";
+    print $fd $content if defined $content;
+    return;
+};
+
+=head2 do_write( $data )
+
+Write to socket if async content serving is in use.
+
+=cut
+
+
+sub do_write {
+    my ($self, $data) = @_;
+
+    my $fd = $self->{fd};
+    print $fd $data;
+};
+
+=head2 do_close()
+
+Close client connection in async content mode.
+
+=cut
+
+sub do_close {
+    my $self = shift;
+
+    close $self->{fd};
 };
 
 1;

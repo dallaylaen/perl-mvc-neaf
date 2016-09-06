@@ -3,7 +3,7 @@ package MVC::Neaf::Request::Apache2;
 use strict;
 use warnings;
 
-our $VERSION = 0.0501;
+our $VERSION = 0.0502;
 
 =head1 NAME
 
@@ -215,8 +215,21 @@ sub do_reply {
         $head->add( $name, $_ ) for @$val;
     };
 
-    $r->print( $content );
+    return $r->print( $content );
 };
+
+=head2 do_write( $data )
+
+Write to socket if async content serving is in use.
+
+=cut
+
+sub do_write {
+    my ($self, $data) = @_;
+    return $self->{driver_raw}->print( $data );
+};
+
+# TODO implement do_close, too!
 
 =head2 handler( $apache_request )
 

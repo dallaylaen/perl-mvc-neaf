@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0503;
+our $VERSION = 0.0504;
 
 =head1 NAME
 
@@ -290,7 +290,7 @@ A default value of C<undef> is possible, but must be supplied explicitly.
 sub param {
     my ($self, $name, $regex, $default) = @_;
 
-    croak( (ref $self)."->param: validation regex is REQUIRED")
+    $self->_croak( "validation regex is REQUIRED" )
         unless defined $regex;
     $default = '' if @_ <= 3; # deliberate undef as default = ok
 
@@ -354,7 +354,7 @@ sub get_form_as_list {
     my ($self, $spec, @list) = @_;
 
     # TODO Should we?
-    croak "Meaningless call of get_form_as_list() in scalar context"
+    $self->_croak( "Meaningless call in scalar context" )
         unless wantarray;
 
     $spec = [ $spec, undef ]
@@ -441,7 +441,7 @@ sub get_cookie {
     my ($self, $name, $regex, $default) = @_;
 
     $default = '' unless defined $default;
-    croak( (ref $self)."->get_cookie: validation regex is REQUIRED")
+    $self->_croak( "validation regex is REQUIRED")
         unless defined $regex;
 
     $self->{neaf_cookie_in} ||= do {
@@ -495,7 +495,7 @@ sub set_cookie {
     my ($self, $name, $cook, %opt) = @_;
 
     defined $opt{regex} and $cook !~ /^$opt{regex}$/
-        and croak "set_cookie(): constant value doesn't match regex";
+        and $self->_croak( "output value doesn't match regex" );
 
     if (defined $opt{ttl}) {
         $opt{expires} = time + $opt{ttl};
@@ -697,14 +697,58 @@ Returns self.
 =cut
 
 sub postpone {
-    my ($self, $code) = @_;
+    my ($self, $code, $prepend_flag) = @_;
 
     ref $code eq 'CODE'
-        or croak( (ref $self)."->postpone(): argument must be a function" );
+        or $self->_croak( "argument must be a function" );
 
-    push @{ $self->{postpone} }, $code;
+    $prepend_flag
+        ? unshift @{ $self->{postponed} }, $code
+        : push    @{ $self->{postponed} }, $code;
+
+    # TODO UGLY HACK - rely on side-effect to determine state
+    $self->{continue}++;
+    $self->{buffer_size} ||= 4096;
+
     return $self;
 };
+
+=head2 write( $data )
+
+Write data to client inside C<-continue> callback, unless C<close> was called.
+
+Returns self.
+
+=cut
+
+sub write {
+    my ($self, $data) = @_;
+
+    $self->{continue}
+        or $self->_croak( "called outside -continue callback scope" );
+
+    $self->do_write( $data )
+        if defined $data;
+    return $self;
+};
+
+=head2 close()
+
+Stop writing to client in C<-continue> callback.
+
+By default, does nothing, as the socket will probably
+be closed anyway when the request finishes.
+
+=cut
+
+sub close {
+    my ($self) = @_;
+
+    $self->{continue}
+        or $self->_croak( "called outside -continue callback scope" );
+
+    return $self->do_close();
+}
 
 =head2 execute_postponed()
 
@@ -722,13 +766,14 @@ Returns self.
 sub execute_postponed {
     my $self = shift;
 
-    my $todo = delete $self->{postpone};
+    my $todo = delete $self->{postponed};
     foreach my $code (@$todo) {
         # avoid dying in DESTROY, as well as when serving request.
         eval { $code->($self); };
-        carp "WARN ".(ref $self).": postponed action failed: $@"
+        print STDERR "WARN ".(ref $self).": postponed action failed: $@"
             if $@;
     };
+
     return $self;
 };
 
@@ -736,7 +781,7 @@ sub DESTROY {
     my $self = shift;
 
     $self->execute_postponed
-        if (exists $self->{postpone});
+        if (exists $self->{postponed});
 };
 
 =head1 DRIVER METHODS
@@ -770,6 +815,10 @@ They shall not generally be called directly inside the app.
 
 =item * do_reply( $status, \%headers, $content )
 
+=item * do_write
+
+=item * do_close
+
 =back
 
 =cut
@@ -778,7 +827,7 @@ foreach (qw(
     do_get_method do_get_scheme do_get_hostname do_get_port do_get_path
     do_get_client_ip do_get_http_version
     do_get_params do_get_upload do_get_header_in
-    do_reply )) {
+    do_reply do_write)) {
     my $method = $_;
     my $code = sub {
         my $self = shift;
@@ -786,6 +835,16 @@ foreach (qw(
     };
     no strict 'refs'; ## no critic
     *$method = $code;
+};
+
+# by default, just skip - the handle will auto-close anyway at some point
+sub do_close { return 1 };
+
+sub _croak {
+    my ($self, $msg) = @_;
+
+    my $where = [caller(0)]->[3];
+    croak( (ref $self || $self)."->$where: $msg" );
 };
 
 1;

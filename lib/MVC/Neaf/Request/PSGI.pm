@@ -2,7 +2,7 @@ package MVC::Neaf::Request::PSGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.0501;
+our $VERSION = 0.0502;
 
 =head1 NAME
 
@@ -191,15 +191,46 @@ sub do_reply {
         # postponed calls get executed.
         return sub {
             my $responder = shift;
-            my $writer = $responder->( [ $status, \@header_array ] );
-            $writer->write( $content );
-            $writer->close;
+            $self->{writer} = $responder->( [ $status, \@header_array ] );
+
+            $self->{writer}->write( $content ) if defined $content;
+
+            # Now we may need to output more stuff
+            # So save writer inside self for callbacks to write to
             $self->execute_postponed;
+            # close was not called by 1 of callbacks
+            $self->do_close if $self->{continue};
         };
     };
 
     # Otherwise just return plain data.
     return [ $status, \@header_array, [ $content ]];
+};
+
+=head2 do_write( $data )
+
+Write to socket in async content mode.
+
+=cut
+
+sub do_write {
+    my ($self, $data) = @_;
+
+    return unless defined $data;
+    $self->{writer}->write( $data );
+    return 1;
+};
+
+=head2 do_close()
+
+Close client connection in async content mode.
+
+=cut
+
+sub do_close {
+    my $self = shift;
+
+    $self->{writer}->close;
 };
 
 1;
