@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0604;
+our $VERSION = 0.0605;
 
 =head1 NAME
 
@@ -148,6 +148,11 @@ use Encode;
 # use Validator::LIVR; # don't use until we NEED it - see route()
 
 use MVC::Neaf::Request;
+if ($ENV{MOD_PERL}) {
+    # If we're being requested from within Apache, try loading its driver
+    # RIGHT NOW so that startup fails loudly if it fails.
+    require MVC::Neaf::Request::Apache2;
+};
 
 our $Inst = __PACKAGE__->new;
 sub import {

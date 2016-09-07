@@ -7,9 +7,6 @@ use Test::More;
 use MVC::Neaf;
 # Must autoload Request::CGI - so don't use explicitly!
 
-$SIG{ALRM} = sub { Carp::confess( "Timeout" ) };
-alarm 1;
-
 my $capture_req;
 my $capture_stdout;
 MVC::Neaf->route( "/my/script" => sub {
@@ -32,10 +29,8 @@ my ( $ver, $upl );
     local @ARGV = qw( /my/script?foo=42 );
     local *STDOUT;
     open STDOUT, ">", \$capture_stdout;
-    local *STDIN;
-    open STDIN, "<", \"";
 
-    MVC::Neaf->run;
+    MVC::Neaf->run; # void context = CGI run
 
     $ver = $capture_req->http_version;
     $upl = $capture_req->upload("masha");

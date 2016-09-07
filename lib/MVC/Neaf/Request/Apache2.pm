@@ -3,7 +3,7 @@ package MVC::Neaf::Request::Apache2;
 use strict;
 use warnings;
 
-our $VERSION = 0.0601;
+our $VERSION = 0.0602;
 
 =head1 NAME
 
@@ -41,32 +41,30 @@ use HTTP::Headers;
 use Carp;
 
 my %fail_apache;
-foreach my $mod (qw(
-    Apache2::RequestRec
-    Apache2::RequestIO
-    Apache2::Connection
-    APR::SockAddr
-    Apache2::Request
-    Apache2::Upload
-    Apache2::Const
-)) {
-    eval "require $mod" and next; ## no critic
-    # warn "Failed to load $mod: $@";
-    $fail_apache{$mod} = $@;
-};
-
-if (%fail_apache) {
-    carp "WARNING: Some Apache2 modules failed to load, "
-        . __PACKAGE__ . " may not be fully operational";
-    no warnings 'redefine'; ## no critic
-    *do_get_path = sub {
-        my $self = shift;
-        croak( (ref $self)."->do_get_path: "
-            ."apache modules failed to load on startup: "
-            . join ", ", keys %fail_apache);
+BEGIN {
+    foreach my $mod (qw(
+        Apache2::RequestRec
+        Apache2::RequestIO
+        Apache2::Connection
+        APR::SockAddr
+        Apache2::Request
+        Apache2::Upload
+        Apache2::Const
+    )) {
+        eval "require $mod" and next; ## no critic
+        # warn "Failed to load $mod: $@";
+        $fail_apache{$mod} = $@;
     };
-} else {
-    Apache2::Const->import( -compile => 'OK' );
+
+    if ($ENV{MOD_PERL} && %fail_apache) {
+        carp "$_ failed to load: $fail_apache{$_}"
+            for keys %fail_apache;
+        croak "Apache2 modules not loaded, refusing to run right away";
+    };
+
+    if (!%fail_apache) {
+        Apache2::Const->import( -compile => 'OK' );
+    };
 };
 
 use MVC::Neaf;

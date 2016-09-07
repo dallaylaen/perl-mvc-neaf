@@ -13,32 +13,27 @@ use warnings;
 use Test::More;
 use FindBin qw($Bin);
 use File::Basename qw(dirname);
+use File::Find;
 
 # Try to load EVERY module in t/../lib
 my $path = dirname($Bin)."/lib";
 my @files;
 
-if (eval { require File::Find::Rule }) {
-    @files = File::Find::Rule->file()->name('*.pm')->in($path);
-} else {
-    # fallback to shelling out
-    @files = `find $path -type f -name \*.pm`;
-};
+find (sub {
+    /\.pm$/ or return;
+    -f $File::Find::name or return;
+
+    $File::Find::name =~ s#^\Q$path\E[/\\]##;
+    push @files, $File::Find::name;
+}, $path);
 
 # Save warnings for later
 my @warn;
 
 foreach my $file (@files) {
-    chomp $file;
-
     # This sub suppresses warnings but saves them for later display
     local $SIG{__WARN__} = sub {
-        my $w = $_[0];
-
-        $w =~ /^Subroutine.*redefined/
-            or $w =~ /Some Apache2 modules failed to load/
-            or push @warn, "$file: $w";
-        return; # somehow this supresses warnings under make test
+        push @warn, "$file: $_[0]";
     };
 
     ok ( eval{ require $file }, "$file loaded" )

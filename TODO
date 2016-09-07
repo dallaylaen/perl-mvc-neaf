@@ -8,6 +8,12 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.05    0.07    TST Add multiple cookie test
 
 -- backlog --
+0.06    0.90    NET REST
+0.06    0.90    NET HMAC
+0.06    0.90    MOD TT View - somehow denote application root for links/forms
+0.06    0.10    MOD TT View - add autohead, autotitle options
+0.06    0.20    MOD TT View - add value sanitizer (&HTML + &URI?)
+0.06    0.10    REF load_view - add TT => %opts, possibly rename
 0.06    0.20    DOC Add plugin guidelines
 0.05    0.20    TST Make ALL examples run under mod_perl as handler together
 0.02    0.10    MOD Add enveloping, dumper to TT view

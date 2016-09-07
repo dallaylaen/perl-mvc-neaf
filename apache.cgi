@@ -80,13 +80,6 @@ Alias /cgi [% dir %]/cgi
 ####################
 #   mod_perl part  #
 ####################
-PerlModule MVC::Neaf
-# PerlPostConfigRequire [% parent %]/example/01-hello-get.pl
-# PerlPostConfigRequire [% parent %]/example/03-upload.pl
-# <Location /perl>
-#    SetHandler perl-script
-#    PerlResponseHandler MVC::Neaf::Request::Apache2
-# </Location>
 
 PerlSetEnv EXAMPLE_PATH_REQUEST /request/parser
 PerlPostConfigRequire [% parent %]/example/09-request.pl
