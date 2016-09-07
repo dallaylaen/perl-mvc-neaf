@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0601;
+our $VERSION = 0.0602;
 
 =head1 NAME
 
@@ -569,10 +569,13 @@ sub handle_request {
         $data->{-type} .= "; charset=utf-8";
     };
 
-    # Handle headers
-    my $headers = $self->make_headers( $data );
-    $headers->{'Set-Cookie'} = $req->format_cookies;
-    $headers->{'Content-Length'} ||= length $content
+    # Mangle headers - these modifications remain stored in req
+    my $head = $req->header_out;
+    $head->init_header( content_type => $data->{-type} || $self->{-type} );
+    $head->init_header( location => $data->{-location} )
+        if $data->{-location};
+    $head->push_header( cookie => $req->format_cookies );
+    $head->init_header( content_length => length $content )
         unless $data->{-continue};
     $content = '' if $req->method eq 'HEAD';
 
@@ -586,9 +589,9 @@ sub handle_request {
     if ($data->{-continue} and $req->method ne 'HEAD') {
         $req->postpone( $data->{'-continue'}, 1 );
         $req->postpone( sub { $_[0]->write( $content ); }, 1 );
-        return $req->do_reply( $data->{-status}, $headers );
+        return $req->do_reply( $data->{-status} );
     } else {
-        return $req->do_reply( $data->{-status}, $headers, $content );
+        return $req->do_reply( $data->{-status}, $content );
     };
 
     # END DISPATCH CONTENT
@@ -625,24 +628,6 @@ sub _error_to_reply {
             -content    => "Error $status",
         };
     };
-};
-
-=head2 make_headers( $data )
-
-Extract header data from application reply.
-
-=cut
-
-sub make_headers {
-    my ($self, $data) = @_;
-    $self = $Inst unless ref $self;
-
-    my %head;
-    $head{'Content-Type'} = $data->{-type} || $self->{-type};
-    $head{'Location'} = $data->{-location}
-        if $data->{-location};
-
-    return \%head;
 };
 
 sub _croak {

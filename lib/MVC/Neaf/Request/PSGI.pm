@@ -2,7 +2,7 @@ package MVC::Neaf::Request::PSGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.06;
+our $VERSION = 0.0601;
 
 =head1 NAME
 
@@ -168,18 +168,12 @@ rather relying on PSGI calling conventions.
 =cut
 
 sub do_reply {
-    my ($self, $status, $header, $content) = @_;
+    my ($self, $status, $content) = @_;
 
     my @header_array;
-    foreach my $k (keys %$header) {
-        if( ref $header->{$k} eq 'ARRAY' ) {
-            # unfold key => [ xxx, yyy ... ] into list of pairs
-            push @header_array, $k, $_
-                for @{ $header->{$k} };
-        } else {
-            push @header_array, $k, $header->{$k};
-        };
-    };
+    $self->header_out->scan( sub {
+            push @header_array, $_[0], $_[1];
+    });
 
     # HACK - we're being returned by handler in MVC::Neaf itself in case of
     # PSGI being used.

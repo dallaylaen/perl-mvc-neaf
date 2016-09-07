@@ -3,7 +3,7 @@ package MVC::Neaf::Request::CGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.06;
+our $VERSION = 0.0601;
 use Carp;
 use Encode;
 use HTTP::Headers;
@@ -159,23 +159,17 @@ sub do_get_header_in {
     return $head;
 };
 
-=head2 do_reply
+=head2 do_reply( $status, $content )
 
 =cut
 
 sub do_reply {
-    my ($self, $status, $header, $content) = @_;
+    my ($self, $status, $content) = @_;
 
     my $fd = $self->{fd};
 
     print $fd "Status: $status\n";
-    foreach my $name (keys %$header) {
-        my $value = $header->{$name};
-        $value = [ $value ]
-            unless ref $value eq 'ARRAY';
-        print $fd "$name: $_\n"
-            for @$value;
-    };
+    print $fd $self->header_out->as_string;
     print $fd "\n";
     print $fd $content if defined $content;
     return;

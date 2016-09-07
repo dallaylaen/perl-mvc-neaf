@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.06;
+our $VERSION = 0.0602;
 
 =head1 NAME
 
@@ -33,7 +33,7 @@ Here's a brief overview of what a Neaf request returns:
 
     $req->param( foo => '\d+' ) = 1
 
-=head1 METHODS
+=head1 REQUEST METHODS
 
 The concrete Request object the App gets is going to be a subclass of this.
 Thus it is expected to have the following methods.
@@ -44,6 +44,7 @@ use Carp;
 use URI::Escape;
 use POSIX qw(strftime);
 use Encode;
+use HTTP::Headers;
 
 use MVC::Neaf::Upload;
 use MVC::Neaf::Exception;
@@ -679,6 +680,73 @@ sub user_agent {
     };
 };
 
+=head1 REPLY METHODS
+
+Typically, a Neaf user only needs to return a hashref with the whole reply
+to client.
+
+However, sometimes more fine-grained control is required.
+
+In this case, a number of methods help stashing your data
+(headers, cookies etc) in the request object until the responce is sent.
+
+Also some lengthly actions (e.g. writing request statistics or
+sending confirmation e-mail) may be postponed until the request is served.
+
+=head2 header_out( [$param], add|set|or|delete => [$new_value] )
+
+Without parameters returns a L<HTTP::Headers> object containing all headers
+to be returned to client.
+
+With one parameter returns this header.
+
+With three parameters modifies this header.
+(Argument after delete is ignored).
+Arrayrefs are ok and will set multiple headers.
+
+Returned values are just proxied L<HTTP::Headers> returns.
+It is generally advised to use them in list context as multiple
+headers may return trash in scalar context.
+
+E.g.
+
+    my @old_value = $req->header_out( foobar => set => [ "XX", "XY" ] );
+
+or
+
+    my $old_value = [ $req->header_out( foobar => delete => 1 ) ];
+
+B<NOTE> This format may change in the future.
+
+=cut
+
+sub header_out {
+    my $self = shift;
+
+    my $head = $self->{header_out} ||= HTTP::Headers->new;
+    return $head unless @_;
+
+    my $name = shift;
+    return $head->header( $name ) unless @_;
+
+    $self->_croak("Either 0, 1, or 3 arguments must be passed")
+        unless @_ == 2;
+    my ($todo, $value) = @_;
+
+    # TODO maybe a hash?
+    if ($todo eq 'delete') {
+        return $head->remove_header( $name );
+    } elsif( $todo eq 'add') {
+        return $head->push_header( $name => $value );
+    } elsif( $todo eq 'set') {
+        return $head->header( $name => $value );
+    } elsif( $todo eq 'or' ) {
+        return $head->init_header( $name );
+    } else {
+        $self->_croak("Unknown command $todo, expected add|set|or|delete");
+    };
+};
+
 =head2 postpone( CODEREF->(req) )
 
 Execute a function right after the request is served.
@@ -750,6 +818,11 @@ sub close {
     return $self->do_close();
 }
 
+=head1 METHODS FOR DRIVER DEVELOPERS
+
+The following methods are to be used/redefined by backend writers
+(e.g. if someone makes Request subclass for FastCGI or Microsoft IIS).
+
 =head2 execute_postponed()
 
 NOT TO BE CALLED BY USER.
@@ -813,7 +886,7 @@ They shall not generally be called directly inside the app.
 
 =item * do_get_header_in() - returns a HTTP::Headers object.
 
-=item * do_reply( $status, \%headers, $content )
+=item * do_reply( $status, $content ) - write reply to client
 
 =item * do_write
 

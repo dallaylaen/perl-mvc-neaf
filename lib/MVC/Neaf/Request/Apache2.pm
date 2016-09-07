@@ -3,7 +3,7 @@ package MVC::Neaf::Request::Apache2;
 use strict;
 use warnings;
 
-our $VERSION = 0.06;
+our $VERSION = 0.0601;
 
 =head1 NAME
 
@@ -195,25 +195,23 @@ sub do_get_upload {
     } : ();
 };
 
-=head2 do_reply( $status, \%headers, $content )
+=head2 do_reply( $status, $content )
 
 =cut
 
 sub do_reply {
-    my ($self, $status, $header, $content) = @_;
+    my ($self, $status, $content) = @_;
 
     my $r = $self->{driver_raw};
 
+    my ($type) = $self->header_out->remove_header("content_type");
     $r->status( $status );
-    $r->content_type( delete $header->{'Content-Type'} );
+    $r->content_type( $type );
 
-    my $head = $r->headers_out;
-    foreach my $name (keys %$header) {
-        my $val = $header->{$name};
-        $val = [ $val ]
-            if (ref $val ne 'ARRAY');
-        $head->add( $name, $_ ) for @$val;
-    };
+    my $head_backend = $r->headers_out;
+    $self->header_out->scan( sub {
+        $head_backend->add( $_[0], $_[1] );
+    });
 
     return $r->print( $content );
 };
