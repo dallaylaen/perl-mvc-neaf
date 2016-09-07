@@ -3,7 +3,7 @@ package MVC::Neaf::Request::CGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.0601;
+our $VERSION = 0.0602;
 use Carp;
 use Encode;
 use HTTP::Headers;
@@ -11,7 +11,8 @@ use HTTP::Headers;
 use base qw(MVC::Neaf::Request);
 
 my $cgi;
-foreach (qw(CGI::Minimal CGI)) {
+foreach (qw(CGI)) {
+    # TODO Make it work with CGI::Minimal
     eval "require $_; 1" or next; ##no critic
     $cgi = $_;
     last;

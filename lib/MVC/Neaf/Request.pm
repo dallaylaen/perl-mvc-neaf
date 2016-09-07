@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0602;
+our $VERSION = 0.0603;
 
 =head1 NAME
 
@@ -305,6 +305,61 @@ sub param {
         ? $value
         : $default;
 };
+
+=head2 form( [name] )
+
+Return a hashref with form parameters sanitized by validator.
+
+If a name given, return only that parameter.
+
+=cut
+
+sub form {
+    my $self = shift;
+
+    my $form = $self->{form};
+    return @_ ? $form->{ +shift } : $form;
+};
+
+=head2 form_errors ()
+
+=cut
+
+sub form_errors {
+    my $self = shift;
+
+    return $self->{form_errors};
+};
+
+=head2 form_raw ()
+
+Get the form params that were being checked by validator.
+May be useful for making user reenter the data.
+
+=cut
+
+sub form_raw {
+    my $self = shift;
+
+    return $self->{form_raw} ||= do {
+        # TODO read possible keys from validator, restrict to these only
+        $self->_all_params;
+    };
+};
+
+=head2 set_form ( \%params, \%errors, $validator_obj )
+
+=cut
+
+sub set_form {
+    my ($self, $form, $errors, $form_v) = @_;
+
+    $self->{form} = $form;
+    $self->{form_errors} = $errors;
+    $self->{form_v} = $form_v;
+
+    return $self;
+}
 
 =head2 set_param( name => $value )
 

@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0602;
+our $VERSION = 0.0603;
 
 =head1 NAME
 
@@ -145,6 +145,7 @@ They have nothing to do with serving the request.
 use Carp;
 use Scalar::Util qw(blessed);
 use Encode;
+# use Validator::LIVR; # don't use until we NEED it - see route()
 
 use MVC::Neaf::Request;
 
@@ -216,13 +217,31 @@ sub route {
         if (!ref $view) {
             $view = $self->load_view( $view );
         } elsif (ref $view eq 'CODE') {
-            $view = MVC::Neaf::View->new( callback => $view );
+            $view = MVC::Neaf::View->new( on_render => $view );
         };
 
         $self->_croak( "view must be a coderef or a MVC::Neaf::View object" )
             unless blessed $view and $view->isa("MVC::Neaf::View");
 
         $profile{view} = $view;
+    };
+
+    if (my $val = $args{form}) {
+        if (!blessed $val) {
+            $self->_croak("form must be a plain hash or a validator object")
+                unless ref $val eq 'HASH';
+            # Generate a LIVR obj - only load if we need it
+            require Validator::LIVR;
+
+            # TODO Mangle rules to allow for (at least)
+            # qr/.*/
+            # [ qr/.*/, default ]
+            # Also make all regexps whole string and precompile
+
+            $val = Validator::LIVR->new( $val );
+        };
+
+        $profile{validator} = $val;
     };
 
     $self->{route}{ $path } = \%profile;
@@ -513,13 +532,19 @@ sub handle_request {
                 and $req = $new_req;
         };
 
-        # Run the controller!
+        # Lookup the rules for the given path
         $req->path =~ $self->{route_re} and $route = $self->{route}{$1}
             or die "404\n";
         !exists $route->{allowed_methods}
             or $route->{allowed_methods}{ $req->method }
             or die "405\n";
         $req->set_full_path( $1, $2 );
+        if (my $val = $route->{validator}) {
+            my $clean_data = $val->validate( $req->_all_params );
+            $req->set_form( $clean_data, $val->get_errors, $val );
+        };
+
+        # Run the controller!
         return $route->{code}->($req);
     };
 

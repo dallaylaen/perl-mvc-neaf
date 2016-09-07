@@ -7,6 +7,9 @@ use Test::More;
 use MVC::Neaf;
 # Must autoload Request::CGI - so don't use explicitly!
 
+$SIG{ALRM} = sub { Carp::confess( "Timeout" ) };
+alarm 1;
+
 my $capture_req;
 my $capture_stdout;
 MVC::Neaf->route( "/my/script" => sub {
@@ -23,16 +26,19 @@ MVC::Neaf->route( "/my/script" => sub {
 
 is ($MVC::Neaf::Request::CGI::VERSION, undef, "Module NOT loaded yet");
 
+my ( $ver, $upl );
 {
     local $ENV{HTTP_HOST};
     local @ARGV = qw( /my/script?foo=42 );
     local *STDOUT;
     open STDOUT, ">", \$capture_stdout;
+    local *STDIN;
+    open STDIN, "<", \"";
 
     MVC::Neaf->run;
 
-    is ($capture_req->http_version, "1.0", "http 1.0 autodetected");
-    is ($capture_req->upload("masha"), undef, "No uploads");
+    $ver = $capture_req->http_version;
+    $upl = $capture_req->upload("masha");
 
     # HACK - make postponed actions execute
     # HACK - we need STDERR localized until this point
@@ -41,6 +47,8 @@ is ($MVC::Neaf::Request::CGI::VERSION, undef, "Module NOT loaded yet");
 };
 
 note $capture_stdout;
+is ($ver, "1.0", "http 1.0 autodetected");
+is ($upl, undef, "No uploads");
 
 like ($MVC::Neaf::Request::CGI::VERSION, qr/\d+\.\d+/, "Module auto-loaded")
     or die "Nothing to test here, bailing out";
