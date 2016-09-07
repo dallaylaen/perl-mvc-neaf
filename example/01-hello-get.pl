@@ -36,7 +36,7 @@ MVC::Neaf->route( "/" => sub {
         name => $name,
         -template => \$tpl,
         -view => $jsonp ? 'JS' : 'TT',
-        -callback => $jsonp,
+        -jsonp => $jsonp,
     };
 });
 

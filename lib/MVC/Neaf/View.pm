@@ -2,7 +2,7 @@ package MVC::Neaf::View;
 
 use strict;
 use warnings;
-our $VERSION = 0.06;
+our $VERSION = 0.0601;
 
 =head1 NAME
 
@@ -34,8 +34,18 @@ use Carp;
 
 =head2 new( %options )
 
-The constructor of this particular class happily encloses itself
+Options may include:
+
+=over
+
+=item * on_render - a callback to be called in the render sub was not defined.
+Useful if you are too lazy to subclass.
+
+=back
+
+B<NOTE> The constructor of this particular class happily encloses itself
 over any data one gives to it. No checks are performed.
+This may change in the future.
 
 =cut
 
@@ -58,7 +68,7 @@ or a text error message as a last resort.
 sub render {
     my $self = shift;
 
-    return $self->{callback}->(shift) if exists $self->{callback};
+    return $self->{on_render}->(shift) if exists $self->{on_render};
 
     croak( (ref $self)."->render() unimplemented (in MVC::Neaf::View)" );
 };

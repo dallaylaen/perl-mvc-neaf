@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.06;
+our $VERSION = 0.0601;
 
 =head1 NAME
 
@@ -97,11 +97,6 @@ The small but growing list of these -options is as follows:
 
 =over
 
-=item * -callback - Used by JS view module to produce a
-L<jsonp|https://en.wikipedia.org/wiki/JSONP> response.
-Callback is ignored unless it is a set of identifiers separated by dots,
-for security reasons.
-
 =item * -content - Return raw data and skip view processing.
 E.g. display generated image.
 
@@ -109,6 +104,11 @@ E.g. display generated image.
 It will be executed after the headers and pre-generated content
 are served to the client, and may use $req->write( $data )
 and $req->close to write more data.
+
+=item * -jsonp - Used by JS view module as a callback name to produce a
+L<jsonp|https://en.wikipedia.org/wiki/JSONP> response.
+Callback is ignored unless it is a set of identifiers separated by dots,
+for security reasons.
 
 =item * -location - HTTP Location: header.
 

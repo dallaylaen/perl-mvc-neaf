@@ -3,7 +3,7 @@ package MVC::Neaf::View::JS;
 use strict;
 use warnings;
 
-our $VERSION = 0.06;
+our $VERSION = 0.0601;
 
 =head1 NAME
 
@@ -14,7 +14,7 @@ MVC::Neaf::View::JS - JSON-base view for Not Even A Framework.
     return {
         # your data ...
         -view => 'JS',
-        -callback => 'my.jsonp.callback', # this is optional
+        -jsonp => 'my.jsonp.callback', # this is optional
     }
 
 Will result in your application returning raw data in JSON/JSONP format
@@ -33,7 +33,16 @@ my $jsonp_re = qr/^(?:[A-Z_a-z][A-Z_a-z\d]*)(?:\.(?:[A-Z_a-z][A-Z_a-z\d]*))*$/;
 
 =head2 new( %options )
 
+%options may include:
 
+=over
+
+=item * preserve_dash - don't strip dashed options. Useful for debugging.
+
+=back
+
+B<NOTE> No input checks are made whatsoever,
+but this MAY change in the future.
 
 =cut
 
@@ -46,15 +55,21 @@ Returns a scalar with JSON-encoded data.
 sub render {
     my ($self, $data) = @_;
 
-    my $callback = $data->{-callback};
+    my $callback = $data->{-jsonp};
     my $type = $data->{-type};
 
     # TODO sanitize data in a more efficient way
     my %copy;
     foreach (keys %$data) {
-        /^-/ and next;
-        ref $data->{$_} eq 'CODE' and next;
-        $copy{$_} = $data->{$_};
+        !$self->{preserve_dash} and /^-/ and next;
+        if (ref $data->{$_} eq 'CODE') {
+            $copy{$_} = $self->{replace_code}
+                if exists $self->{replace_code};
+        } elsif (ref $data->{$_} eq 'SCALAR') {
+            $copy{$_} = [ ${ $data->{$_} } ];
+        } else {
+            $copy{$_} = $data->{$_};
+        };
     };
 
     my $content = $codec->encode( \%copy );

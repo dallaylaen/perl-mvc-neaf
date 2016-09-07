@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.06;
+our $VERSION = 0.0601;
 
 =head1 NAME
 
@@ -31,7 +31,16 @@ use parent qw(MVC::Neaf::View);
 
 =head2 new( %options )
 
+%options may include:
 
+=over
+
+=item * preserve_dash - don't strip dashed options. Useful for debugging.
+
+=back
+
+B<NOTE> No input checks are made whatsoever,
+but this MAY change in the future.
 
 =cut
 

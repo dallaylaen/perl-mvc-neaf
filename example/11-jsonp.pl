@@ -55,7 +55,7 @@ MVC::Neaf->route( forms => 11 => jsonp => sub {
 
     return {
         -view => 'JS',
-        -callback => $req->param(callback => '.*'),
+        -jsonp => $req->param(callback => '.*'),
         greeting => "Yes, JSONP works",
     };
 });
