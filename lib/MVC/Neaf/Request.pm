@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0603;
+our $VERSION = 0.0604;
 
 =head1 NAME
 
@@ -971,7 +971,8 @@ sub do_close { return 1 };
 sub _croak {
     my ($self, $msg) = @_;
 
-    my $where = [caller(0)]->[3];
+    my $where = [caller(1)]->[3];
+    $where =~ s/.*:://;
     croak( (ref $self || $self)."->$where: $msg" );
 };
 

@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0603;
+our $VERSION = 0.0604;
 
 =head1 NAME
 
@@ -658,7 +658,8 @@ sub _error_to_reply {
 sub _croak {
     my ($self, $msg) = @_;
 
-    my $where = [caller(0)]->[3];
+    my $where = [caller(1)]->[3];
+    $where =~ s/.*:://;
     croak( (ref $self || $self)."->$where: $msg" );
 };
 
