@@ -17,7 +17,7 @@ my $port_attempts = 100;
 my $run_attempts  = 10;
 
 # use 09-request example which calls most getters
-my ($example) = glob ("$root/example/09*");
+my ($example) = glob ("$root/example/01*");
 if (!$example or !-f $example) {
     die "No example found in $root/example";
 };
