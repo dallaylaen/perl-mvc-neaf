@@ -36,7 +36,9 @@ my %cgi = (qw(
 # skipping 05-lang for now - won't work under apache as CGI
 my $dir = "$Bin/nocommit-apache";
 my $conf = "$dir/httpd.conf";
-my $port = 8000;
+my $port_cgi = 8000;
+my $port_perl = 8001;
+# TODO autodetect free ports
 
 my $tpl = <<"TT";
 ServerRoot [% dir %]
@@ -60,8 +62,12 @@ LoadModule perl_module        [% modules %]/mod_perl.so
 LoadModule apreq_module       [% modules %]/mod_apreq2.so
 
 
-Listen [% port %]
+Listen [% port_cgi %]
+Listen [% port_perl %]
 ErrorLog [% dir %]/error.log
+
+<VirtualHost *:[% port_cgi %]>
+    ServerName localhost
 
 Alias /forms [% dir %]/forms
 <Directory [% dir %]/forms>
@@ -76,10 +82,13 @@ Alias /cgi [% dir %]/cgi
     AddHandler cgi-script cgi pl
     Options +Indexes +ExecCGI +FollowSymlinks
 </Directory>
+</VirtualHost>
 
 ####################
 #   mod_perl part  #
 ####################
+<VirtualHost *:[% port_perl %]>
+    ServerName perl.localhost
 
 PerlSetEnv EXAMPLE_PATH_REQUEST /request/parser
 PerlPostConfigRequire [% parent %]/example/09-request.pl
@@ -87,6 +96,7 @@ PerlPostConfigRequire [% parent %]/example/09-request.pl
     SetHandler perl-script
     PerlResponseHandler MVC::Neaf::Request::Apache2
 </Location>
+</VirtualHost>
 
 TT
 
@@ -146,7 +156,8 @@ foreach (keys %cgi) {
 my %vars = (
     lib       => "$Bin/lib",
     dir       => "$dir",
-    port      => $port,
+    port_cgi  => $port_cgi,
+    port_perl => $port_perl,
     parent    => $Bin,
     modules   => $modules,
     magic     => $magic,
@@ -161,9 +172,9 @@ close $fd or die "Failed to close $conf: $!";
 # restart server if asked to
 if ($action eq 'start' and -x $httpd) {
     # First, wait for stop above to take effect
-    print "Waiting for port $port to clear...\n";
-    wait_for_port( $port, 0 );
-    print "Port $port free, starting $httpd\n";
+    print "Waiting for port $port_cgi to clear...\n";
+    wait_for_port( $port_cgi, 0 );
+    print "Port $port_cgi free, starting $httpd\n";
 
     system $httpd, -f => $conf, -k => "start";
     print "Check logs at $dir/error.log\n";
@@ -173,10 +184,11 @@ if ($action eq 'start' and -x $httpd) {
         exit 1;
     };
 
-    print "Waiting for port $port to become active\n";
-    wait_for_port( $port, 1 );
+    print "Waiting for port $port_cgi to become active\n";
+    wait_for_port( $port_cgi, 1 );
 
-    print "Check server at http://localhost:$port/cgi/";
+    print "Check plain server at http://localhost:$port_cgi/cgi/\n";
+    print "Check mod_perl server at http://localhost:$port_perl/perl/\n";
 };
 
 sub wait_for_port {
