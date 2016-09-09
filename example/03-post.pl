@@ -2,41 +2,51 @@
 
 use strict;
 use warnings;
-use Carp;
+use utf8;
 
-# always use latest and gratest libraries, not the system ones
+# This script demonstrates...
+my $descr  = "POST request, cookie, and redirect";
+
+# Always use latest and greatest Neaf, no matter what's in the @INC
 use FindBin qw($Bin);
-use File::Basename qw(dirname);
+use File::Basename qw(basename dirname);
 use lib dirname($Bin)."/lib";
 use MVC::Neaf;
-$SIG{__WARN__} = \&Carp::cluck;
+
+# Add some flexibility to run alongside other examples
+my $script = basename(__FILE__);
+
+# And some HTML boilerplate.
+my $tt_head = <<"TT";
+<html><head><title>$descr - $script</title></head>
+<body><h1>$script</h1><h2>$descr</h2>
+TT
+
+# The boilerplate ends here
 
 my $tpl = <<"TT";
-<html>
-<head>
-    <title>[% title %]</title>
-</head>
-<body>
-<h1>[% IF name %]Hello, [% name %]![% ELSE %]What's your name?[% END %]</h1>
-<form method="POST" action="/forms/02-post.cgi">
+$tt_head
+<h3>[% IF name %]Hello, [% name %]![% ELSE %]What's your name?[% END %]</h3>
+<form method="POST" action="/cgi/$script/form">
     Change name: <input name="name"/><input type="submit" value="&gt;&gt;"/>
 </form>
 </body>
 </html>
 TT
 
-MVC::Neaf->route("/forms/02-post.cgi" => sub {
+MVC::Neaf->route(cgi => $script => form => sub {
     my $req = shift;
 
     my $name = $req->param( name => qr/[-\w ]+/, '' );
     if (length $name) {
+        warn "Setting cook";
         $req->set_cookie( name => $name );
     };
 
     $req->redirect( $req->referer || "/" );
 }, method => "POST");
 
-MVC::Neaf->route("/" => sub {
+MVC::Neaf->route(cgi => $script => sub {
     my $req = shift;
 
     my $name = $req->get_cookie( name => qr/[-\w ]+/ );
@@ -46,7 +56,7 @@ MVC::Neaf->route("/" => sub {
         title => 'Hello',
         name => $name,
     };
-});
+}, description => $descr);
 
 MVC::Neaf->run;
 

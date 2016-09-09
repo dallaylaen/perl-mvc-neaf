@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0606;
+our $VERSION = 0.0607;
 
 =head1 NAME
 
@@ -642,7 +642,7 @@ sub handle_request {
     $head->init_header( content_type => $data->{-type} || $self->{-type} );
     $head->init_header( location => $data->{-location} )
         if $data->{-location};
-    $head->push_header( cookie => $req->format_cookies );
+    $head->push_header( set_cookie => $req->format_cookies );
     $head->init_header( content_length => length $content )
         unless $data->{-continue};
     $content = '' if $req->method eq 'HEAD';
@@ -693,7 +693,7 @@ sub _error_to_reply {
         return {
             -status     => $status,
             -type       => 'text/plain',
-            -content    => "Error $status",
+            -content    => "Error $status\n",
         };
     };
 };

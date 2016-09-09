@@ -33,7 +33,8 @@ MVC::Neaf->server_stat( MVC::Neaf::X::ServerStat->new (
 ));
 
 my $tpl = <<"TT";
-<h1>Hello, [% name %]!</h1>
+$tt_head
+<h3>Hello, [% name %]!</h3>
 <form method="GET">
     <input name="name">
     <input type="submit" value="&gt;&gt;">
