@@ -64,6 +64,6 @@ MVC::Neaf->route( $path => sub {
         } qw(method path http_version scheme hostname port
             script_name path_info client_ip ),
     };
-} );
+}, description => "HTTP request in a nutshell" );
 
 MVC::Neaf->run;

@@ -21,18 +21,9 @@ use Template;
 use IO::Socket::INET;
 use Time::HiRes qw(sleep);
 
-# Some config here
-# /forms/ is just the same, but does not spoil our shiny index
-my %cgi = (qw(
-    01-get 01-hello-get.pl
-    02-post 02-cookie-post-redirect.pl
-    forms/02-post 02-cookie-post-redirect.pl
-    03-upload 03-upload.pl
-    04-image 04-raw-content.pl
-    forms/04-img 04-raw-content.pl
-    08-header 08-header.pl
-    09-request 09-request.pl
-));
+use lib "$Bin/lib";
+use MVC::Neaf;
+
 # skipping 05-lang for now - won't work under apache as CGI
 my $dir = "$Bin/nocommit-apache";
 my $conf = "$dir/httpd.conf";
@@ -92,7 +83,7 @@ Alias /cgi [% dir %]/cgi
 
 PerlSetEnv EXAMPLE_PATH_REQUEST /request/parser
 PerlPostConfigRequire [% parent %]/example/09-request.pl
-<Location /request/parser>
+<Location /cgi>
     SetHandler perl-script
     PerlResponseHandler MVC::Neaf::Request::Apache2
 </Location>
@@ -138,19 +129,14 @@ system $httpd, -f => $conf, -k => "stop"
     if -f $conf and -x $httpd;
 
 # Create dirs if needed
-foreach (qw(/ cgi html forms)) {
+foreach (qw(/ html forms)) {
     -d "$dir/$_" or mkdir "$dir/$_"
         or die "Failed to mkdir $dir/$_: $!";
 };
 
-# Create links to examples
-foreach (keys %cgi) {
-    my $link = /^forms\// ? "$dir/$_.cgi" : "$dir/cgi/$_.cgi";
-    my $file = "$Bin/example/$cgi{$_}";
-    unlink $link if -e $link;
-    symlink $file, $link
-        or warn "Failed to symlink $link -> $file, but trying to continue";
-};
+symlink "$Bin/example", "$dir/cgi";
+my $err = $!;
+-l "$dir/cgi" or die "Failed to symlink $dir/cgi -> $Bin/example: $err";
 
 # Process template
 my %vars = (
@@ -168,6 +154,48 @@ open my $fd, ">", $conf
     or die "Failed to open(w) apache config $conf: $!";
 $tt->process ( \$tpl, \%vars, $fd);
 close $fd or die "Failed to close $conf: $!";
+
+# TODO maybe fork here?..
+my $n;
+foreach my $file (glob "$Bin/example/*.pl") {
+    $n++;
+    eval "package My::Isolated::$n; my \$unused = do \$file;";
+    if ($@) {
+        warn "Failed to load $file: $!";
+        next;
+    };
+};
+
+my $list = MVC::Neaf->get_routes();
+my @public = sort { $a->{path} cmp $b->{path} }
+    grep { $_->{description} }
+    grep { $_->{path} =~ m,^/cgi/, }
+    values %$list;
+
+my $tpl_index = <<"TT";
+<html>
+<head>
+    <title>Index of examples</title>
+</head>
+<body>
+<h1>Index of examples</h1>
+<ul>
+[% FOREACH item IN public %]
+    <li>
+    <a href="[% item.path %]">[% item.path %] - [% item.description %]</a><br>
+    </li>
+[% END %]
+</ul>
+</body>
+</html>
+TT
+
+# create index
+open my $fd_idx, ">", "$dir/html/index.html"
+    or die "Failed to create $dir/html/index.html: $!";
+$tt->process( \$tpl_index, { public => \@public }, $fd_idx )
+    or warn "Failed to create index file: ".$tt->error;
+close ($fd_idx);
 
 # restart server if asked to
 if ($action eq 'start' and -x $httpd) {
@@ -187,8 +215,8 @@ if ($action eq 'start' and -x $httpd) {
     print "Waiting for port $port_cgi to become active\n";
     wait_for_port( $port_cgi, 1 );
 
-    print "Check plain server at http://localhost:$port_cgi/cgi/\n";
-    print "Check mod_perl server at http://localhost:$port_perl/perl/\n";
+    print "Check plain server at http://localhost:$port_cgi/\n";
+    print "Check mod_perl server at http://localhost:$port_perl/\n";
 };
 
 sub wait_for_port {
