@@ -3,26 +3,26 @@
 use strict;
 use warnings;
 
-# always use latest and gratest libraries, not the system ones
+# always use latest and greatest libraries, not the system ones
 use FindBin qw($Bin);
 use File::Basename qw(basename dirname);
 use lib dirname($Bin)."/lib";
 use MVC::Neaf;
 
-# HACK This allows us to run flexibly under different servers,
-# until Neaf obtains ability to dynamically configure paths
-# (this feature is planned but not yet even designed).
-my $scriptname = basename(__FILE__);
-$scriptname =~ s/\.neaf$/\.cgi/; # OK, the .neaf was stupid, TODO rename all
-my $path = $ENV{EXAMPLE_PATH_REQUEST} || "/cgi/$scriptname";
+my $script = basename(__FILE__);
+my $path   = "/cgi/$script";
+my $descr  = "HTTP request in a nutshell";
+
+my $tt_head = <<"TT";
+<html><head><title>$descr - $script</title></head>
+<body><h1>$script</h1><h2>$descr</h2>
+TT
 
 my $tpl = <<"TT";
-<head>
-    <title>Http request in a nutshell</title>
+$tt_head
     <style>
         span { border: dotted 1px red; }
     </style>
-</head>
 <b>Hover over dotted rectangles to see the function returning this part.</b>
 <br><br>
 
@@ -64,6 +64,6 @@ MVC::Neaf->route( $path => sub {
         } qw(method path http_version scheme hostname port
             script_name path_info client_ip ),
     };
-}, description => "HTTP request in a nutshell" );
+}, description => $descr );
 
 MVC::Neaf->run;

@@ -81,8 +81,7 @@ Alias /cgi [% dir %]/cgi
 <VirtualHost *:[% port_perl %]>
     ServerName perl.localhost
 
-PerlSetEnv EXAMPLE_PATH_REQUEST /request/parser
-PerlPostConfigRequire [% parent %]/example/09-request.pl
+PerlPostConfigRequire [% parent %]/example/01-request.pl
 <Location /cgi>
     SetHandler perl-script
     PerlResponseHandler MVC::Neaf::Request::Apache2
