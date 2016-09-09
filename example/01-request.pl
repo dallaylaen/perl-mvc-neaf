@@ -3,20 +3,25 @@
 use strict;
 use warnings;
 
-# always use latest and greatest libraries, not the system ones
+# This script demonstrates...
+my $descr  = "HTTP request in a nutshell";
+
+# Always use latest and greatest Neaf, no matter what's in the @INC
 use FindBin qw($Bin);
 use File::Basename qw(basename dirname);
 use lib dirname($Bin)."/lib";
 use MVC::Neaf;
 
+# Add some flexibility to run alongside other examples
 my $script = basename(__FILE__);
-my $path   = "/cgi/$script";
-my $descr  = "HTTP request in a nutshell";
 
+# And some HTML boilerplate.
 my $tt_head = <<"TT";
 <html><head><title>$descr - $script</title></head>
 <body><h1>$script</h1><h2>$descr</h2>
 TT
+
+# The boilerplate ends here
 
 my $tpl = <<"TT";
 $tt_head
@@ -48,10 +53,10 @@ Host: <span title="hostname">[% hostname %]</span>
 [% END %]
 TT
 
-MVC::Neaf->route( $path => sub {
+MVC::Neaf->route( cgi => $script => sub {
     my $req = shift;
 
-    $req->redirect( "$path/and/beyond" )
+    $req->redirect( "/cgi/$script/and/beyond" )
         unless $req->path_info;
 
     my @error;

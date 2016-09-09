@@ -31,7 +31,7 @@ my $port_cgi = 8000;
 my $port_perl = 8001;
 # TODO autodetect free ports
 
-my $tpl = <<"TT";
+my $HTTPD_CONF = <<"TT";
 ServerRoot [% dir %]
 ServerName localhost
 DocumentRoot [% dir %]/html
@@ -81,13 +81,33 @@ Alias /cgi [% dir %]/cgi
 <VirtualHost *:[% port_perl %]>
     ServerName perl.localhost
 
-PerlPostConfigRequire [% parent %]/example/01-request.pl
+[% FOREACH item IN public %]
+PerlPostConfigRequire [% item.caller.1 %]
+[% END %]
 <Location /cgi>
     SetHandler perl-script
     PerlResponseHandler MVC::Neaf::Request::Apache2
 </Location>
 </VirtualHost>
 
+TT
+
+my $INDEX_HTML = <<"TT";
+<html>
+<head>
+    <title>Index of examples</title>
+</head>
+<body>
+<h1>Index of examples</h1>
+<ul>
+[% FOREACH item IN public %]
+    <li>
+    <a href="[% item.path %]">[% item.path %] - [% item.description %]</a><br>
+    </li>
+[% END %]
+</ul>
+</body>
+</html>
 TT
 
 # Process command line before doing the heavilifting
@@ -138,22 +158,6 @@ my $err = $!;
 -l "$dir/cgi" or die "Failed to symlink $dir/cgi -> $Bin/example: $err";
 
 # Process template
-my %vars = (
-    lib       => "$Bin/lib",
-    dir       => "$dir",
-    port_cgi  => $port_cgi,
-    port_perl => $port_perl,
-    parent    => $Bin,
-    modules   => $modules,
-    magic     => $magic,
-);
-
-my $tt = Template->new;
-open my $fd, ">", $conf
-    or die "Failed to open(w) apache config $conf: $!";
-$tt->process ( \$tpl, \%vars, $fd);
-close $fd or die "Failed to close $conf: $!";
-
 # TODO maybe fork here?..
 my $n;
 foreach my $file (glob "$Bin/example/*.pl") {
@@ -171,28 +175,28 @@ my @public = sort { $a->{path} cmp $b->{path} }
     grep { $_->{path} =~ m,^/cgi/, }
     values %$list;
 
-my $tpl_index = <<"TT";
-<html>
-<head>
-    <title>Index of examples</title>
-</head>
-<body>
-<h1>Index of examples</h1>
-<ul>
-[% FOREACH item IN public %]
-    <li>
-    <a href="[% item.path %]">[% item.path %] - [% item.description %]</a><br>
-    </li>
-[% END %]
-</ul>
-</body>
-</html>
-TT
+# Process conf template
+my %vars = (
+    lib       => "$Bin/lib",
+    dir       => "$dir",
+    port_cgi  => $port_cgi,
+    port_perl => $port_perl,
+    parent    => $Bin,
+    modules   => $modules,
+    magic     => $magic,
+    public    => \@public,
+);
 
-# create index
+my $tt = Template->new;
+open my $fd, ">", $conf
+    or die "Failed to open(w) apache config $conf: $!";
+$tt->process ( \$HTTPD_CONF, \%vars, $fd);
+close $fd or die "Failed to close $conf: $!";
+
+# Process index template
 open my $fd_idx, ">", "$dir/html/index.html"
     or die "Failed to create $dir/html/index.html: $!";
-$tt->process( \$tpl_index, { public => \@public }, $fd_idx )
+$tt->process( \$INDEX_HTML, { public => \@public }, $fd_idx )
     or warn "Failed to create index file: ".$tt->error;
 close ($fd_idx);
 
