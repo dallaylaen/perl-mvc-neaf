@@ -3,13 +3,13 @@
 use strict;
 use warnings;
 
-# always use latest and gratest libraries, not the system ones
+# always use latest and greatest libraries, not the system ones
 use FindBin qw($Bin);
-use File::Basename qw(dirname);
+use File::Basename qw(dirname basename);
 use lib dirname($Bin)."/lib";
 use MVC::Neaf;
 
-MVC::Neaf->route( "/" => sub {
+MVC::Neaf->route( cgi => basename(__FILE__) => sub {
     my $req = shift;
 
     return {
@@ -17,6 +17,6 @@ MVC::Neaf->route( "/" => sub {
         -content => join( ";", $req->header_in_keys ). "\n\n"
             . $req->header_in->as_string,
     };
-} );
+}, description => "Just show incoming HTTP headers" );
 
 MVC::Neaf->run;

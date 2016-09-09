@@ -158,6 +158,7 @@ my $err = $!;
 -l "$dir/cgi" or die "Failed to symlink $dir/cgi -> $Bin/example: $err";
 
 # Autogenerate example index
+MVC::Neaf->route( "/" => sub { "forbid / route in examples" });
 my $n;
 foreach my $file (glob "$Bin/example/*.pl") {
     $n++;
