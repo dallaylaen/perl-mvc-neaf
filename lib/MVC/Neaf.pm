@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0605;
+our $VERSION = 0.0606;
 
 =head1 NAME
 
@@ -175,6 +175,24 @@ Dies if same route is given twice.
 Exactly one leading slash will be prepended no matter what you do.
 (C<path>, C</path> and C</////path> are all the same).
 
+%options may include:
+
+=over
+
+=item * description - just for information, has no action on execution.
+
+=item * method - list of allowed HTTP methods - GET, POST & so on.
+
+=item * form - a Validator::LIVR-compatible validation profile.
+If given, either $req->form or $req->form_errors will be filled
+with validation errors.
+
+=item * view - default View object for this Controller.
+Must be an object with a C<render> methods, or a CODEREF
+receiving hash and returning a list of two scalars.
+
+=back
+
 =cut
 
 sub route {
@@ -206,8 +224,11 @@ sub route {
 
     # Do the work
     $profile{code}     = $sub;
-    $profile{defaults} = \%args;
     $profile{caller}   = [caller(0)]; # file,line
+
+    # Just for information
+    $profile{path}        = $path;
+    $profile{description} = $args{description};
 
     if ($args{method}) {
         $args{method} = [ $args{method} ] unless ref $args{method} eq 'ARRAY';
@@ -471,6 +492,23 @@ sub _make_route_re {
 
     my $re = join "|", map { quotemeta } reverse sort keys %$hash;
     return qr{^($re)(/[^?]*)?(?:\?|$)};
+};
+
+=head1 INTROSPECTION METHODS
+
+=head2 get_routes
+
+Returns a hash with ALL routes for inspection.
+This should NOT be used by application itself.
+
+=cut
+
+sub get_routes {
+    my $self = shift;
+    $self = $Inst unless ref $self;
+
+    # shallow copy TODO need 2 layers!
+    return { %{ $self->{route} } };
 };
 
 =head1 INTERNAL API

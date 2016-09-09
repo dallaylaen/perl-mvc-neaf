@@ -57,4 +57,7 @@ is (scalar @$bar, 3, "PSGI-compatible");
 is ($bar->[0], 200, "Normal request");
 is_deeply ($bar->[2], [137], "Content is fine");
 
+is_deeply ([sort keys %{ MVC::Neaf->get_routes }], [qw[/bar /foo]]
+    , "Introspection: get_routes works");
+
 done_testing;
