@@ -3,18 +3,29 @@
 use strict;
 use warnings;
 
-# always use latest and gratest libraries, not the system ones
+# This script demonstrates...
+my $descr  = "Unspecified length reply";
+
+# Always use latest and greatest Neaf, no matter what's in the @INC
 use FindBin qw($Bin);
-use File::Basename qw(dirname);
+use File::Basename qw(basename dirname);
 use lib dirname($Bin)."/lib";
 use MVC::Neaf;
 
+# Add some flexibility to run alongside other examples
+my $script = basename(__FILE__);
+
+# And some HTML boilerplate.
+my $tt_head = <<"TT";
+<html><head><title>$descr - $script</title></head>
+<body><h1>$script</h1><h2>$descr</h2>
+TT
+
+# The boilerplate ends here
+
 my $tpl = <<"TT";
-<html>
-<head>
-    <title>Continued request</title>
-</head>
-<body>
+$tt_head
+<h3>Let's make a sequence of numbers</h3>
 <form method="GET">
     <input name="start" value="[% start %]">
     <input name="step"  value="[% step %]">
@@ -24,7 +35,7 @@ my $tpl = <<"TT";
 <hr>
 TT
 
-MVC::Neaf->route( dl => sub {
+MVC::Neaf->route( cgi => $script => sub {
     my $req = shift;
 
     # TODO Form validation needs to be implemented for such cases
@@ -36,7 +47,7 @@ MVC::Neaf->route( dl => sub {
         my $req = shift;
 
         while ($start <= $end) {
-            $req->write("$start<br>");
+            $req->write("$start<br>\n");
             $start += $step;
         }
 
@@ -50,6 +61,6 @@ MVC::Neaf->route( dl => sub {
         -template => \$tpl,
         -continue => $continue,
     };
-});
+}, description => $descr);
 
 MVC::Neaf->run;

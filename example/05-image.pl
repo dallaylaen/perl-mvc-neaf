@@ -2,15 +2,35 @@
 
 use strict;
 use warnings;
-use GD::Simple;
+my $has_gd = eval { require GD::Simple; 1 };
+if ( $has_gd ) {
+    GD::Simple->read_color_table if $ENV{MOD_PERL};
+    # Surprised? Loading is done via <DATA>, and we neep to do it ASAP
+    # before mod_perl tampers with the file handles.
+};
 
-# always use latest and gratest libraries, not the system ones
+# This script demonstrates...
+my $descr  = $has_gd && "Serving raw content, like images";
+
+# Always use latest and greatest Neaf, no matter what's in the @INC
 use FindBin qw($Bin);
-use File::Basename qw(dirname);
+use File::Basename qw(basename dirname);
 use lib dirname($Bin)."/lib";
 use MVC::Neaf;
 
+# Add some flexibility to run alongside other examples
+my $script = basename(__FILE__);
+
+# And some HTML boilerplate.
+my $tt_head = <<"TT";
+<html><head><title>$descr - $script</title></head>
+<body><h1>$script</h1><h2>$descr</h2><hr>
+TT
+
+# The boilerplate ends here
+
 my $tpl = <<"TT";
+$tt_head
     <h1>Image example</h1>
     <div>
     <form>
@@ -20,10 +40,10 @@ my $tpl = <<"TT";
         <input type="submit" value="&gt;&gt;">
     </form>
     </div>
-    <img src="/forms/04-img.cgi?size=[% size %]" width="[% size %]" height="[% size %]">
+    <img src="/cgi/$script/image.png?size=[% size %]" width="[% size %]" height="[% size %]">
 TT
 
-MVC::Neaf->route( "/" => sub {
+MVC::Neaf->route( cgi => $script => sub {
     my $req = shift;
 
     my $size = $req->param( size => qr/\d+/, 100 );
@@ -38,9 +58,9 @@ MVC::Neaf->route( "/" => sub {
         size => $size,
         -template => \$tpl,
     };
-});
+}, description => $descr);
 
-MVC::Neaf->route( "/forms/04-img.cgi" => sub {
+MVC::Neaf->route( cgi => $script => 'image.png' => sub {
     my $req = shift;
     my $size = $req->param( size => qr/\d+/, 100 );
 
@@ -50,6 +70,7 @@ MVC::Neaf->route( "/forms/04-img.cgi" => sub {
     $img->bgcolor('orange');
     $img->ellipse( $size, $size );
 
+    # TODO Add filename when saving
     return {
         -content => $img->png,
         -type    => 'image/png',

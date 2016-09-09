@@ -157,14 +157,13 @@ symlink "$Bin/example", "$dir/cgi";
 my $err = $!;
 -l "$dir/cgi" or die "Failed to symlink $dir/cgi -> $Bin/example: $err";
 
-# Process template
-# TODO maybe fork here?..
+# Autogenerate example index
 my $n;
 foreach my $file (glob "$Bin/example/*.pl") {
     $n++;
-    eval "package My::Isolated::$n; my \$unused = do \$file;";
+    eval "package My::Isolated::$n; require \$file;";
     if ($@) {
-        warn "Failed to load $file: $!";
+        warn "Failed to load $file: $@";
         next;
     };
 };

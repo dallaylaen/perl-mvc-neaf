@@ -4,13 +4,28 @@ use strict;
 use warnings;
 use Encode;
 
-# always use latest and gratest libraries, not the system ones
+# This script demonstrates...
+my $descr  = "File upload";
+
+# Always use latest and greatest Neaf, no matter what's in the @INC
 use FindBin qw($Bin);
-use File::Basename qw(dirname);
+use File::Basename qw(basename dirname);
 use lib dirname($Bin)."/lib";
 use MVC::Neaf;
 
+# Add some flexibility to run alongside other examples
+my $script = basename(__FILE__);
+
+# And some HTML boilerplate.
+my $tt_head = <<"TT";
+<html><head><title>$descr - $script</title></head>
+<body><h1>$script</h1><h2>$descr</h2>
+TT
+
+# The boilerplate ends here
+
 my $tpl = <<"TT";
+$tt_head
 <h1>Content analysis of [% IF name %][% name %][% ELSE %]files[% END %].</h1>
 <form method="POST" enctype="multipart/form-data">
     <input type="file" name="count">
@@ -25,7 +40,7 @@ my $tpl = <<"TT";
 [% END %]
 TT
 
-MVC::Neaf->route("/" => sub {
+MVC::Neaf->route(cgi => $script => sub {
     my $req = shift;
 
     my @top;
@@ -52,6 +67,6 @@ MVC::Neaf->route("/" => sub {
         name      => $up && $up->filename,
         top       => @top ? \@top : undef,
     };
-});
+}, description => $descr);
 
 MVC::Neaf->run;

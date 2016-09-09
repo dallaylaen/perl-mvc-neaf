@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0607;
+our $VERSION = 0.0608;
 
 =head1 NAME
 
@@ -214,8 +214,9 @@ sub route {
     # root becomes nothing (which is OK with us).
     $path =~ s#^/*#/#;
     $path =~ s#/+$##;
-    $self->_croak( "Attempting to set duplicate handler for path $path" )
-        if $self->{route}{ $path };
+    $self->_croak( "Attempting to set duplicate handler for path "
+        .( length $path ? $path : "/" ) )
+            if $self->{route}{ $path };
 
     # reset cache
     $self->{route_re} = undef;
