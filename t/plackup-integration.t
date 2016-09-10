@@ -24,7 +24,7 @@ if (!$example or !-f $example) {
 my $cginame = basename($example);
 
 # make sure example compiles at all
-my $sub = eval { require $example };
+my $sub = eval { local $ENV{NEAF_NOSTAT} = 1; my $unused = do $example };
 
 is (ref $sub, 'CODE', "$example lives and returns coderef")
     or die "Example failed to load: ".($@ || $! || "unexpected return");
@@ -89,6 +89,14 @@ note $resp->decoded_content;
 # avoid warnings
 close (SKIP);
 close (ALSO_SKIP);
+
+undef $SIG{CHLD};
+kill 'INT', $pid;
+
+while (<LOG>) {
+    note "From server: $_";
+};
+close LOG;
 
 done_testing; # plack will be killed anyway
 

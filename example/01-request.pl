@@ -15,7 +15,8 @@ use MVC::Neaf::X::ServerStat;
 
 # Some request timing statistics
 my ($count, $total_C, $total) = (0,0,0,0);
-MVC::Neaf->server_stat( MVC::Neaf::X::ServerStat->new (
+my $want_stat = !$ENV{NEAF_NOSTAT};
+$want_stat and MVC::Neaf->server_stat( MVC::Neaf::X::ServerStat->new (
     on_write => sub {
         foreach (@{ +shift }) {
             $count++;
@@ -26,11 +27,13 @@ MVC::Neaf->server_stat( MVC::Neaf::X::ServerStat->new (
     },
 ));
 END {
-    undef $MVC::Neaf::Inst; # make sure stat object is DESTROYED
-    warn ".\n.\n"; # get rid of the stupid ^C
-    warn "$count pages served.\n";
-    warn "$total_C s spent in controller, "
-        .($total-$total_C)." s spent in view.\n";
+    if ($want_stat) {
+        undef $MVC::Neaf::Inst; # make sure stat object is DESTROYED
+        warn ".\n.\n"; # get rid of the stupid ^C
+        warn "$count pages served.\n";
+        warn "$total_C s spent in controller, "
+            .($total-$total_C)." s spent in view.\n";
+    };
 };
 $SIG{INT} = sub { exit }; # civilized exit if Ctrl-C
 
