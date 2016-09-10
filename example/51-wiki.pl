@@ -17,7 +17,7 @@ use FindBin qw($Bin);
 use URI::Escape;
 use JSON::XS;
 
-# always use latest and gratest libraries, not the system ones
+# always use latest and greates Neaf
 use FindBin qw($Bin);
 use File::Basename qw(dirname);
 use lib dirname($Bin)."/lib";
@@ -50,7 +50,7 @@ my $head = <<"TT";
 </head>
 <html>
 [% IF topic %]<h1>[% html(topic) %]</h1>[% END %]
-<form method="GET" action="/search">
+<form method="GET" action="/wiki_forms/search">
     <input name="q"[% IF query %] value="[% html(query) %][% END %]">
     <input type="submit" value="Search!">
 </form>
@@ -58,7 +58,7 @@ TT
 
 my $show = <<"TT";
 $head
-<a href="/edit?topic=[% uri(topic) %]">
+<a href="/wiki_forms/edit?topic=[% uri(topic) %]">
     [%- IF article %]Edit[% ELSE %]Start[% END %]</a></br>
 <div>
 [% article %]
@@ -67,7 +67,7 @@ TT
 
 my $edit = <<"TT";
 $head
-<form method="POST" action="/update">
+<form method="POST" action="/wiki_forms/update">
 <input type="hidden" name="topic" value="[% html(topic) %]"><br>
 <textarea name="article" rows="10" cols="65">[% html(article) %]</textarea><br>
 <input type="submit" value="Save">
@@ -133,10 +133,10 @@ MVC::Neaf->route( wiki => sub {
         action => "Wiki",
         article => $article,
     };
-});
+}, description => "A 200-line stupid Wiki engine");
 
 # Update article - POST only, redirect in the end.
-MVC::Neaf->route( update => sub {
+MVC::Neaf->route( wiki_forms => update => sub {
     my $req = shift;
 
     $req->method eq 'POST' or die 404;
@@ -150,7 +150,7 @@ MVC::Neaf->route( update => sub {
 });
 
 # Edit article. Not really much to discuss here...
-MVC::Neaf->route( edit => sub {
+MVC::Neaf->route( wiki_forms => edit => sub {
     my $req = shift;
 
     my $topic = $req->param( topic => '[^<>&]+' );
@@ -166,7 +166,7 @@ MVC::Neaf->route( edit => sub {
 });
 
 # Make the wiki searchable
-MVC::Neaf->route( search => sub {
+MVC::Neaf->route( wiki_forms => search => sub {
     my $req = shift;
 
     my $q = $req->param( q => qr/.*/ );

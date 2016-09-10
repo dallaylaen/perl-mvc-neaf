@@ -3,11 +3,13 @@
 use strict;
 use warnings;
 
-# always use latest and gratest libraries, not the system ones
+# always use latest and greatest Neaf, no matter what
 use FindBin qw($Bin);
-use File::Basename qw(dirname);
+use File::Basename qw(dirname basename);
 use lib dirname($Bin)."/lib";
 use MVC::Neaf;
+
+my $script = basename(__FILE__);
 
 my %message = (
     en => "Dear friends",
@@ -22,6 +24,7 @@ my $tpl = <<"TT";
 [% END %]
 TT
 
+# Hope it's the only script with pre-route and lang param
 MVC::Neaf->pre_route( sub {
     my $req = shift;
 
@@ -33,7 +36,7 @@ MVC::Neaf->pre_route( sub {
     };
 });
 
-MVC::Neaf->route("/" => sub {
+MVC::Neaf->route(cgi => basename(__FILE__) => sub {
     my $req = shift;
 
     my $lang = $req->param( lang => qr/[a-z][a-z]/, 'en' );

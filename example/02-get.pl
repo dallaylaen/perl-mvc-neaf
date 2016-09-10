@@ -11,7 +11,6 @@ use FindBin qw($Bin);
 use File::Basename qw(basename dirname);
 use lib dirname($Bin)."/lib";
 use MVC::Neaf;
-use MVC::Neaf::X::ServerStat;
 
 # Add some flexibility to run alongside other examples
 my $script = basename(__FILE__);
@@ -23,14 +22,6 @@ my $tt_head = <<"TT";
 TT
 
 # The boilerplate ends here
-
-MVC::Neaf->server_stat( MVC::Neaf::X::ServerStat->new (
-    on_write => sub {
-        foreach (@{ +shift }) {
-            warn "STAT $_->[0] returned $_->[1] in $_->[3] sec\n";
-        };
-    },
-));
 
 my $tpl = <<"TT";
 $tt_head
@@ -54,8 +45,6 @@ MVC::Neaf->route( cgi => $script => sub {
         -jsonp => $jsonp,
     };
 }, description => $descr);
-
-$SIG{INT} = sub { exit; }; # Civilized shutdown if interrupted
 
 MVC::Neaf->run;
 

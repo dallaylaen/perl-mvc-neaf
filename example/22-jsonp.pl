@@ -12,11 +12,13 @@ use warnings;
 # this package already has too many deps     #
 ##############################################
 
-# always use latest and gratest libraries, not the system ones
+# always use latest and greatest Neaf
 use FindBin qw($Bin);
-use File::Basename qw(dirname);
+use File::Basename qw(dirname basename);
 use lib dirname($Bin)."/lib";
 use MVC::Neaf;
+
+my $script = basename(__FILE__);
 
 my $tpl = <<"TT";
 <html>
@@ -34,19 +36,19 @@ my $tpl = <<"TT";
 <body>
 <h1>JSON example</h1>
 <div id="container">Not loaded...</div>
-<script lang="javascript" src="/forms/11/jsonp?callback=foo&delay=1"></script>
+<script lang="javascript" src="/cgi/$script/jsonp?callback=foo&delay=1"></script>
 </body>
 TT
 
 # Main app
-MVC::Neaf->route("/" => sub {
+MVC::Neaf->route( cgi => $script => sub {
     return {
         -template => \$tpl,
     };
-});
+}, description => "Loading data via JSONP callback" );
 
 # callback
-MVC::Neaf->route( forms => 11 => jsonp => sub {
+MVC::Neaf->route( cgi => $script => jsonp => sub {
     my $req = shift;
 
     # This is ugly, but it makes loading process look

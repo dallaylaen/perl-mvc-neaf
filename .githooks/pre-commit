@@ -27,10 +27,10 @@ for i in $FILES; do
 	perl -Ilib -Ilib/perl5 -wc "$i" || fail "$i" - "Syntax error"
 	perl -Mwarnings=FATAL,all -Mstrict -Ilib -Ilib/perl5 -w "$i" || fail "$i" - Strict 
 	perl -wne '/\s\n/ and exit 1' "$i" || fail "$i" - "Spaces at EOL"
+	perlcritic "$i" || fail "$i" - "Perl critic"
 
 	# The module part
-	echo "$i" | egrep -q 'psgi$|pm$' || continue;
-	perlcritic "$i" || fail "$i" - "Perl critic"
+	echo "$i" | egrep -q 'pm$' || continue;
 	git diff --cached $i | grep '^+.*\$VERSION' || fail "$i" - "No version change"
 done 
 

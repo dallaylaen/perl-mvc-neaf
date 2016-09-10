@@ -3,8 +3,9 @@
 use strict;
 use warnings;
 use JSON::XS;
+my $has_livr = eval { require Validator::LIVR; 1; };
 
-# always use latest and greatest libraries, not the system ones
+# always use latest and greatest Neaf
 use FindBin qw($Bin);
 use File::Basename qw(dirname basename);
 use lib dirname($Bin)."/lib";
@@ -21,14 +22,14 @@ my $tpl = <<"TT";
 <h1>Form validation test</h1>
 [% IF valid %]<h2>Form valid!</h2>[% END %]
 <form method="GET">
-    [% INCLUDE field_input name="name" %]
-    [% INCLUDE field_input name="phone" %]
-    [% INCLUDE field_input name="email" %]
-    [% INCLUDE field_input name="email_again" %]
-    [% INCLUDE field_input name="country" %]
+    [% INCLUDE field_input name="name" %]<br>
+    [% INCLUDE field_input name="phone" %]<br>
+    [% INCLUDE field_input name="email" %]<br>
+    [% INCLUDE field_input name="email_again" %]<br>
+    [% INCLUDE field_input name="country" %]<br>
     <input type="submit" value="Validate!">
 </form>
-
+<br><br>
 [% dumper %]
 
 [% BLOCK field_input %]
@@ -48,7 +49,7 @@ sub html {
     return $text;
 };
 
-MVC::Neaf->route( $script => sub {
+$has_livr and MVC::Neaf->route( $script => sub {
     my $req = shift;
 
     return {
@@ -65,6 +66,6 @@ MVC::Neaf->route( $script => sub {
     email => [ "email" ],
     email_again => ["email", "required", { equal_to_field => "email" } ],
     country => [ "required", { max_length => 2 } ],
-} );
+}, description => "LIVR-based form validation" );
 
 MVC::Neaf->run;
