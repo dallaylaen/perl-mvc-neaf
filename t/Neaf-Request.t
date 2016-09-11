@@ -56,6 +56,10 @@ my $flag = 0;
 $req->postpone( sub { $flag++ } );
 is ($flag, 0, "postpone(): no immediate effect");
 
+my $dump = $req->dump;
+is( ref $dump, 'HASH', "Dump works");
+note explain $dump;
+
 undef $req;
 is ($flag, 1, "postpone(): executed in destroy");
 

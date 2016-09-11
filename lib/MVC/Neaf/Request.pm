@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0604;
+our $VERSION = 0.0605;
 
 =head1 NAME
 
@@ -733,6 +733,23 @@ sub user_agent {
             unless exists $self->{user_agent};
         return $self->{user_agent};
     };
+};
+
+=head2 dump ()
+
+Dump whatever came in the request. Useful for debugging.
+
+=cut
+
+sub dump {
+    my $self = shift;
+
+    my %raw;
+    foreach my $method (qw(script_name path_info method _all_params)) {
+        $raw{$method} = eval { $self->$method }; # deliberately ignore errors
+    };
+
+    return \%raw;
 };
 
 =head1 REPLY METHODS
