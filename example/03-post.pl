@@ -2,7 +2,6 @@
 
 use strict;
 use warnings;
-use utf8;
 
 # This script demonstrates...
 my $descr  = "POST request, cookie, and redirect";
@@ -17,15 +16,9 @@ use MVC::Neaf;
 my $script = basename(__FILE__);
 
 # And some HTML boilerplate.
-my $tt_head = <<"TT";
+my $tpl = <<"TT";
 <html><head><title>$descr - $script</title></head>
 <body><h1>$script</h1><h2>$descr</h2>
-TT
-
-# The boilerplate ends here
-
-my $tpl = <<"TT";
-$tt_head
 <h3>[% IF name %]Hello, [% name %]![% ELSE %]What's your name?[% END %]</h3>
 <form method="POST" action="/cgi/$script/form">
     Change name: <input name="name"/><input type="submit" value="&gt;&gt;"/>
@@ -39,7 +32,6 @@ MVC::Neaf->route(cgi => $script => form => sub {
 
     my $name = $req->param( name => qr/[-\w ]+/, '' );
     if (length $name) {
-        warn "Setting cook";
         $req->set_cookie( name => $name );
     };
 

@@ -9,14 +9,13 @@ use Encode;
 use MVC::Neaf::Request;
 
 my $copy = uri_unescape( "%C2%A9" ); # a single (c) symbol
+$copy = decode_utf8($copy);
 
 my $req = MVC::Neaf::Request->new(
     all_params => { x => 42 },
-    neaf_cookie_in => { cook => $copy },
+    header_in => HTTP::Headers->new( Cookie => 'cook=%C2%A9; guy=bad' ),
 );
 $req->set_full_path("/foo/bar");
-
-$copy = decode_utf8($copy);
 
 is ($req->path, "/foo/bar", "Path round trip");
 
@@ -30,6 +29,7 @@ is ($req->path, "/", "set_path round trip" );
 # TODO more thorough unicode testing
 is ($req->get_cookie( cook => qr/.*/ ), $copy, "Cookie round-trip");
 is ($req->get_cookie( cook => qr/.*/ ), $copy, "Cookie doesn't get double-decoded");
+is ($req->get_cookie( guy => qr/\w+/ ), "bad", "Secone cookie ok");
 
 my $form_h = $req->get_form_as_hash( x => '\d+', y => '\d+' );
 is_deeply( $form_h, { x => 42 }, "Hash form validation" );

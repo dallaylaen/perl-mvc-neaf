@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0605;
+our $VERSION = 0.0606;
 
 =head1 NAME
 
@@ -503,19 +503,14 @@ sub get_cookie {
     $self->{neaf_cookie_in} ||= do {
         my %hash;
         foreach ($self->header_in("cookie")) {
-            /^(\S+?)=(.*)/ or next;
-            $hash{$1} = decode_utf8(uri_unescape($2));
+            while (/(\S+?)=([^\s;]*);?/g) {
+                $hash{$1} = decode_utf8(uri_unescape($2));
+            };
         };
         \%hash;
     };
     my $value = $self->{neaf_cookie_in}{ $name };
     return $default unless defined $value;
-
-    if (!Encode::is_utf8($value)) {
-        # HACK non-utf8 => do what the driver forgot.
-        $value = decode_utf8( $value );
-        $self->{neaf_cookie_in}{ $name } = $value;
-    };
 
     return $value =~ /^$regex$/ ? $value : $default;
 };
@@ -745,9 +740,13 @@ sub dump {
     my $self = shift;
 
     my %raw;
-    foreach my $method (qw(script_name path_info method _all_params)) {
+    foreach my $method (qw(script_name path_info method )) {
         $raw{$method} = eval { $self->$method }; # deliberately ignore errors
     };
+    $raw{param} = $self->_all_params;
+    $raw{header_in} = $self->header_in->as_string;
+    $self->get_cookie( noexist => '' );
+    $raw{cookie_in} = $self->{neaf_cookie_in};
 
     return \%raw;
 };
