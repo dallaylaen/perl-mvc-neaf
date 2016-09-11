@@ -2,7 +2,7 @@ package MVC::Neaf::Exception;
 
 use strict;
 use warnings;
-our $VERSION = 0.06;
+our $VERSION = 0.0601;
 
 =head1 NAME
 
@@ -19,6 +19,7 @@ a lot of try/catch blocks in the controller.
 =cut
 
 use Scalar::Util qw(blessed);
+use Carp;
 use parent qw(Exporter);
 use overload '""' => "as_string";
 
@@ -54,7 +55,13 @@ Returns a new exception object.
 
 sub new {
     my $class = shift;
-    my %opt = @_ == 1 ? ( -status => @_ ) : @_;
+    if (@_ % 2) {
+        my $err = shift;
+        $err =~ /^(\d\d\d)(?:\s|$)/
+            or croak "$class->new: status must be 3-digit";
+        push @_, -status => $1;
+    };
+    my %opt = @_;
 
     $opt{-status} ||= 500;
 
