@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0609;
+our $VERSION = 0.0610;
 
 =head1 NAME
 
@@ -348,6 +348,8 @@ sub load_view {
     $view = $self->{-view}
         unless defined $view;
 
+    # Already an object - just return it after the checks
+    return $view if ref $view;
     # Agressive caching FTW!
     return $self->{seen_view}{$view}
         if exists $self->{seen_view}{$view};
@@ -355,8 +357,13 @@ sub load_view {
     # If we got to this point, we don't have $view cached just yet.
     # Instantiate and save!
 
-    $module ||= $known_view{ $view } || $view;
     if (!ref $module) {
+        # If 1-arg call is used, try using view name as class name
+        $module ||= $view;
+        # in case an alias is used, apply alias
+        $module = $known_view{ $module } || $module;
+
+        # Try loading...
         eval "require $module"; ## no critic
         $self->_croak( "Failed to load view $view: $@" )
             if $@;
