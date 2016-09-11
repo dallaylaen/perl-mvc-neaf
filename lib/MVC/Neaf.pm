@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0608;
+our $VERSION = 0.0609;
 
 =head1 NAME
 
@@ -295,9 +295,42 @@ sub pre_route {
     return $self;
 };
 
-=head2 load_view( $view_name )
+=head2 load_view( $view_name, [ $object || $module_name, %options ] )
 
-Load a view module by name.
+Return a cached View object named $view_name.
+This will be called whenever the app returns { -view => "foo" }.
+
+If no such object was found, attempts to add new object to cache:
+
+=over
+
+=item * if object is given, just saves it.
+
+=item * if module name + parameters is given, tries to load module
+and create new() instance.
+
+=item * as a last resort, loads stock view: C<TT>, C<JS>, or C<Dumper>.
+Those are prefixed with C<MVC::Neaf::View::>.
+
+=back
+
+If force_view option was given to Neaf instance, will return THAT view
+instead of all above.
+
+So the intended usage is as follows:
+
+    # in the app initialisation section
+    # this can be omitted when using TT, JS, or Dumper as view.
+    MVC::Neaf->load_view( foo => TT, INCLUDE_PATH => "/foo/bar" );
+        # Short alias for MVC::Neaf::View::TT
+
+    # in the app itself
+    return {
+        ...
+        -view => "foo", # triggers a second call with 1 parameter "foo"
+    };
+
+B<NOTE> Some convoluted logic here, needs rework.
 
 =cut
 
@@ -307,7 +340,7 @@ my %known_view = (
     Dumper => 'MVC::Neaf::View::Dumper',
 );
 sub load_view {
-    my ($self, $view, $module) = @_;
+    my ($self, $view, $module, @param) = @_;
     $self = $Inst unless ref $self;
 
     $view = $self->{force_view}
@@ -319,12 +352,15 @@ sub load_view {
     return $self->{seen_view}{$view}
         if exists $self->{seen_view}{$view};
 
+    # If we got to this point, we don't have $view cached just yet.
+    # Instantiate and save!
+
     $module ||= $known_view{ $view } || $view;
     if (!ref $module) {
         eval "require $module"; ## no critic
         $self->_croak( "Failed to load view $view: $@" )
             if $@;
-        $module = $module->new;
+        $module = $module->new( @param );
     };
 
     $self->{seen_view}{$view} = $module;

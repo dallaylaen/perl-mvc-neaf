@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0601;
+our $VERSION = 0.0602;
 
 =head1 NAME
 
@@ -39,6 +39,9 @@ use parent qw(MVC::Neaf::View);
 
 =back
 
+Also any UPPERCASE OPTIONS will be forwarded to the backend
+(i.e. Template object) w/o changes.
+
 B<NOTE> No input checks are made whatsoever,
 but this MAY change in the future.
 
@@ -47,8 +50,10 @@ but this MAY change in the future.
 sub new {
     my ($class, %opt) = @_;
 
-    # TODO some options for template, eh?
-    $opt{engine} ||= Template->new;
+    my %tt_opt;
+    $tt_opt{$_} = delete $opt{$_}
+        for grep { /^[A-Z]/ } keys %opt;
+    $opt{engine} ||= Template->new (%tt_opt);
 
     return $class->SUPER::new(%opt);
 };
