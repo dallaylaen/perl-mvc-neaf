@@ -24,7 +24,7 @@ if (!$example or !-f $example) {
 my $cginame = basename($example);
 
 # make sure example compiles at all
-my $sub = eval { local $ENV{NEAF_NOSTAT} = 1; my $unused = do $example };
+my $sub = eval { do $example };
 
 is (ref $sub, 'CODE', "$example lives and returns coderef")
     or die "Example failed to load: ".($@ || $! || "unexpected return");

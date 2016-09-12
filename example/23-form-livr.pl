@@ -2,8 +2,13 @@
 
 use strict;
 use warnings;
-use JSON::XS;
+
+# Don't die if no LIVR present
 my $has_livr = eval { require Validator::LIVR; 1; };
+
+# These two are for debug only - see $dump below
+use JSON::XS;
+use Encode;
 
 # always use latest and greatest Neaf
 use FindBin qw($Bin);
@@ -17,6 +22,7 @@ my $tpl = <<"TT";
 <html>
 <head>
     <title>Form validation test</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 </head>
 <body>
 <h1>Form validation test</h1>
@@ -30,20 +36,20 @@ my $tpl = <<"TT";
     <input type="submit" value="Validate!">
 </form>
 <br><br>
-[% dumper %]
+[% HTML(dumper) %]
 
 [% BLOCK field_input %]
 <div>
 [% IF error.\$name %]<span style="color: red">[% END %]
 Enter [% name %]:
 [% IF error.\$name %]</span>[% END %]
-    <input name="[% name %]" value="[% html( values.\$name ) %]">
+    <input name="[% name %]" value="[% HTML( values.\$name ) %]">
 [% END %]
 TT
 
 my %replace = qw( & &amp; " &quot; < &lt; > &gt; );
 my $replace_symb = join "", keys %replace;
-sub html {
+sub HTML {
     my $text = shift;
     $text =~ s/([$replace_symb])/$replace{$1}/g;
     return $text;
@@ -52,13 +58,18 @@ sub html {
 $has_livr and MVC::Neaf->route( $script => sub {
     my $req = shift;
 
+    # JSON::XS would encode the data, but so will our View processing
+    # so avoid double encoding...
+    my $dump = decode_utf8(encode_json(
+        [$req->form_raw, "====>", $req->form, "+++++", $req->form_errors,]));
+
     return {
         -template => \$tpl,
         valid     => $req->form,
         values    => $req->form_raw,
         error     => $req->form_errors,
-        dumper    => encode_json([$req->form_raw, "=========>", $req->form, "++++++++++", $req->form_errors,]),
-        html      => \&html,
+        dumper    => $dump,
+        HTML      => \&HTML,
     };
 }, form => {
     name => [ "required", { like => qr/^\w+/, } ],
