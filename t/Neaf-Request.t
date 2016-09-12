@@ -12,7 +12,7 @@ my $copy = uri_unescape( "%C2%A9" ); # a single (c) symbol
 $copy = decode_utf8($copy);
 
 my $req = MVC::Neaf::Request->new(
-    all_params => { x => 42 },
+    cached_params => { x => 42 },
     header_in => HTTP::Headers->new( Cookie => 'cook=%C2%A9; guy=bad' ),
 );
 $req->set_full_path("/foo/bar");

@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0606;
+our $VERSION = 0.0607;
 
 =head1 NAME
 
@@ -296,10 +296,7 @@ sub param {
     $default = '' if @_ <= 3; # deliberate undef as default = ok
 
     # Some write-through caching
-    my $value = (exists $self->{cached_params}{ $name })
-        ? $self->{cached_params}{ $name }
-        : ( $self->{cached_params}{ $name }
-            = decode_utf8( $self->_all_params->{ $name } ) );
+    my $value = $self->_all_params->{ $name };
 
     return (defined $value and $value =~ /^$regex$/s)
         ? $value
@@ -423,7 +420,14 @@ sub get_form_as_list {
 sub _all_params {
     my $self = shift;
 
-    return $self->{all_params} ||= $self->do_get_params;
+    return $self->{cached_params} ||= do {
+        my $raw = $self->do_get_params;
+
+        $_ = decode_utf8($_)
+            for (values %$raw);
+
+        $raw;
+    };
 };
 
 =head2 set_default( key => $value, ... )
