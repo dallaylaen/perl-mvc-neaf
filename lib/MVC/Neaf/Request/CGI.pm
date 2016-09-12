@@ -3,7 +3,7 @@ package MVC::Neaf::Request::CGI;
 use strict;
 use warnings;
 
-our $VERSION = 0.0602;
+our $VERSION = 0.0603;
 use Carp;
 use Encode;
 use HTTP::Headers;
@@ -124,7 +124,7 @@ sub do_get_params {
 sub do_get_path {
     my $self = shift;
 
-    return $self->{driver}->url(-absolute => 1, -path => 1);
+    return $self->{driver}->script_name . $self->{driver}->path_info;
 };
 
 =head2 do_get_upload( "name" )
