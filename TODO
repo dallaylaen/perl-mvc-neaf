@@ -5,6 +5,8 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.03    0.07    NET Fixup http header handling, read more
 
 -- backlog --
+0.06    0.10    API Alias - allow same handler under different names
+0.06    0.10    MOD Serve static content
 0.06    0.10    DEV Request - add dump() to indicate whar came to us
 0.06    0.10    API alias( $newpath => $oldpath )
 0.06    0.10    MOD TT View - pass constructor args to tpl

@@ -83,7 +83,7 @@ TT
 MVC::Neaf->route( cgi => $script => sub {
     my $req = shift;
 
-    $req->redirect( "/cgi/$script/and/beyond" )
+    $req->redirect( $req->path . "/and/beyond" )
         unless $req->path_info;
 
     my @error;
@@ -97,5 +97,7 @@ MVC::Neaf->route( cgi => $script => sub {
             script_name path_info client_ip referer user_agent),
     };
 }, description => $descr );
+
+MVC::Neaf->alias( "/request/parser" => "/cgi/$script" );
 
 MVC::Neaf->run;

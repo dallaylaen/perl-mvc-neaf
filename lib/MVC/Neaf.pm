@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0610;
+our $VERSION = 0.0611;
 
 =head1 NAME
 
@@ -272,6 +272,40 @@ sub route {
     };
 
     $self->{route}{ $path } = \%profile;
+    return $self;
+};
+
+=head2 alias( $newpath => $oldpath )
+
+Create a new name for already registered route.
+The handler will be executed as is,
+but new name will be reflected in Request->path.
+
+Returns self.
+
+=cut
+
+sub alias {
+    my ($self, $new, $old) = @_;
+    $self = $Inst unless ref $self;
+
+    $old =~ s#^/*#/#;
+    $old =~ s#/+$##;
+
+    $self->{route}{$old}
+        or $self->_croak( "Cannot create alias for unknown route $old" );
+
+    # The same sanitizing as in route
+    $new =~ s#^/*#/#;
+    $new =~ s#/+$##;
+    $self->_croak( "Attempting to set duplicate handler for path "
+        .( length $new ? $new : "/" ) )
+            if $self->{route}{ $new };
+
+    # reset cache
+    $self->{route_re} = undef;
+
+    $self->{route}{$new} = $self->{route}{$old};
     return $self;
 };
 
