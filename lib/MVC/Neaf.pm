@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0611;
+our $VERSION = 0.0612;
 
 =head1 NAME
 
@@ -307,6 +307,110 @@ sub alias {
 
     $self->{route}{$new} = $self->{route}{$old};
     return $self;
+};
+
+=head2 static( $req_path => $file_path, %options )
+
+Serve static content located under $file_path.
+
+File type detection is based on extention.
+This MAY change in the future.
+Known file types are listed in %MVC::Neaf::ExtType hash. Patches welcome.
+
+%options may include:
+
+=over
+
+=item * buffer => nnn - buffer size for reading/writing files.
+Default is 4096. Smaller value may be set, but are NOT recommended.
+
+=back
+
+Generally it is probably a bad idea to serve files in production
+using a web application framework.
+Use a real web server instead.
+
+However, this method may come in handy when testing the application
+in standalone mode, e.g. under plack web server.
+This is the intended usage.
+
+=cut
+
+# Enumerate most common file types. Patches welcome.
+our %ExtType = (
+    css  => 'text/css',
+    gif  => 'image/gif',
+    htm  => 'text/html',
+    html => 'text/html',
+    jpeg => 'image/jpeg',
+    jpg  => 'image/jpeg',
+    js   => 'application/javascript',
+    png  => 'image/png',
+    txt  => 'text/plain',
+);
+
+sub static {
+    my ($self, $path, $dir, %options) = @_;
+    $self = $Inst unless ref $self;
+
+    # slurp smaller files
+    my $bufsize = 4096;
+    if ($options{buffer}) {
+        $options{buffer} =~ /^(\d+)$/
+            or $self->_croak( "option 'buffer' must be a positive integer" );
+        $bufsize = $1;
+    };
+
+    # callback to be installed via stock ->route() mechanism
+    my $handler = sub {
+        my $req = shift;
+
+        my $file = $req->path_info;
+
+        # sanitize file path
+        $file =~ m#/../# and die 404;
+        $file =~ s#^/*#/#;
+        $file =~ s#/*$##;
+        $file =~ s#/+#/#g;
+
+        # open file
+        $file = join "", $dir, $file;
+        my $ok = open (my $fd, "<", "$file");
+        if (!$ok) {
+            # TODO Warn
+            die 404;
+        };
+
+        my $size = [stat $fd]->[7];
+        local $/ = \$bufsize;
+        my $buf = <$fd>;
+
+        # determine type, fallback to extention
+        my $type;
+        $file =~ /\.(\w+)$/
+            and $type = $ExtType{lc $1};
+
+        # return whole file if possible
+        return { -content => $buf, -type => $type }
+            if $size < $bufsize;
+
+        # If file is big, print header & first data chunk ASAP
+        # then do the rest via a second callback
+        $req->header_out( content_length => set => $size );
+        my $continue = sub {
+            my $req = shift;
+
+            local $/ = \$bufsize; # MUST do it again
+            while (<$fd>) {
+                $req->write($_);
+            };
+            $req->close;
+        };
+
+        return { -content => $buf, -type => $type, -continue => $continue };
+    }; # end handler sub
+
+    $self->route($path => $handler);
 };
 
 =head2 pre_route( sub { ... } )
@@ -693,8 +797,6 @@ sub handle_request {
     my ($content, $type);
     if (defined $data->{-content}) {
         $content = $data->{-content};
-        $data->{-type} ||= $content =~ /^.{0,512}([^\s\x20-\x7F])/s
-            ? 'application/octet-stream' : 'text/plain';
     } else {
         my $view = $self->load_view( $data->{-view} || $route->{view} );
         eval { ($content, $type) = $view->render( $data ); };
@@ -709,10 +811,22 @@ sub handle_request {
         $data->{-type} ||= $type || 'text/html';
     };
 
-    # Encode content NOW so that we don't lie about its length
+    # Encode unicode content NOW so that we don't lie about its length
+    # Then detect ascii/binary
     if (Encode::is_utf8( $content )) {
+        # UTF8 means text, period
         $content = encode_utf8( $content );
-        $data->{-type} .= "; charset=utf-8";
+        $data->{-type} ||= 'text/plain';
+        $data->{-type} .= "; charset=utf-8"
+            unless $data->{-type} =~ /; charset=/;
+    } elsif ( $content =~ /^.{0,512}?[^\s\x20-\x7F]/s ) {
+        # Binary detected
+        $data->{-type} ||= 'application/octet-stream';
+    } else {
+        # Probably ascii, mark as utf-8 just in case
+        $data->{-type} ||= 'text/plain';
+        $data->{-type} .= "; charset=utf-8"
+            unless $data->{-type} =~ /; charset=/;
     };
 
     # Mangle headers - these modifications remain stored in req
