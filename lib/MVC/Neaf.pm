@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0612;
+our $VERSION = 0.0613;
 
 =head1 NAME
 
@@ -158,7 +158,7 @@ our $Inst = __PACKAGE__->new;
 sub import {
     my ($class, %args) = @_;
 
-    $args{view} and $Inst->{force_view} = $args{view};
+    $args{view} and $Inst->{force_view} = $Inst->load_view($args{view});
 };
 
 =head2 route( path => CODEREF, %options )
@@ -481,7 +481,7 @@ sub load_view {
     my ($self, $view, $module, @param) = @_;
     $self = $Inst unless ref $self;
 
-    $view = $self->{force_view}
+    return $self->{force_view}
         if exists $self->{force_view};
     $view = $self->{-view}
         unless defined $view;
@@ -730,8 +730,14 @@ sub new {
         };
         warn "$msg\n";
     };
+    my $force = delete $opt{force_view};
 
-    return bless \%opt, $class;
+    my $self = bless \%opt, $class;
+
+    if ($force) {
+        $self->{force_view} = $self->load_view( $force );
+    };
+    return $self;
 };
 
 =head2 handle_request( MVC::Neaf::request->new )

@@ -3,7 +3,7 @@ package MVC::Neaf::View::Dumper;
 use strict;
 use warnings;
 
-our $VERSION = 0.05;
+our $VERSION = 0.0601;
 
 =head1 NAME
 
@@ -23,14 +23,15 @@ users to death on April, 1.
 =cut
 
 use Data::Dumper;
+use parent qw(MVC::Neaf::View);
 
-=head2 show( \%data )
+=head2 render( \%data )
 
 Return a Perl dump and "text/plain".
 
 =cut
 
-sub show {
+sub render {
     my ($self, $data) = @_;
 
     local $Data::Dumper::Indent = 1;

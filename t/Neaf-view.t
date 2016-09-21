@@ -8,7 +8,10 @@ use MVC::Neaf::View;
 use MVC::Neaf::View::TT;
 use MVC::Neaf::View::JS;
 
-my $tt = MVC::Neaf::View::TT->new;
+my $tt = MVC::Neaf::View::TT->new(
+    INCLUDE_PATH => ".",
+    POST_CHOMP => 1,
+);
 
 is_deeply ( [$tt->render({})], [ '', 'text/plain' ], "Plain return if no tpl");
 is_deeply ( [$tt->render( { -template => \"[% foo %]", foo => 42 } ) ]
@@ -27,3 +30,4 @@ my $plain = MVC::Neaf::View->new( on_render => sub { foo => 'text/plain' } );
 is_deeply( [$plain->render( {} )], [ foo => 'text/plain' ], "callback in view");
 
 done_testing;
+
