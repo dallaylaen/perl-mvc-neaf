@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0607;
+our $VERSION = 0.0608;
 
 =head1 NAME
 
@@ -22,11 +22,11 @@ Here's a brief overview of what a Neaf request returns:
     http(s)://server.name:1337/mathing/route/some/more/slashes?foo=1&bar=2
 
     # What is being returned:
-    $req->http_version = HTTP/1.0 or HTTP/1.1   # UNIMPLEMENTED YET
-    $req->scheme       = http or https          # UNIMPLEMENTED YET
+    $req->http_version = HTTP/1.0 or HTTP/1.1
+    $req->scheme       = http or https
     $req->method       = GET
-    $req->hostname     = server.name            # UNIMPLEMENTED YET
-    $req->port         = 1337                   # UNIMPLEMENTED YET
+    $req->hostname     = server.name
+    $req->port         = 1337
     $req->path         = /mathing/route/some/more/slashes
     $req->script_name  = /mathing/route
     $req->path_info    = /some/more/slashes
@@ -753,6 +753,57 @@ sub dump {
     $raw{cookie_in} = $self->{neaf_cookie_in};
 
     return \%raw;
+};
+
+=head1 SESSION MANAGEMENT
+
+=head2 session()
+
+Get reference to session data.
+
+If set_session_handler() was called during application setup,
+this data will be initialized by that handler;
+otherwise initializes with an empty hash.
+
+The reference is guaranteed to be the same throughtout the request lifetime.
+
+=cut
+
+sub session {
+    my $self = shift;
+
+    return $self->{session} ||= ( $self->{session_handler}
+        ? $self->{session_handler}->load_session( $self )
+        : {} );
+};
+
+=head2 save_session()
+
+Save whatever is in session data reference.
+
+=cut
+
+sub save_session {
+    my $self = shift;
+    return unless $self->{session_handler};
+    $self->{session_handler}->save_session( $self );
+};
+
+=head2 delete_session()
+
+Remove session.
+
+=cut
+
+sub delete_session {
+    my $self = shift;
+    return unless $self->{session_handler};
+    $self->{session_handler}->delete_session( $self );
+};
+
+sub _set_session_handler {
+    my ($self, $handler) = @_;
+    $self->{session_handler} = $handler;
 };
 
 =head1 REPLY METHODS

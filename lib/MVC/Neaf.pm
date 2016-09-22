@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0613;
+our $VERSION = 0.0614;
 
 =head1 NAME
 
@@ -531,6 +531,31 @@ sub set_default {
     return $self;
 };
 
+=head2 set_session_handler( $session_obj )
+
+Set a handler for managing sessions.
+See L<MVC::Neaf::X::Session> for API details.
+
+If such handler is set, a request object will have session(),
+save_session(), and delete_session() methods available.
+
+Session is maintained via a cookie. Default cookie name is "session".
+
+=cut
+
+sub set_session_handler {
+    my ($self, $sess) = @_;
+    $self = $Inst unless ref $self;
+
+    my @missing = grep { !$sess->can($_) }
+        qw(load_session save_session delete_session );
+    $self->_croak("Session object does not have methods: @missing")
+        if @missing;
+
+    $self->{session_handler} = $sess;
+    return $self;
+};
+
 =head2 server_stat ( MVC::Neaf::X::ServerStat->new( ... ) )
 
 Record server performance statistics during run.
@@ -756,7 +781,11 @@ sub handle_request {
     # ROUTE REQUEST
     my $route;
     my $data = eval {
-        # First, try running the pre-routing callback.
+        # Inject session handler into request object
+        $req->_set_session_handler( $self->{session_handler} )
+            if exists $self->{session_handler};
+
+        # Try running the pre-routing callback.
         if (exists $self->{pre_route}) {
             my $new_req = $self->{pre_route}->( $req );
             blessed $new_req and $new_req->isa("MVC::Neaf::Request")
