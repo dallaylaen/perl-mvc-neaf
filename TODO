@@ -1,37 +1,30 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.01    0.07    MOD Session - cookie-based + BE callbacks - N::Session + N::Session::Store
-0.03    0.07    NET Fixup http header handling, read more
+0.06    0.08    NET kill_cookie/delete_cookie to replace cookie with empty
+0.06    0.08    TST Cover 100% of Neaf & Neaf::Request
+0.06    0.08    DOC Add plugin guidelines
+0.06    0.08    DEV Cover all functions in Request->dump
 
 -- backlog --
+0.03    0.10    NET Fixup http header handling, read more
+0.02    0.20    DEV Add dumper to TT view
 0.06    0.20    TPL Add in-tt perl functions to TT view
 0.06    0.20    API Exact matching uris - /$ or /? but not /foo (w/a: die 404 if path_info)
 0.06    0.20    API Apply defaults to error tpl also
-0.06    0.20    TST Cover 100% of Neaf & Neaf::Request
-0.06    0.10    API Alias - allow same handler under different names
-0.06    0.10    MOD Serve static content
-0.06    0.10    DEV Request - add dump() to indicate what came to us
-0.06    0.10    API alias( $newpath => $oldpath )
-0.06    0.10    TPL TT View - pass constructor args to tpl
-0.06    0.10    NET kill_cookie/delete_cookie to replace cookie with empty
-0.06    0.90    NET REST
-0.06    0.90    NET HMAC
-0.06    0.90    TPL TT View - somehow denote application root for links/forms
-0.06    0.10    TPL TT View - add autohead, autotitle options
 0.06    0.20    TPL TT View - add value sanitizer (&HTML + &URI?)
-0.06    0.10    REF load_view - add TT => %opts, possibly rename
-0.06    0.20    DOC Add plugin guidelines
-0.02    0.10    TPL Add enveloping, dumper to TT view
+0.06    0.20    NET REST
+0.06    0.20    NET HMAC
+0.01    0.20    DEV REPL - MVC::Neaf::Cli? with term session etc
+0.06    0.90    TPL TT View - somehow denote application root for links/forms
 0.03    0.90    REF Split core into route_request and process_reply
 0.04    0.90    REF Req https detection: change to is_secure? http:https.
-0.01    0.90    DEV REPL - MVC::Neaf::Cli? with term session etc
 0.02    0.90    TPL Add TT caching
 
 -- think --
-0.02    0.90    API Allow app nesting/isolation
 0.05    0.20    ??? soft_root - will serve given route as root, if free
 0.01    0.20    ??? Route-based defaults - do we even need it??
 0.05    0.20    ??? Warn about unexpected -dash -keys in return?
+0.02    0.90    API Allow app nesting/isolation
 0.01    0.99    MOD Caching: LIVR form( key present, nocache missing) => sub{}
 0.04    0.99    MOD CGI wrapper: use wrapper; route(/) {...}; run();

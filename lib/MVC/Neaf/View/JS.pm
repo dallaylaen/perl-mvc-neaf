@@ -3,7 +3,7 @@ package MVC::Neaf::View::JS;
 use strict;
 use warnings;
 
-our $VERSION = 0.0601;
+our $VERSION = 0.07;
 
 =head1 NAME
 

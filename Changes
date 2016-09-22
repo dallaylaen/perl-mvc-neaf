@@ -1,5 +1,18 @@
 Revision history for MVC-Neaf
 
+0.07    Thu Sep 22 2016
+        API Add X::Session for session storage, add Req->session
+        API Add Validation::LIVR-based form validation
+        API Add MVC::Neaf->static( uri => localdir ) for serving static content
+        API Add MVC::Neaf->alias( newpath, oldpath ) for creating, well, aliases
+        DEV Add Request->dump() for debugging
+        DEV Add MVC::Neaf->get_routes() for introspection, fixup docs for route()
+        TPL TT view now passes its args to Template engine
+        TST Make ALL examples run together under CGI, PSGI, or mod_perl
+        REF Use HTTP::Headers throughout the code instead of homegrown hash
+        REF Rename -callback => -jsonp, callback(in view) => on_render
+        BUG Bugs fixed, even more added
+
 0.06    Tue Sep 6 2016
         API Add async content serving via -continue, write(), close()
         API Add per-route view defaults, add MVC::Neaf::View
