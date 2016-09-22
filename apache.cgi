@@ -88,6 +88,10 @@ PerlPostConfigRequire [% item.caller.1 %]
     SetHandler perl-script
     PerlResponseHandler MVC::Neaf::Request::Apache2
 </Location>
+<Location /request/parser>
+    SetHandler perl-script
+    PerlResponseHandler MVC::Neaf::Request::Apache2
+</Location>
 </VirtualHost>
 
 TT
@@ -121,7 +125,7 @@ if ($action !~ /^(start|stop|make)$/) {
 # TODO I only have Ubuntu, need input from people with other systems
 my $httpd = "/usr/sbin/apache2";
 foreach (qw(/usr/sbin/httpd)
-    , map { chomp } `which httpd`, `which apache2`, `which apache`) {
+    , map { /(.*)$/m } `which httpd`, `which apache2`, `which apache`) {
     $_ and -x $_ or next;
     $httpd = $_;
     last;
@@ -162,7 +166,8 @@ MVC::Neaf->route( "/" => sub { "forbid / route in examples" });
 my $n;
 foreach my $file (glob "$Bin/example/*.pl") {
     $n++;
-    eval "package My::Isolated::$n; require \$file;";
+    # Create packages on the fly - need eval here :(
+    eval "package My::Isolated::$n; require \$file;"; ## no critic
     if ($@) {
         warn "Failed to load $file: $@";
         next;
