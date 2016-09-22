@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session;
 
 use strict;
 use warnings;
-our $VERSION = 0.0601;
+our $VERSION = 0.0602;
 
 =head1 NAME
 
@@ -72,15 +72,10 @@ provided that your app runs in one process and has few users.
 =cut
 
 use Digest::MD5 qw(md5_base64);
+use Time::HiRes qw(gettimeofday);
+use Sys::Hostname qw(hostname);
 
 use parent qw(MVC::Neaf::X);
-
-my $seed = 'xxx';
-eval {
-    require Sys::Hostname;
-    $seed = Sys::Hostname::hostname();
-    # Ignore errors
-};
 
 =head2 new( %options )
 
@@ -116,7 +111,7 @@ sub new {
     my $class = shift;
     my $self = $class->SUPER::new(@_);
     $self->{session_cookie} ||= 'session';
-    $self->{seed} ||= $seed;
+    $self->{seed} ||= hostname();
     return $self;
 };
 
@@ -235,18 +230,30 @@ when it reaches zero.
 # Should be more or less secure and unique though.
 my $max = 2*1024*1024*1024;
 my $uniq;
-my $time;
+my $old_rand = 0;
+my $old_mix = '';
+
 sub do_get_session_id {
     my $self = shift;
 
-    unless ($uniq-->0) {
-        $uniq = int( rand() * $max );
-        $time = time;
-    };
+    $uniq = int( rand() * $max )
+        unless ($uniq-->0);
     my $rand = int ( rand() * $max );
+    my ($time, $ms) = gettimeofday();
 
-    return md5_base64(pack "LLaaaLLLL"
-        , $rand, $uniq, "#", $self->{seed}, "#", $$, $time, $uniq, $rand);
+    # using old entropy means attacker will have to guess ALL previous sessions
+    $old_mix = md5_base64(pack "LLaaaaaLLLLL"
+        , $old_rand, $uniq
+        , "#", $self->{seed}, "#", $old_mix, "#"
+        , $$, $time, $ms, $uniq, $rand);
+
+    # salt before second round of md5 - public data (session_id) should
+    # NOT be used for generation
+    $old_rand = int (rand() * $max );
+    return md5_base64( pack "aL", $old_mix, $old_rand );
 };
+
+# finally, bootstrap the session generator at startap
+do_get_session_id( { seed => rand } );
 
 1;
