@@ -6,13 +6,13 @@ use Test::More;
 
 use MVC::Neaf::X::Session;
 
-my $sess = MVC::Neaf::X::Session->new (seed => 'x');
+my $sess = MVC::Neaf::X::Session->new;
 
 my $times = shift || 1000;
 my %uniq;
 
 while ($times --> 0 ) {
-    $uniq{ $sess->do_get_session_id }++;
+    $uniq{ $sess->get_session_id }++;
 };
 my @dup = grep { $uniq{$_} > 1 } keys %uniq;
 

@@ -2,11 +2,11 @@ package MVC::Neaf::X::Session;
 
 use strict;
 use warnings;
-our $VERSION = 0.07;
+our $VERSION = 0.0701;
 
 =head1 NAME
 
-MVC::Neaf::X::Session - Session backend base class for Not Even A Framework
+MVC::Neaf::X::Session - Session engine base class for Not Even A Framework
 
 =head1 DESCRIPTION
 
@@ -30,42 +30,29 @@ This class is base class for such $engine.
     use MVC::Neaf::X::Session;
 
     # somewhere in the beginning
-    MVC::Neaf->set_session_handler( MVC::Neaf::X::Session->new(
-        on_load_session => sub { ... },
-        on_save_session => sub { ... },
-    ));
+    {
+        package My::Session;
+
+        sub save_session {
+            my ($self, $id, $data) = @_;
+            $self->{data}{ $id } = $data;
+        };
+
+        sub load_session {
+            my ($self, $id) = @_;
+            return $self->{data}{ $id };
+        };
+    };
+    MVC::Neaf->set_session_handler( My::Session->new );
 
     # somewhere in the controller
     sub {
         my $req = shift;
 
-        $req->session; # {} 1st time, { user => ... } second time
+        $req->session; # {} 1st time, { user => ... } later on
         $req->session->{user} = $user;
         $req->save_session;
     };
-
-=head1 SYNOPSIS AGAIN
-
-The following is a working in-memory session storage -
-provided that your app runs in one process and has few users.
-
-    package My::Session;
-
-    use strict;
-    use warnings;
-    use parent qw(MVC::Neaf::X::Session);
-
-    sub on_load_session {
-        my ($self, $key) = @_;
-        return $self->{storage}{$key} || {};
-    };
-
-    sub on_save_session {
-        my ($self, $key, $data) = @_;
-        $self->{storage}{$key} = $data;
-    };
-
-    1;
 
 =head1 METHODS
 
@@ -79,150 +66,27 @@ use parent qw(MVC::Neaf::X);
 
 =head2 new( %options )
 
-%options may include:
-
-=over
-
-=item * session_cookie - which cookie to use for session. Default: "session"
-
-=item * seed - a machine-dependent part of session identifier.
-Defaults to hostname, or 'xxx' if cannot determine.
-
-=item * session_ttl - time to live for session data & cookie.
-
-=item * on_load_session - callback to load session data.
-This is required unless you use subclass and define do_load_session() method.
-
-=item * on_save_session - callback to load session data.
-This is required unless you use subclass and define do_save_session() method.
-
-=item * on_delete_session - callback to delete session data.
-If none given, just omit this step.
-
-B<NOTE> it is usually a good idea to cleanup session data from time to time
-since some users may go away without logging out
-(cleaned cookies, laptop eaten by crocodiles etc).
-
-=back
+The default constructor just happily closes over whatever is given to it.
 
 =cut
 
-sub new {
-    my $class = shift;
-    my $self = $class->SUPER::new(@_);
-    $self->{session_cookie} ||= 'session';
-    $self->{seed} ||= hostname();
-    return $self;
-};
+=head2 session_id_regex()
 
-=head2 load_session( $req )
+This is supposed to be a constant regular expression
+compatible with whatever get_session_id generates.
 
-Loads session based on request object.
-
-This is usually called by $req->session.
-No need to call manually.
+If none given, a sane default is supplied by Neaf itself.
 
 =cut
 
-sub load_session {
-    my ($self, $req) = @_;
+sub session_id_regex {return};
 
-    my $cook = $self->{session_cookie};
-    my $data;
+=head2 get_session_id()
 
-    if (my $key = $req->get_cookie( $cook => qr/[\x20-\x7F]+/ )) {
-        $data = $self->backend_call("load_session", $key);
-    };
+Generate a new, shiny, unique, unpredictable session id.
 
-    $data ||= $self->backend_call("create_session");
-    return $data;
-};
-
-=head2 save_session( $req )
-
-Save request object's session data via the engine.
-
-This is usually called by $req->save_session.
-No need to call manually.
-
-=cut
-
-sub save_session {
-    my ($self, $req) = @_;
-
-    my $cook = $self->{session_cookie};
-    my $key = $req->get_cookie( $cook => qr/[\x20-\x7F]+/ );
-
-    if (!$key) {
-        # no key, generate new one
-        $key = $self->backend_call("get_session_id");
-        $req->set_cookie( $cook => $key, ttl => $self->{session_ttl} );
-    };
-
-    $self->backend_call("save_session", $key, $req->session);
-};
-
-=head2 delete_session( $req )
-
-Delete session cookie (may NOT be honored by the user agent)
-and remove session from storage.
-
-=cut
-
-sub delete_session {
-    my ($self, $req) = @_;
-
-    my $cook = $self->{session_cookie};
-    my $key = $req->get_cookie( $cook => qr/[\x20-\x7F]+/ );
-    return unless $key; # Don't know what to delete
-
-    $req->set_cookie( $cook => '', ttl => -1000 );
-    return $self->backend_call("delete_session", $key);
-};
-
-=head1 ENGINE METHODS
-
-=head2 do_create_session
-
-What to do when new session is created. Default is to return an empty hashref.
-
-=cut
-
-# Override in your package or via callback
-sub do_create_session {
-    return {};
-};
-
-=head2 do_load_session
-
-What to do when session needs to be loaded.
-Default: none.
-
-=head2 do_save_session
-
-What to do when session needs to be saved.
-Default: none.
-
-=head2 do_delete_session
-
-What to do when session needs to be deleted.
-Default: do nothing and hope it goes away.
-
-=cut
-
-sub do_delete_session {
-    # do nothing and hope the storage won't fill up
-    return;
-};
-
-=head2 do_get_session_id
-
-How to calculate session ids.
-
-Default is md5_base64( random, counter, '#', hostname, '#', pid, time, counter,
-random ).
-counter is decreased with every call, and initialized with a random value
-when it reaches zero.
+The default is using two rounds of md5 with time, process id, hostname,
+and random salt. Should be unique and reasonably hard to guess.
 
 =cut
 
@@ -232,9 +96,10 @@ my $max = 2*1024*1024*1024;
 my $uniq;
 my $old_rand = 0;
 my $old_mix = '';
+our $Seed = hostname() || '';
 
-sub do_get_session_id {
-    my $self = shift;
+sub get_session_id {
+    # argument not used
 
     $uniq = int( rand() * $max )
         unless ($uniq-->0);
@@ -244,16 +109,63 @@ sub do_get_session_id {
     # using old entropy means attacker will have to guess ALL previous sessions
     $old_mix = md5_base64(pack "LLaaaaaLLLLL"
         , $old_rand, $uniq
-        , "#", $self->{seed}, "#", $old_mix, "#"
+        , "#", $Seed, "#", $old_mix, "#"
         , $$, $time, $ms, $uniq, $rand);
 
-    # salt before second round of md5 - public data (session_id) should
-    # NOT be used for generation
+    # salt before second round of md5
+    # public data (session_id) should NOT be used for generation
     $old_rand = int (rand() * $max );
     return md5_base64( pack "aL", $old_mix, $old_rand );
 };
 
 # finally, bootstrap the session generator at startap
-do_get_session_id( { seed => rand } );
+get_session_id();
+
+=head2 session_ttl()
+
+=cut
+
+sub session_ttl {
+    my $self = shift;
+    return $self->{session_ttl};
+};
+
+=head2 create_session()
+
+Create a new session. The default is to return an empty hash.
+
+=cut
+
+sub create_session { return {} };
+
+=head2 save_session( $id, $data )
+
+Save session data in the storage.
+
+This MUST be implemented in specific session driver class.
+
+=cut
+
+=head2 load_session( $id )
+
+Return session data from the storage.
+
+This MUST be implemented in specific session driver class.
+
+=cut
+
+=head2 delete_session( $id )
+
+Remove session from storage.
+
+The default is do nothing and wait for session data to rot by itself.
+
+B<NOTE> It is usually a good idea to cleanup session storage
+from time to time since some users may go away without logging out
+(cleaned cookies, laptop eaten by crocodiles etc).
+
+=cut
+
+sub delete_session { return };
 
 1;

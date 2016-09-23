@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.07;
+our $VERSION = 0.0701;
 
 =head1 NAME
 
@@ -531,28 +531,71 @@ sub set_default {
     return $self;
 };
 
-=head2 set_session_handler( $session_obj )
+=head2 set_session_handler( %options )
 
 Set a handler for managing sessions.
-See L<MVC::Neaf::X::Session> for API details.
 
-If such handler is set, a request object will have session(),
-save_session(), and delete_session() methods available.
+If such handler is set, the request object will provide session(),
+save_session(), and delete_session() methods to manage
+cross-request user data.
 
-Session is maintained via a cookie. Default cookie name is "session".
+% options may include:
+
+=over
+
+=item * engine (required) - an object providing the storage primitives;
+
+=item * ttl - time to live for session (default is 0, which means until
+browser is closed);
+
+=item * cookie - name of cookie storing session id.
+The default is "session".
+
+=back
+
+The engine MUST provide the following methods
+(see L<MVC::Neaf::X::Session> for details):
+
+=over
+
+=item *session_ttl (implemented in MVC::Neaf::X::Session);
+
+=item *session_id_regex (implemented in MVC::Neaf::X::Session);
+
+=item *get_session_id (implemented in MVC::Neaf::X::Session);
+
+=item *create_session (implemented in MVC::Neaf::X::Session);
+
+=item *save_session (required);
+
+=item *load_session (required);
+
+=item *delete_session (implemented in MVC::Neaf::X::Session);
+
+=back
 
 =cut
 
 sub set_session_handler {
-    my ($self, $sess) = @_;
+    my ($self, %opt) = @_;
     $self = $Inst unless ref $self;
 
+    my $sess = $opt{engine};
+    my $cook = $opt{cookie} || 'session';
+
+    $self->_croak("engine parameter is required")
+        unless $sess;
     my @missing = grep { !$sess->can($_) }
-        qw(load_session save_session delete_session );
-    $self->_croak("Session object does not have methods: @missing")
+        qw(get_session_id session_id_regex session_ttl
+            create_session load_session save_session delete_session );
+    $self->_croak("engine object does not have methods: @missing")
         if @missing;
 
-    $self->{session_handler} = $sess;
+    # This default regex supports base64, dot-catenated numbers, etc
+    my $regex = $sess->session_id_regex || qr([A-Za-z_0-9/\-\+\@\.]+);
+    my $ttl   = $opt{ttl} || $sess->session_ttl || 0;
+
+    $self->{session_handler} = [ $sess, $cook, $regex, $ttl ];
     return $self;
 };
 

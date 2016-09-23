@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.07;
+our $VERSION = 0.0701;
 
 =head1 NAME
 
@@ -527,7 +527,9 @@ Set HTTP cookie. %options may include:
 
 =item * regex - regular expression to check outgoing value
 
-=item * ttl - time to live in seconds
+=item * ttl - time to live in seconds.
+0 means no ttl.
+Use negative ttl and empty value to delete cookie.
 
 =item * expires - unix timestamp when the cookie expires
 (overridden by ttl).
@@ -552,7 +554,8 @@ sub set_cookie {
     defined $opt{regex} and $cook !~ /^$opt{regex}$/
         and $self->_croak( "output value doesn't match regex" );
 
-    if (defined $opt{ttl}) {
+    # Zero ttl is ok and means "no ttl at all".
+    if ($opt{ttl}) {
         $opt{expires} = time + $opt{ttl};
     };
 
@@ -772,9 +775,17 @@ The reference is guaranteed to be the same throughtout the request lifetime.
 sub session {
     my $self = shift;
 
-    return $self->{session} ||= ( $self->{session_handler}
-        ? $self->{session_handler}->load_session( $self )
-        : {} );
+    return $self->{session} if exists $self->{session};
+
+    if ($self->{session_engine}) {
+        my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
+        $self->{session} = $self->{session_engine}->load_session( $id )
+            if $id;
+        return $self->{session} ||= $self->{session_engine}->create_session;
+    } else {
+        # TODO should we die if no engine?..
+        return $self->{session} = {};
+    };
 };
 
 =head2 save_session()
@@ -785,8 +796,21 @@ Save whatever is in session data reference.
 
 sub save_session {
     my $self = shift;
-    return unless $self->{session_handler};
-    $self->{session_handler}->save_session( $self );
+
+    return $self
+        unless exists $self->{session_engine};
+
+    # TODO set "save session" flag, save later
+    my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
+
+    if (!$id) {
+        # new session - generate id!
+        $id = $self->{session_engine}->get_session_id();
+    };
+
+    $self->set_cookie( $self->{session_cookie} => $id, ttl => $self->{session_ttl} );
+    $self->{session_engine}->save_session( $id, $self->session );
+    return $self;
 };
 
 =head2 delete_session()
@@ -797,13 +821,22 @@ Remove session.
 
 sub delete_session {
     my $self = shift;
-    return unless $self->{session_handler};
-    $self->{session_handler}->delete_session( $self );
+    return unless $self->{session_engine};
+
+    my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
+    $self->{session_engine}->delete_session( $id )
+        if $id;
+    $self->set_cookie( $self->{session_cookie}, '', ttl => -100000 );
+    return $self;
 };
 
+# TODO This is awkward, but... Maybe optimize later
 sub _set_session_handler {
-    my ($self, $handler) = @_;
-    $self->{session_handler} = $handler;
+    my ($self, $data) = @_;
+    $self->{session_engine} = $data->[0];
+    $self->{session_cookie} = $data->[1];
+    $self->{session_regex}  = $data->[2];
+    $self->{session_ttl}    = $data->[3];
 };
 
 =head1 REPLY METHODS
