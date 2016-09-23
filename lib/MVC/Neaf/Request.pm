@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0701;
+our $VERSION = 0.0702;
 
 =head1 NAME
 
@@ -760,7 +760,7 @@ sub dump {
 
 =head1 SESSION MANAGEMENT
 
-=head2 session()
+=head2 session([ $noinit ])
 
 Get reference to session data.
 
@@ -768,34 +768,47 @@ If set_session_handler() was called during application setup,
 this data will be initialized by that handler;
 otherwise initializes with an empty hash.
 
+If noinit is set to true value, don't try to initialize a new session.
+
 The reference is guaranteed to be the same throughtout the request lifetime.
 
 =cut
 
 sub session {
-    my $self = shift;
+    my ($self, $noinit) = @_;
 
+    # agressive caching FTW
     return $self->{session} if exists $self->{session};
 
     if ($self->{session_engine}) {
         my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
         $self->{session} = $self->{session_engine}->load_session( $id )
             if $id;
-        return $self->{session} ||= $self->{session_engine}->create_session;
+        $self->{session} ||= $self->{session_engine}->create_session
+            unless $noinit;
     } else {
         # TODO should we die if no engine?..
-        return $self->{session} = {};
+        $self->{session} = {}
+            unless $noinit;
     };
+    return $self->{session};
 };
 
-=head2 save_session()
+=head2 save_session( [$replace] )
 
 Save whatever is in session data reference.
+
+If argument is given, replace session (if any) altogether with that one
+before saving.
 
 =cut
 
 sub save_session {
     my $self = shift;
+
+    if (@_) {
+        $self->{session} = shift;
+    };
 
     return $self
         unless exists $self->{session_engine};

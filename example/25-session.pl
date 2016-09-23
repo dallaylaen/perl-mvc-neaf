@@ -48,7 +48,7 @@ mkdir $storage; # ignore result
     };
 };
 
-MVC::Neaf->set_session_handler( engine => My::Session->new );
+MVC::Neaf->set_session_handler( engine => My::Session->new, view_as => 'session' );
 
 my $tpl_main = <<"TT";
 <html>
@@ -65,6 +65,14 @@ my $tpl_main = <<"TT";
 <form action="/cgi/$script/logout" method="POST">
     <input type="submit" value="Log out">
 </form>
+[% END %]
+[% IF session %]
+    <h3>Raw session data</h3>
+    <ul>
+    [% FOREACH key IN session.keys %]
+        <li><b>[% key %] = </b>[% session.\$key %];</li>
+    [% END %]
+    </ul>
 [% END %]
 </body>
 </html>
@@ -86,6 +94,7 @@ MVC::Neaf->route( cgi => $script => login => sub {
 
     if ($user) {
         $req->session->{user} = $user;
+        $req->session->{logged_in} = time;
         $req->save_session;
     };
 

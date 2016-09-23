@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0701;
+our $VERSION = 0.0702;
 
 =head1 NAME
 
@@ -551,6 +551,9 @@ browser is closed);
 =item * cookie - name of cookie storing session id.
 The default is "session".
 
+=item * view_as - if set, add the whole session into data hash
+under this name before view processing.
+
 =back
 
 The engine MUST provide the following methods
@@ -596,6 +599,7 @@ sub set_session_handler {
     my $ttl   = $opt{ttl} || $sess->session_ttl || 0;
 
     $self->{session_handler} = [ $sess, $cook, $regex, $ttl ];
+    $self->{session_view_as} = $opt{view_as};
     return $self;
 };
 
@@ -877,6 +881,9 @@ sub handle_request {
         $content = $data->{-content};
     } else {
         my $view = $self->load_view( $data->{-view} || $route->{view} );
+        if ( my $key = $self->{session_view_as} and my $sess = $req->session(1) ) {
+            $data->{ $key } = $sess;
+        };
         eval { ($content, $type) = $view->render( $data ); };
         if (!defined $content) {
             warn "ERROR: In view: $@";
