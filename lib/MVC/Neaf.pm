@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0702;
+our $VERSION = 0.0703;
 
 =head1 NAME
 
@@ -387,8 +387,13 @@ sub static {
 
         # determine type, fallback to extention
         my $type;
-        $file =~ /\.(\w+)$/
-            and $type = $ExtType{lc $1};
+        $file =~ /([^\/]+(?:\.(\w+))?)$/;
+        $type = $ExtType{lc $2} if defined $2;
+
+        my $show_name = $1;
+        $show_name =~ s/[\"\x00-\x19\\]/_/g;
+        $req->header_out( content_disposition => set =>
+            "attachment; filename=\"$show_name\"");
 
         # return whole file if possible
         return { -content => $buf, -type => $type }

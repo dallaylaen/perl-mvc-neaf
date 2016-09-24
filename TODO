@@ -9,6 +9,7 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.07    0.08    DOC Fixup README.md - catch up on features
 
 -- backlog --
+0.07    0.20    REF session( noinit = 1 ) is WRONG, think better
 0.03    0.10    NET Fixup http header handling, read more
 0.02    0.20    DEV Add dumper to TT view
 0.06    0.20    TPL Add in-tt perl functions to TT view
@@ -23,6 +24,9 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.04    0.90    REF Req https detection: change to is_secure? http:https.
 0.02    0.90    TPL Add TT caching
 0.07    0.90    TPL Forward session to view if present
+0.07    0.90    API Phase callbacks as in Apache (cleanup, pre-view, etc)
+0.07    0.90    API Periodic actions in webapp
+0.07    0.20    MOD Add "cleanup" method to X::Session - for offline cleanups
 
 -- think --
 0.05    0.20    ??? soft_root - will serve given route as root, if free
