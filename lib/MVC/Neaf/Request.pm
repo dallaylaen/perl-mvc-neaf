@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0702;
+our $VERSION = 0.08;
 
 =head1 NAME
 

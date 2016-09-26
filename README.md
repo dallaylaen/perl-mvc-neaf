@@ -21,6 +21,7 @@ framework's behaviour while all other keys are just sent to the view.
 **Request** object will depend on the underlying web-server.
 The same app, verbatim, should be able to run as PSGI app, CGI script, or
 Apache handler.
+Request knows all you need about the outside world.
 
 # FOUNDATIONS
 
@@ -33,6 +34,8 @@ Apache handler.
 * It's not software unless you can run it.
 
 * Trust nobody. Validate the data.
+
+* Force UTF8 if possible. It's 21st century already.
 
 # EXAMPLE
 
@@ -57,8 +60,9 @@ on the `?name=` parameter.
 
 # FEATURES
 
-* GET, POST requests, uploads, redirects, and cookies are supported
-(not quite impressive, but it's 95% of what's needed);
+* GET, POST, and HEAD requests; uploads; redirects; and cookies 
+are supported.
+Not quite impressive, but it's 95% of what's needed 95% of the time.
 
 * Template::Toolkit view out of the box;
 
@@ -66,8 +70,10 @@ on the `?name=` parameter.
 
 * can serve raw content (e.g. generated images);
 
-* sanitized query parameters and cookies out of the box
-(LIVR-based form validation planned);
+* can serve static files.
+No need for separate web server to test your CSS/images.
+
+* sanitized query parameters and cookies out of the box.
 
 # NOT SO BORING FEATURES
 
@@ -75,7 +81,14 @@ on the `?name=` parameter.
 
 * Can gather request performance statistics if needed;
 
-* Can postpone lengthly actions until the request is served;
+* Delayed and/or unspecified length replies supported;
+
+* Cookie-based sessions supported out of the box.
+Session backends have to be written yet, though.
+
+* LIVR-based form validation available, but not required;
+
+* Fancy error templates if needed.
 
 # EXAMPLES
 
@@ -84,11 +97,9 @@ jsonp app and some 200-line wiki engine.
 
 # BUGS
 
-Lots of them. Still in alpha stage.
+Lots of them. Still under heavy development.
 
-* Http headers handling is a mess;
-
-* Apache handler is a mess;
+* mod\_perl handler is a mess (but it works somehow);
 
 Patches and proposals are welcome.
 

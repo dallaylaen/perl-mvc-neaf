@@ -42,7 +42,7 @@
 - remove completed, add new, sort by target version
 - catch up with features
 
-% git commit -m "^_^ Version 0.08 released NOCODE"
+% git commit -a -m "^_^ Version 0.08 released NOCODE"
 
 % git checkout master
 

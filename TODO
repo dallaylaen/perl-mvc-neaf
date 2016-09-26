@@ -1,12 +1,11 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.06    0.08    NET kill_cookie/delete_cookie to replace cookie with empty
-0.06    0.08    TST Cover 100% of Neaf & Neaf::Request
-0.06    0.08    DOC Add plugin guidelines
-0.06    0.08    DEV Cover all functions in Request->dump
-0.07    0.08    AUX Add Install.PL for in-place installation
-0.07    0.08    DOC Fixup README.md - catch up on features
+0.06    0.09    NET kill_cookie/delete_cookie to replace cookie with empty
+0.06    0.09    TST Cover 100% of Neaf & Neaf::Request
+0.06    0.09    DOC Add plugin guidelines
+0.06    0.09    DEV Cover all functions in Request->dump
+0.07    0.09    AUX Add Install.PL for in-place installation
 
 -- backlog --
 0.07    0.20    REF session( noinit = 1 ) is WRONG, think better
