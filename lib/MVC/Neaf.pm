@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0703;
+our $VERSION = 0.0704;
 
 =head1 NAME
 
@@ -909,12 +909,13 @@ sub handle_request {
         $data->{-type} ||= 'text/plain';
         $data->{-type} .= "; charset=utf-8"
             unless $data->{-type} =~ /; charset=/;
-    } elsif ( $content =~ /^.{0,512}?[^\s\x20-\x7F]/s ) {
-        # Binary detected
-        $data->{-type} ||= 'application/octet-stream';
-    } else {
-        # Probably ascii, mark as utf-8 just in case
-        $data->{-type} ||= 'text/plain';
+    } elsif (!$data->{-type}) {
+        # Autodetect binary. Plain text is believed to be in utf8 still
+        $data->{-type} = $content =~ /^.{0,512}?[^\s\x20-\x7F]/s
+            ? 'application/octet-stream'
+            : 'text/plain; charset=utf-8';
+    } elsif ($data->{-type} =~ m#^text/#) {
+        # Some other text, mark as utf-8 just in case
         $data->{-type} .= "; charset=utf-8"
             unless $data->{-type} =~ /; charset=/;
     };
