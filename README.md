@@ -86,8 +86,6 @@ No need for separate web server to test your CSS/images.
 * Cookie-based sessions supported out of the box.
 Session backends have to be written yet, though.
 
-* LIVR-based form validation available, but not required;
-
 * Fancy error templates if needed.
 
 # EXAMPLES

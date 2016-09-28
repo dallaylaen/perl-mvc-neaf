@@ -1,27 +1,16 @@
 Changes
 CHECKLIST
-example/01-hello-get.pl
 example/01-request.pl
-example/02-cookie-post-redirect.pl
 example/02-get.pl
 example/03-post.pl
-example/03-upload.pl
-example/04-raw-content.pl
 example/04-upload.pl
 example/05-image.pl
-example/05-lang.pl
 example/06-long-reply.pl
-example/06-template-error.pl
 example/07-http-headers.pl
-example/07-wiki.pl
-example/08-header.pl
-example/09-request.pl
-example/10-custom-error.pl
 example/11-template-error.pl
 example/12-custom-error.pl
 example/21-pre-route.pl
 example/22-jsonp.pl
-example/23-form-livr.pl
 example/24-static.pl
 example/25-session.pl
 example/51-wiki.pl
@@ -41,7 +30,7 @@ lib/MVC/Neaf/View/TT.pm
 lib/MVC/Neaf/X.pm
 lib/MVC/Neaf/X/ServerStat.pm
 lib/MVC/Neaf/X/Session.pm
-MANIFEST
+MANIFEST			This list of files
 MANIFEST.SKIP
 README
 README.md
@@ -49,7 +38,6 @@ t/Neaf-binary.t
 t/Neaf-content-length.t
 t/Neaf-Exception.t
 t/Neaf-force-view.t
-t/Neaf-livr.t
 t/Neaf-Request-Apache.t
 t/Neaf-Request-CGI.t
 t/Neaf-Request-PSGI.t
