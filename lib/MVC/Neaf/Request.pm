@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0802;
+our $VERSION = 0.0803;
 
 =head1 NAME
 
@@ -708,7 +708,8 @@ sub dump {
 
     my %raw;
     foreach my $method (qw( http_version scheme secure method hostname port
-        path script_name path_info )) {
+        path script_name path_info
+        referer user_agent )) {
             $raw{$method} = eval { $self->$method }; # deliberately skip errors
     };
     $raw{param} = $self->_all_params;

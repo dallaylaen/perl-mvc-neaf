@@ -13,15 +13,28 @@ $copy = decode_utf8($copy);
 
 my $req = MVC::Neaf::Request->new(
     cached_params => { x => 42 },
-    header_in => HTTP::Headers->new( Cookie => 'cook=%C2%A9; guy=bad' ),
+    header_in => HTTP::Headers->new(
+        Cookie => 'cook=%C2%A9; guy=bad',
+        Referer => 'http://google.com',
+        User_Agent => 'test bot',
+    ),
 );
 $req->set_full_path("/foo/bar");
 
 is ($req->path, "/foo/bar", "Path round trip");
 
+$req->set_path_info( "woo" );
+is ($req->path_info, "/woo", "path info" );
+is ($req->path, "/foo/bar/woo", "Path also modified" );
+$req->set_path_info;
+is ($req->path, "/foo/bar", "Path reset to where it was");
+
 is ($req->param( foo => qr/.*/), '', "Empty param - no undef");
 $req->set_param( foo => 137 );
 is ($req->param( foo => qr/.*/), 137, "set_param round trip" );
+
+is ($req->referer, "http://google.com", "referer works");
+is ($req->user_agent, "test bot", "user_agent works");
 
 $req->set_full_path( "" );
 is ($req->path, "/", "set_path round trip" );
@@ -52,15 +65,22 @@ eval {
 is (ref $@, "MVC::Neaf::Exception", "Erro throws an MVC::Neaf::Exception" );
 like ($@, qr/^MVC::Neaf/, "Exception tells who it is");
 
+# Check postpone() callback by flagging an outer flag.
+# We'll also check that default do_close() method doesn't die
+# because it shouldn't
 my $flag = 0;
-$req->postpone( sub { $flag++ } );
+$req->postpone( sub { $_[0]->close; $flag++ } );
 is ($flag, 0, "postpone(): no immediate effect");
+
+is_deeply( [sort $req->header_in_keys], [sort qw[Referer User-Agent Cookie]]
+    , "header_in_keys (who needs it anyway?)" );
 
 my $dump = $req->dump;
 is( ref $dump, 'HASH', "Dump works");
 note explain $dump;
 
+# Now run postponed callback
 undef $req;
-is ($flag, 1, "postpone(): executed in destroy");
+is ($flag, 1, "postpone(): executed in destroy (and close didn't die)");
 
 done_testing;
