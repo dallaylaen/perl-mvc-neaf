@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.08;
+our $VERSION = 0.0801;
 
 =head1 NAME
 
@@ -569,6 +569,21 @@ sub set_cookie {
     return $self;
 };
 
+=head2 delete_cookie( "name" )
+
+Remove cookie by setting value to an empty string,
+and expiration in the past.
+B<NOTE> It is up to the user agent to actually remove cookie.
+
+Returns self.
+
+=cut
+
+sub delete_cookie {
+    my ($self, $name) = @_;
+    return $self->set_cookie( $name => '', ttl => -10000 );
+};
+
 # Set-Cookie: SSID=Ap4P….GTEq; Domain=foo.com; Path=/;
 # Expires=Wed, 13 Jan 2021 22:23:01 GMT; Secure; HttpOnly
 
@@ -747,12 +762,13 @@ sub dump {
     my $self = shift;
 
     my %raw;
-    foreach my $method (qw(script_name path_info method )) {
-        $raw{$method} = eval { $self->$method }; # deliberately ignore errors
+    foreach my $method (qw( http_version scheme secure method hostname port
+        path script_name path_info )) {
+            $raw{$method} = eval { $self->$method }; # deliberately skip errors
     };
     $raw{param} = $self->_all_params;
     $raw{header_in} = $self->header_in->as_string;
-    $self->get_cookie( noexist => '' );
+    $self->get_cookie( noexist => '' ); # warm up cookie cache
     $raw{cookie_in} = $self->{neaf_cookie_in};
 
     return \%raw;
