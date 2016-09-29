@@ -51,11 +51,19 @@ note explain $root;
 is (scalar @$root, 3, "PSGI-compatible");
 is ($root->[0], 404, "Root not found");
 
-$request{REQUEST_URI} = "/foo";
-my $foo = $code->( \%request );
-note explain $foo;
-is (scalar @$foo, 3, "PSGI-compatible");
-is ($foo->[0], 500, "Failed request");
+{
+    my @warn;
+    local $SIG{__WARN__} = sub { push @warn, $_[0] };
+
+    $request{REQUEST_URI} = "/foo";
+    my $foo = $code->( \%request );
+    note explain $foo;
+    is (scalar @$foo, 3, "PSGI-compatible");
+    is ($foo->[0], 500, "Failed request");
+    is (scalar @warn, 1, "1 warn issued");
+    like ($warn[0], qr/ERROR.*foo.*MVC::Neaf::Request::PSGI->param/
+        , "Warning as expected");
+};
 
 $request{REQUEST_URI} = "/bar";
 my $bar = $code->( \%request );
