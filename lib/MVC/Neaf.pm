@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0801;
+our $VERSION = 0.0802;
 
 =head1 NAME
 
@@ -154,11 +154,6 @@ if ($ENV{MOD_PERL}) {
 };
 
 our $Inst = __PACKAGE__->new;
-sub import {
-    my ($class, %args) = @_;
-
-    $args{view} and $Inst->{force_view} = $Inst->load_view($args{view});
-};
 
 =head2 route( path => CODEREF, %options )
 
@@ -434,8 +429,8 @@ Those are prefixed with C<MVC::Neaf::View::>.
 
 =back
 
-If force_view option was given to Neaf instance, will return THAT view
-instead of all above.
+If set_forced_view was called with an argument,
+return THAT view instance instead of all above.
 
 So the intended usage is as follows:
 
@@ -730,7 +725,7 @@ sub _make_route_re {
     return qr{^($re)(/[^?]*)?(?:\?|$)};
 };
 
-=head1 INTROSPECTION METHODS
+=head1 DEVELOPMENT AND DEBUGGING METHODS
 
 =head2 get_routes
 
@@ -745,6 +740,28 @@ sub get_routes {
 
     # shallow copy TODO need 2 layers!
     return { %{ $self->{route} } };
+};
+
+=head2 set_forced_view( $view )
+
+If set, this view object will be user instead of ANY other view.
+
+See C<load_view>.
+
+Returns self.
+
+=cut
+
+sub set_forced_view {
+    my ($self, $view) = @_;
+    $self = $Inst unless ref $self;
+
+    delete $self->{force_view};
+    return $self unless $view;
+
+    $self->{force_view} = $self->load_view( $view );
+
+    return $self;
 };
 
 =head1 INTERNAL API
@@ -787,10 +804,9 @@ sub new {
     my $force = delete $opt{force_view};
 
     my $self = bless \%opt, $class;
+    $self->set_forced_view( $force )
+        if $force;
 
-    if ($force) {
-        $self->{force_view} = $self->load_view( $force );
-    };
     return $self;
 };
 

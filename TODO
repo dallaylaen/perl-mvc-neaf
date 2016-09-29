@@ -1,16 +1,12 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.06    0.09    NET kill_cookie/delete_cookie to replace cookie with empty
-0.06    0.09    TST Cover 100% of Neaf & Neaf::Request
-0.06    0.09    DOC Add plugin guidelines
-0.06    0.09    DEV Cover all functions in Request->dump
-0.07    0.09    AUX Add Install.PL for in-place installation
+0.08    0.09    DEV -MMVC::Neaf::CLI --help|--list|--session foobar
+0.08    0.09    API Add Req alias methods for -dashed -return -keys
+0.08    0.09    API Req->reply to return immediately
 
 -- backlog --
-0.08    0.10    DEV -MMVC::Neaf::CLI --help|--list|--session foobar
-0.08    0.10    API Add Req alias methods for -dashed -return -keys
-0.08    0.10    API Req->reply to return immediately
+0.07    0.20    AUX Add Install.PL for in-place installation
 0.08    0.20    API Rewrite form validation in a sensible way with resubmit
 0.07    0.20    REF session( noinit = 1 ) is WRONG, think better
 0.03    0.20    NET Fixup http header handling, read more
@@ -22,6 +18,7 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.06    0.20    NET REST
 0.06    0.20    NET HMAC
 0.01    0.20    DEV REPL - MVC::Neaf::Cli? with term session etc
+0.06    0.90    DOC Add plugin guidelines
 0.06    0.90    TPL TT View - somehow denote application root for links/forms
 0.03    0.90    REF Split core into route_request and process_reply
 0.04    0.90    REF Req https detection: change to is_secure? http:https.
