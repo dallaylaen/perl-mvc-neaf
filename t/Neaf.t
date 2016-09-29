@@ -27,11 +27,11 @@ MVC::Neaf->route( foo => sub {
 MVC::Neaf->route( bar => sub {
     my $req = shift;
 
+    $req->set_default( -template => \"[% data %]" );
     my $bar = $req->param( bar => qr/.*/ );
 
     return {
-        -template => \"[% content %]",
-        content => $bar,
+        data => $bar,
     };
 });
 

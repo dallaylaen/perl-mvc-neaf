@@ -3,7 +3,9 @@
 use strict;
 use warnings;
 use Test::More;
+use URI::Escape;
 
+use MVC::Neaf;
 use MVC::Neaf::Request;
 
 {
@@ -23,12 +25,14 @@ use MVC::Neaf::Request;
     };
 };
 
-my $req = MVC::Neaf::Request->new(
-    session_engine => My::Session->new,
-    session_cookie => 'cook',
-    session_regex  => '.+',
-    neaf_cookie_in => {cook => 137},
-);
+my $req = MVC::Neaf::Request->new( neaf_cookie_in => {cook => 137} );
+
+$req->_set_session_handler([
+    My::Session->new,
+    'cook',
+    '.+',
+    '100',
+]);
 
 is_deeply ($req->session, {}, "Empty session ok");
 $req->session->{foo} = 42;
@@ -45,4 +49,27 @@ is_deeply (\@My::Session::call
 note explain $req->format_cookies;
 like( $req->format_cookies->[0], qr/cook=;/, "Deleted cookie appears" );
 
+@My::Session::call = ();
+MVC::Neaf->pre_route( sub {
+    my $req = shift;
+    $req->session->{foo}
+        or $req->save_session( { foo => 42 } );
+});
+MVC::Neaf->set_session_handler( engine => My::Session->new );
+
+my $ret = MVC::Neaf->run->({});
+
+is ($ret->[0], 404, "404 returned - no routes defined");
+
+my %head = @{ $ret->[1] };
+
+my ($sess) = $head{'Set-Cookie'} =~ /session=(\S+);/;
+ok ( $sess, "Set-Cookie appeared" );
+
+is_deeply (\@My::Session::call
+    , [
+        # load never called - no cookie initially
+        [ save => uri_unescape($sess), { foo => 42 } ],
+    ]
+    , "Sequence as expected");
 done_testing;

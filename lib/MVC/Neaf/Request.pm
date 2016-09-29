@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0803;
+our $VERSION = 0.0804;
 
 =head1 NAME
 
@@ -526,7 +526,7 @@ Returns self.
 
 sub delete_cookie {
     my ($self, $name) = @_;
-    return $self->set_cookie( $name => '', ttl => -10000 );
+    return $self->set_cookie( $name => '', ttl => -100000 );
 };
 
 # Set-Cookie: SSID=Ap4P….GTEq; Domain=foo.com; Path=/;
@@ -801,7 +801,7 @@ sub delete_session {
     my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
     $self->{session_engine}->delete_session( $id )
         if $id;
-    $self->set_cookie( $self->{session_cookie}, '', ttl => -100000 );
+    $self->delete_cookie( $self->{session_cookie} );
     return $self;
 };
 
