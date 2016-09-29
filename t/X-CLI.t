@@ -4,9 +4,16 @@ use strict;
 use warnings;
 use Test::More;
 
+use MVC::Neaf;
+# MVC::Neaf::CLI monkey-patches MVC::Neaf which in turn affects other
+# tests when run under cover -t.
+# So localize the change...
+
+{
+local *MVC::Neaf::run = MVC::Neaf->can("run");
+
 use MVC::Neaf::CLI;
 
-use MVC::Neaf;
 MVC::Neaf->route( foo => sub { +{}} );
 MVC::Neaf->route( bar => sub { +{}} );
 
@@ -28,5 +35,8 @@ is ($data, "/bar\n/foo\n", "--list works");
     MVC::Neaf->run;
 };
 like ($data, qr/\n\n{}$/s, "force view worked");
+
+};
+# end localize
 
 done_testing;
