@@ -1,0 +1,32 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use Test::More;
+
+use MVC::Neaf::X::Form;
+
+my $prof = MVC::Neaf::X::Form->new({
+    foo => [ REQUIRED => '\d+' ],
+    bar => '\w+',
+    baz => [ qr/b\w+/ ],
+});
+
+my $form;
+
+$form = $prof->validate( { foo => 42, rubbish => 777 } );
+ok( $form->is_valid, "Valid form" );
+is_deeply( $form->error, {}, "No errors");
+is_deeply( $form->data,  { foo => 42 }, "Valid data" );
+is_deeply( $form->raw,   { foo => 42 }, "Raw data, rubbish omitted" );
+$form->error( foo => "Not 42" );
+ok( !$form->is_valid, "Invalidated by custom error" );
+
+
+$form = $prof->validate( { bar => 'xxx', baz => 'xxx' } );
+ok (!$form->is_valid, "Invalid form now" );
+is_deeply( $form->data, { bar => 'xxx' }, "Clean partial data got through");
+is_deeply( $form->error, { foo => 'REQUIRED', baz => 'BAD_FORMAT' }
+    , "Error details as expected");
+
+done_testing;
