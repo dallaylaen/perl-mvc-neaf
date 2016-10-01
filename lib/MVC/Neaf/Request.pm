@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0805;
+our $VERSION = 0.0806;
 
 =head1 NAME
 
@@ -851,16 +851,12 @@ In this case, a number of methods help stashing your data
 Also some lengthly actions (e.g. writing request statistics or
 sending confirmation e-mail) may be postponed until the request is served.
 
-=head2 header_out( [$param], add|set|or|delete => [$new_value] )
+=head2 header_out( [$param] )
 
 Without parameters returns a L<HTTP::Headers> object containing all headers
 to be returned to client.
 
 With one parameter returns this header.
-
-With three parameters modifies this header.
-(Argument after delete is ignored).
-Arrayrefs are ok and will set multiple headers.
 
 Returned values are just proxied L<HTTP::Headers> returns.
 It is generally advised to use them in list context as multiple
@@ -885,24 +881,35 @@ sub header_out {
     return $head unless @_;
 
     my $name = shift;
-    return $head->header( $name ) unless @_;
+    return $head->header( $name );
+};
 
-    $self->_croak("Either 0, 1, or 3 arguments must be passed")
-        unless @_ == 2;
-    my ($todo, $value) = @_;
+=head2 set_header( $name, $value || [] )
 
-    # TODO maybe a hash?
-    if ($todo eq 'delete') {
-        return $head->remove_header( $name );
-    } elsif( $todo eq 'add') {
-        return $head->push_header( $name => $value );
-    } elsif( $todo eq 'set') {
-        return $head->header( $name => $value );
-    } elsif( $todo eq 'or' ) {
-        return $head->init_header( $name );
-    } else {
-        $self->_croak("Unknown command $todo, expected add|set|or|delete");
-    };
+=head2 push_header( $name, $value || [] )
+
+=head2 remove_header( $name )
+
+Set, append, and delete values in the header_out object.
+See L<HTTP::Headers>.
+
+Arrayrefs are ok and will set multiple values for a given header.
+
+=cut
+
+sub set_header {
+    my ($self, $name, $value) = @_;
+    return $self->header_out->header( $name, $value );
+};
+
+sub push_header {
+    my ($self, $name, $value) = @_;
+    return $self->header_out->push_header( $name, $value );
+};
+
+sub remove_header {
+    my ($self, $name) = @_;
+    return $self->header_out->remove_header( $name );
 };
 
 =head2 postpone( CODEREF->(req) )

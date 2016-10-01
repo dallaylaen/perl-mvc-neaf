@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0804;
+our $VERSION = 0.0805;
 
 =head1 NAME
 
@@ -390,7 +390,7 @@ sub static {
 
         my $show_name = $1;
         $show_name =~ s/[\"\x00-\x19\\]/_/g;
-        $req->header_out( content_disposition => set =>
+        $req->set_header( content_disposition =>
             "attachment; filename=\"$show_name\"")
                 unless $type and $type =~ qr#^text|^image|javascript#;
 
