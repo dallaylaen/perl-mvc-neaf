@@ -3,6 +3,10 @@
 use strict;
 use warnings;
 
+# This example is really huge and is meant to demonstrate ALL of
+# MVC::Neaf::Request's getters.
+# Please refer for later examples for short code snippets.
+
 # This script demonstrates...
 my $descr  = "HTTP request in a nutshell";
 
@@ -12,29 +16,6 @@ use File::Basename qw(basename dirname);
 use lib dirname($Bin)."/lib";
 use MVC::Neaf;
 use MVC::Neaf::X::ServerStat;
-
-# Some request timing statistics
-my ($count, $total_C, $total) = (0,0,0,0);
-MVC::Neaf->server_stat( MVC::Neaf::X::ServerStat->new (
-    on_write => sub {
-        foreach (@{ +shift }) {
-            $count++;
-            $total_C += $_->[2];
-            $total   += $_->[3];
-            warn "STAT $_->[0] returned $_->[1] in $_->[3] sec\n";
-        };
-    },
-));
-END {
-    undef $MVC::Neaf::Inst; # make sure stat object is DESTROYED
-    if ($count) {
-        warn ".\n.\n"; # get rid of the stupid ^C
-        warn "$count pages served.\n";
-        warn "$total_C s spent in controller, "
-            .($total-$total_C)." s spent in view.\n";
-    };
-};
-$SIG{INT} = sub { exit }; # civilized exit if Ctrl-C
 
 # Add some flexibility to run alongside other examples
 my $script = basename(__FILE__);

@@ -22,15 +22,9 @@ use MVC::Neaf;
 my $script = basename(__FILE__);
 
 # And some HTML boilerplate.
-my $tt_head = <<"TT";
+my $tpl = <<"TT";
 <html><head><title>$descr - $script</title></head>
 <body><h1>$script</h1><h2>$descr</h2><hr>
-TT
-
-# The boilerplate ends here
-
-my $tpl = <<"TT";
-$tt_head
     <h1>Image example</h1>
     <div>
     <form>
