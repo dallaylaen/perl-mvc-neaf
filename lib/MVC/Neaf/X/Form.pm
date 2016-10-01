@@ -2,7 +2,7 @@ package MVC::Neaf::X::Form;
 
 use strict;
 use warnings;
-our $VERSION = 0.0802;
+our $VERSION = 0.0803;
 
 =head1 NAME
 
@@ -52,7 +52,10 @@ use MVC::Neaf::X::Form::Data;
 
 =head2 new( \%profile )
 
-%profile must be a hash with keys korresponding to the data being validated,
+Receives a validation profile, returns a validator object.
+
+In the default implementation,
+%profile must be a hash with keys corresponding to the data being validated,
 and values in the form of either regexp, [ regexp ], or [ required => regexp ].
 
 Regular expressions are accepted in qr(...) and string format, and will be
@@ -66,7 +69,29 @@ B<NOTE> Format may be subject to extention with extra options.
 =cut
 
 sub new {
+    # TODO other constructor forms e.g. with options
     my ($class, $profile) = @_;
+
+    my $self = bless {
+        known_keys => [ keys %$profile ],
+    }, $class;
+
+    $self->{rules} = $self->make_rules( $profile );
+    return $self;
+};
+
+=head2 make_rules( \%profile )
+
+Preprocesses the validation profile before doing actual validation.
+
+Returns an object or reference to be stored in the C<rules> property.
+
+This method is called from new() and is to be overridden in a subclass.
+
+=cut
+
+sub make_rules {
+    my ($self, $profile) = @_;
 
     my %regexp;
     my %required;
@@ -80,7 +105,7 @@ sub new {
                 $regexp{$_} = _mkreg( $spec->[-1] );
                 $required{$_}++;
             } else {
-                $class->my_croak("Invalid validation profile for value $_");
+                $self->my_croak("Invalid validation profile for value $_");
             };
         } else {
             # plain or regexp
@@ -88,12 +113,7 @@ sub new {
         };
     };
 
-    # mangle profile
-    return bless {
-        regexp => \%regexp,
-        required => \%required,
-        known_fields => [ keys %regexp ],
-    }, $class;
+    return { regexp => \%regexp, required => \%required };
 };
 
 sub _mkreg {
@@ -127,37 +147,61 @@ Useful to send data back for resubmission.
 sub validate {
     my ($self, $data) = @_;
 
-    my (%raw, %clean, %error);
-    foreach ( $self->known_fields ) {
+    my $raw;
+    defined $data->{$_} and $raw->{$_} = $data->{$_}
+        for $self->known_keys;
+
+    my ($clean, $error) = $self->do_validate( $raw );
+
+    return MVC::Neaf::X::Form::Data->new(
+        raw => $raw, data=>$clean, error => $error,
+    );
+};
+
+=head2 do_validate( $raw_data )
+
+Returns a pair of hashes: the cleaned data and errors.
+
+This is called by validate() and is to be overridden in subclasses.
+
+=cut
+
+sub do_validate {
+    my ($self, $data) = @_;
+
+    my $rex = $self->{rules}{regexp};
+    my $must = $self->{rules}{required};
+    my (%clean, %error);
+    foreach ( $self->known_keys ) {
         if (!defined $data->{$_}) {
-            $error{$_} = 'REQUIRED' if $self->{required}{$_};
+            $error{$_} = 'REQUIRED' if $must->{$_};
             next;
         };
 
-        $raw{$_} = $data->{$_};
-
-        if ($data->{$_} =~ $self->{regexp}{$_}) {
+        if ($data->{$_} =~ $rex->{$_}) {
             $clean{$_} = $data->{$_};
-        } elsif (length $data->{$_} or $self->{required}{$_}) {
+        } elsif (length $data->{$_} or $must->{$_}) {
             # Silently skip empty values if they don't match RE
+            # so that /foo?bar= and /foo work the same
+            # (unless EXPLICITLY told NOT to)
             $error{$_} = 'BAD_FORMAT';
         };
     };
 
-    return MVC::Neaf::X::Form::Data->new(
-        raw => \%raw, data=>\%clean, error => \%error,
-    );
+    return (\%clean, \%error);
 };
 
-=head2 known_fields()
+=head2 known_keys()
 
-Returns list of known fields.
+Returns list of data keys subject to validation.
+
+All other keys present in the input SHOULD be ignored.
 
 =cut
 
-sub known_fields {
+sub known_keys {
     my $self = shift;
-    return @{ $self->{known_fields} };
+    return @{ $self->{known_keys} };
 };
 
 1;
