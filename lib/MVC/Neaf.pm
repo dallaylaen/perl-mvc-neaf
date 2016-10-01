@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0802;
+our $VERSION = 0.0803;
 
 =head1 NAME
 
@@ -308,6 +308,7 @@ This is the intended usage.
 
 =cut
 
+# TODO Move this to a separate module (X::Static?)
 # Enumerate most common file types. Patches welcome.
 our %ExtType = (
     css  => 'text/css',
@@ -347,6 +348,8 @@ sub static {
 
         # open file
         $file = join "", $dir, $file;
+
+        die 403 if -d $file;
         my $ok = open (my $fd, "<", "$file");
         if (!$ok) {
             # TODO Warn
@@ -359,13 +362,14 @@ sub static {
 
         # determine type, fallback to extention
         my $type;
-        $file =~ /([^\/]+(?:\.(\w+))?)$/;
+        $file =~ m#(?:^|/)([^\/]+?(?:\.(\w+))?)$#;
         $type = $ExtType{lc $2} if defined $2;
 
         my $show_name = $1;
         $show_name =~ s/[\"\x00-\x19\\]/_/g;
         $req->header_out( content_disposition => set =>
-            "attachment; filename=\"$show_name\"");
+            "attachment; filename=\"$show_name\"")
+                unless $type and $type =~ qr#^text|^image|javascript#;
 
         # return whole file if possible
         return { -content => $buf, -type => $type }
