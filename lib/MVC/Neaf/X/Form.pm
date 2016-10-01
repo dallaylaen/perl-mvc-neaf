@@ -2,7 +2,7 @@ package MVC::Neaf::X::Form;
 
 use strict;
 use warnings;
-our $VERSION = 0.0801;
+our $VERSION = 0.0802;
 
 =head1 NAME
 
@@ -129,7 +129,7 @@ sub validate {
 
     my (%raw, %clean, %error);
     foreach ( $self->known_fields ) {
-        if (!defined $data->{$_} ) {
+        if (!defined $data->{$_}) {
             $error{$_} = 'REQUIRED' if $self->{required}{$_};
             next;
         };
@@ -138,7 +138,8 @@ sub validate {
 
         if ($data->{$_} =~ $self->{regexp}{$_}) {
             $clean{$_} = $data->{$_};
-        } else {
+        } elsif (length $data->{$_} or $self->{required}{$_}) {
+            # Silently skip empty values if they don't match RE
             $error{$_} = 'BAD_FORMAT';
         };
     };

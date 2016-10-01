@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.0804;
+our $VERSION = 0.0805;
 
 =head1 NAME
 
@@ -314,6 +314,30 @@ sub set_param {
 
     $self->{cached_params}{$name} = $value;
     return $self;
+};
+
+=head2 form( $validator )
+
+Apply validator to raw params and return whatever it returns.
+
+Validator MUST either be a CODEREF,
+or be an object with validate() method accepting a hashref.
+
+See L<MVC::Neaf::X::Form> for details on Neaf's built in validator.
+
+=cut
+
+sub form {
+    my ($self, $validator) = @_;
+
+    $self->_croak("Validator must be a CODEREF or an object")
+        unless ref $validator;
+
+    if (ref $validator eq 'CODE') {
+        return $validator->( $self->_all_params );
+    } else {
+        return $validator->validate( $self->_all_params );
+    };
 };
 
 =head2 get_form_as_hash ( name => qr/.../, name2 => qr/..../, ... )

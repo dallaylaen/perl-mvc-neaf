@@ -29,4 +29,11 @@ is_deeply( $form->data, { bar => 'xxx' }, "Clean partial data got through");
 is_deeply( $form->error, { foo => 'REQUIRED', baz => 'BAD_FORMAT' }
     , "Error details as expected");
 
+$form = $prof->validate( { foo => 42, bar => '' } );
+ok ( $form->is_valid, "Valid with empty value" );
+is_deeply( $form->data, { foo => 42 }, "Empty value skipped" );
+
+$form = $prof->validate( { foo => '' } );
+ok (!$form->is_valid, "Invalid with empty REQUIRED value" );
+
 done_testing;
