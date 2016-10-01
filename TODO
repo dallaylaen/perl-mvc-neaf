@@ -2,8 +2,12 @@ SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
 0.08    0.09    API Rewrite form validation in a sensible way with resubmit
-0.06    0.09    TPL Add in-tt perl functions to TT view (&HTML, &URI)
 0.02    0.09    TPL Add TT caching
+0.08    0.09    TST Replace HTML() with TT filters in examples
+0.08    0.09    BUG Fix attach header in static
+0.08    0.09    BUG Replace md5 with SHA1
+0.08    0.09    DOC Add some guide to Neaf
+0.08    0.09    TST Cleanup examples, more comments
 
 -- backlog --
 0.08    0.20    API Add Req alias methods for -dashed -return -keys

@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session;
 
 use strict;
 use warnings;
-our $VERSION = 0.08;
+our $VERSION = 0.0801;
 
 =head1 NAME
 
@@ -58,7 +58,7 @@ This class is base class for such $engine.
 
 =cut
 
-use Digest::MD5 qw(md5_base64);
+use Digest::SHA qw(sha1 sha224_base64);
 use Time::HiRes qw(gettimeofday);
 use Sys::Hostname qw(hostname);
 
@@ -85,7 +85,7 @@ sub session_id_regex {return};
 
 Generate a new, shiny, unique, unpredictable session id.
 
-The default is using two rounds of md5 with time, process id, hostname,
+The default is using two rounds of sha1+sha224 with time, process id, hostname,
 and random salt. Should be unique and reasonably hard to guess.
 
 =cut
@@ -107,15 +107,16 @@ sub get_session_id {
     my ($time, $ms) = gettimeofday();
 
     # using old entropy means attacker will have to guess ALL previous sessions
-    $old_mix = md5_base64(pack "LLaaaaaLLLLL"
+    # Not need REAL secure hash or human readability
+    $old_mix = sha1(pack "LLaaaaaLLLLL"
         , $old_rand, $uniq
         , "#", $Seed, "#", $old_mix, "#"
         , $$, $time, $ms, $uniq, $rand);
 
-    # salt before second round of md5
+    # salt before second round of hashing
     # public data (session_id) should NOT be used for generation
     $old_rand = int (rand() * $max );
-    return md5_base64( pack "aL", $old_mix, $old_rand );
+    return sha224_base64( pack "aL", $old_mix, $old_rand );
 };
 
 # finally, bootstrap the session generator at startap
