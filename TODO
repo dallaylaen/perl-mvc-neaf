@@ -8,6 +8,7 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.08    0.09    BUG Replace md5 with SHA1
 0.08    0.09    DOC Add some guide to Neaf
 0.08    0.09    TST Cleanup examples, more comments
+0.08    0.09    API Fixup header setting - split into methods
 
 -- backlog --
 0.08    0.20    API Add Req alias methods for -dashed -return -keys

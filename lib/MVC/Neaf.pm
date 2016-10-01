@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0803;
+our $VERSION = 0.0804;
 
 =head1 NAME
 
@@ -17,33 +17,25 @@ Neaf [ni:f] stands for Not Even An (MVC) Framework.
 It is made for lazy people without an IDE.
 
 The Model is assumed to be just a regular Perl module,
-no restrictions are put on it.
+no restrictions are imposed on it.
 
-The Controller is reduced to just one function which receives a Request object
-and returns a \%hashref with a mix
-of actual data and minus-prefixed control parameters.
+The View is an object with one method, C<render>, receiving a hashref
+and returning rendered content as string plus optional content-type header.
 
-The View is expected to have one method, C<render>, receiving such hash
-and returning scalar of rendered context.
+The Controller is reduced to just one function which receives
+a <MVC::Neaf::Request> object containing all it needs to know
+and returns a simple \%hashref which is forwarded to View.
 
-The principals of Neaf are as follows:
+Multiple controllers can be set up in the same application
+under different paths.
 
-=over
-
-=item * Start out simple, then scale up.
-
-=item * Already on Perl, needn't more magic.
-
-=item * Everything can be configured, nothing needs to be.
-
-=item * It's not software unless you can run it from command line.
-
-=back
+Please see the examples directory in this distribution
+which demonstrates the features of Neaf.
 
 =head1 SYNOPSIS
 
 The following application, outputting a greeting, is ready to run
-either from under a plack server, or as a standalone script.
+as a CGI script, PSGI application, or Apache handler.
 
     use MVC::Neaf;
 
@@ -62,24 +54,52 @@ either from under a plack server, or as a standalone script.
 
 =head1 CREATING AN APPLICATION
 
-The Controller (which is pretty much the only thing to talk about here)
-receives a $request object and outputs a \%hash.
+=head2 THE CONTROLLER
+
+The Controller sub receives a L<MCV::Neaf::Request> object
+and outputs a \%hashref.
 
 It may also die, which will be interpreted as an error 500,
 UNLESS error message starts with 3 digits and a whitespace,
 in which case this is considered the return status.
 E.g. die 404; is a valid method to return "Not Found" right away.
 
-B<The request> is a L<MCV::Neaf::Request> descendant which generally
-boils down to:
+Much like in L<Dancer> or L<Kelp>, multiple controllers may be configured
+under different paths using the C<route( path =E<gt> CODEREF );>
+method discussed below.
 
-    my $param  = $request->param ( "param_name"  => qr/.../, "Unset" );
-    my $cookie = $request->cookie( "cookie_name" => qr/.../, "Unset" );
-    my $file   = $request->upload( "upload_name" );
+=head2 THE REQUEST
 
-Note the regexp check - it's mandatory and deliberately so.
-Upload content checking is up to the user, though.
-See <MVC::Neaf::Upload>.
+B<The Request> object is similar to the OO interface of L<CGI>
+or L<Plack::Request> with some minor differences:
+
+    # What was requested:
+    http(s)://server.name:1337/mathing/route/some/more/slashes?foo=1&bar=2
+
+    # What is being returned:
+    $req->http_version; # = HTTP/1.0 or HTTP/1.1
+    $req->scheme      ; # = http or https
+    $req->method      ; # = GET
+    $req->hostname    ; # = server.name
+    $req->port        ; # = 1337
+    $req->path        ; # = /mathing/route/some/more/slashes
+    $req->script_name ; # = /mathing/route
+    $req->path_info   ; # = /some/more/slashes
+
+    $req->param( foo => '\d+' ); # = 1
+    $req->get_cookie( session => '.+' ); # = whatever it was set to before
+
+One I<major> difference is that there's no (easy) way to fetch
+query parameters or cookies without validation.
+Just use qr/.*/ if you know better.
+
+Also there are some methods that affect the reply,
+mainly the headers, like C<set_cookie> or C<redirect>.
+This is a step towards a know-it-all God object,
+however, mapping those proverties into a hashref turned out to be
+too cumbersome.
+
+=head2 THE RESPONSE
 
 B<The response> may contain regular keys, typically alphanumeric,
 as well as a predefined set of dash-prefixed keys which control
@@ -145,6 +165,9 @@ They have nothing to do with serving the request.
 use Carp;
 use Scalar::Util qw(blessed);
 use Encode;
+use parent qw(Exporter);
+
+our @EXPORT_OK = qw(neaf_err);
 
 use MVC::Neaf::Request;
 if ($ENV{MOD_PERL}) {
@@ -727,6 +750,43 @@ sub _make_route_re {
 
     my $re = join "|", map { quotemeta } reverse sort keys %$hash;
     return qr{^($re)(/[^?]*)?(?:\?|$)};
+};
+
+=head1 EXPORTED FUNCTIONS
+
+Currently only one function is exportable:
+
+=head2 neaf_err $error
+
+Rethrow Neaf's internal exceptions immediately, do nothing otherwise.
+
+If no argument if given, acts on current $@ value.
+
+Currently Neaf uses exception mechanism for internal signalling,
+so this function may be of use if there's a lot of eval blocks
+in the controller. E.g.
+
+    use MVC::Neaf qw(neaf_err);
+
+    # somewhere in controller
+    eval {
+        check_permissions()
+            or $req->error(403);
+        do_something()
+            and $req->redirect("/success");
+    };
+
+    if (my $err = $@) {
+        neaf_err;
+        # do the rest of error handling
+    };
+
+=cut
+
+sub neaf_err(;$) { ## no critic # prototype it for less typing on user's part
+    my $err = shift || $@;
+    return unless blessed $err and $err->isa("MVC::Neaf::Exception");
+    die $err;
 };
 
 =head1 DEVELOPMENT AND DEBUGGING METHODS

@@ -2,7 +2,7 @@ package MVC::Neaf::Exception;
 
 use strict;
 use warnings;
-our $VERSION = 0.07;
+our $VERSION = 0.0701;
 
 =head1 NAME
 
@@ -10,38 +10,17 @@ MVC::Neaf::Exception - Exception class for Not Even A Framework.
 
 =head1 DESCRIPTION
 
-=head1 EXPORT
+Currently internal signalling or L<MVC::Neaf> is based on the exception
+mechanism. To avoid collisions with user's exceptions or Perl errors,
+these internal exceptions are blessed into this class.
 
-This module exports one function: C<neaf_err>.
-It may be useful if one intends to use
-a lot of try/catch blocks in the controller.
+Please see the neaf_err() function in L<MVC::Neaf>.
 
 =cut
 
 use Scalar::Util qw(blessed);
 use Carp;
-use parent qw(Exporter);
 use overload '""' => "as_string";
-
-our @EXPORT_OK = qw(neaf_err);
-
-=head2 neaf_err( $@ )
-
-Rethrow immediately if given an MVC::Neaf::Exception object,
-do nothing otherwise.
-
-Returns nothing.
-
-This may be useful if one has a lot of nested subs/evals
-and plans to utilize Neaf::Request redirect or error methods
-from within.
-
-=cut
-
-sub neaf_err {
-    return unless blessed $_[0] and $_[0]->isa(__PACKAGE__);
-    die $_[0];
-};
 
 =head1 METHODS
 

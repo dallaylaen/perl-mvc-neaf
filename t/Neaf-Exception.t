@@ -4,7 +4,8 @@ use strict;
 use warnings;
 use Test::More;
 
-use MVC::Neaf::Exception qw(neaf_err);
+use MVC::Neaf qw(neaf_err);
+use MVC::Neaf::Exception;
 
 my $res = eval {
     neaf_err(500);
