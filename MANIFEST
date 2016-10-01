@@ -11,12 +11,14 @@ example/11-template-error.pl
 example/12-custom-error.pl
 example/21-pre-route.pl
 example/22-jsonp.pl
+example/23-form.pl
 example/24-static.pl
 example/25-session.pl
 example/51-wiki.pl
 example/all-of-them.psgi
 example/README
 lib/MVC/Neaf.pm
+lib/MVC/Neaf/CLI.pm
 lib/MVC/Neaf/Exception.pm
 lib/MVC/Neaf/Request.pm
 lib/MVC/Neaf/Request/Apache2.pm
@@ -28,6 +30,9 @@ lib/MVC/Neaf/View/Dumper.pm
 lib/MVC/Neaf/View/JS.pm
 lib/MVC/Neaf/View/TT.pm
 lib/MVC/Neaf/X.pm
+lib/MVC/Neaf/X/Form.pm
+lib/MVC/Neaf/X/Form/Data.pm
+lib/MVC/Neaf/X/Form/LIVR.pm
 lib/MVC/Neaf/X/ServerStat.pm
 lib/MVC/Neaf/X/Session.pm
 MANIFEST			This list of files
@@ -36,6 +41,7 @@ README
 README.md
 t/Neaf-binary.t
 t/Neaf-content-length.t
+t/Neaf-error-template.t
 t/Neaf-Exception.t
 t/Neaf-force-view.t
 t/Neaf-Request-Apache.t
@@ -48,6 +54,9 @@ t/Neaf-view.t
 t/Neaf.t
 t/plackup-integration.t
 t/todo.t
+t/X-CLI.t
+t/X-Form-LIVR.t
+t/X-Form.t
 t/X-ServerStat.t
 t/X-Session-random.t
 t/X-Session.t

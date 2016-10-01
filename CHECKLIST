@@ -30,6 +30,7 @@
 
 # got here - commit!
 
+% rm MANIFEST
 % make manifest
 % grep nocommit MANIFEST
 - must be empty

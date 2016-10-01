@@ -1,16 +1,9 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.08    0.09    API Rewrite form validation in a sensible way with resubmit
-0.02    0.09    TPL Add TT caching
-0.08    0.09    TST Replace HTML() with TT filters in examples
-0.08    0.09    BUG Fix attach header in static
-0.08    0.09    BUG Replace md5 with SHA1
-0.08    0.09    DOC Add some guide to Neaf
-0.08    0.09    TST Cleanup examples, more comments
-0.08    0.09    API Fixup header setting - split into methods
 
 -- backlog --
+0.02    0.20    TPL Add TT caching
 0.08    0.20    API Add Req alias methods for -dashed -return -keys
 0.08    0.20    API Req->reply to return immediately
 0.07    0.20    AUX Add Install.PL for in-place installation (do we need it?)

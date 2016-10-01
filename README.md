@@ -7,6 +7,10 @@ MVC::Neaf [ni:f] stands for Not Even A Framework.
 Neaf offers very simple rules to build very simple applications.
 For the lazy, by the lazy.
 
+It has a lot of similarities to
+[Dancer](https://metacpan.org/pod/Dancer2) and
+[Kelp](https://metacpan.org/pod/Kelp).
+
 **Model** is assumed to be a regular Perl module, and is totally out of scope.
 
 **View** is assumed to have just one method, `render()`,
@@ -21,7 +25,7 @@ framework's behaviour while all other keys are just sent to the view.
 **Request** object will depend on the underlying web-server.
 The same app, verbatim, should be able to run as PSGI app, CGI script, or
 Apache handler.
-Request knows all you need about the outside world.
+Request knows all you need to know about the outside world.
 
 # FOUNDATIONS
 
@@ -77,16 +81,20 @@ No need for separate web server to test your CSS/images.
 
 # NOT SO BORING FEATURES
 
-* CLI-based debugging via `perl -MMVC::Neaf=view,Dumper controller.pl /?foo=bar`
+* CLI-based debugging via `perl -MMVC::Neaf::CLI <your_app.pl>`
 
-* Can gather request performance statistics if needed;
+* Can gather performance statistics if needed;
 
 * Delayed and/or unspecified length replies supported;
 
 * Cookie-based sessions supported out of the box.
 Session backends have to be written yet, though.
 
-* Fancy error templates if needed.
+* Form validation with resubmission ability.
+[Validator::LIVR](https://metacpan.org/pod/Validator::LIVR)
+supported, but not requires.
+
+* Fancy error templates supported.
 
 # EXAMPLES
 
@@ -98,6 +106,8 @@ jsonp app and some 200-line wiki engine.
 Lots of them. Still under heavy development.
 
 * mod\_perl handler is a mess (but it works somehow);
+
+* no session storage mechanisms supported out of the box;
 
 Patches and proposals are welcome.
 

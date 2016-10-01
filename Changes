@@ -1,11 +1,22 @@
 Revision history for MVC-Neaf
 
+0.09    Sat Oct 01 2016
+        MOD Add form validator with resubmission, redo LIVR support completely
+        DEV Add CLI debugging module
+        API Add delete_cookie to Request, add more stuff to dump()
+        API Move neaf_err $@; function into core
+        API Add set_header, push_header and remove_header to Request
+        TST Reach 100% coverage on Neaf.pm & Request.pm
+        BUG Replace md5 with sha1+sha224 in session generation
+        BUG Bugs fixed, even more added
+        DOC Better documentation on the main module
+
 0.08    Mon Sep 26 2016
         BUG Bugfix in session, content type detection, and static files
-b89f6cc BUG Fix content type autodetection, enforce utf8 more rigorously
-0890368 NET Add Content-Disposition header to static mode
-2795879 API Allow passing session to view 'as is' if needed
-239f338 REF Rewrite session mechanism in a more reasonable way
+        BUG Fix content type autodetection, enforce utf8 more rigorously
+        NET Add Content-Disposition header to static mode
+        API Allow passing session to view 'as is' if needed
+        REF Rewrite session mechanism in a more reasonable way
 
 0.07    Thu Sep 22 2016
         API Add X::Session for session storage, add Req->session
