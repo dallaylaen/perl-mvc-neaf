@@ -34,7 +34,7 @@ is ($data, "/bar\n/foo\n", "--list works");
 
     MVC::Neaf->run;
 };
-like ($data, qr/\n\n{}$/s, "force view worked");
+like ($data, qr/\n\n\{\}$/s, "force view worked");
 
 };
 # end localize

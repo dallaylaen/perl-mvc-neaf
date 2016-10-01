@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session;
 
 use strict;
 use warnings;
-our $VERSION = 0.0801;
+our $VERSION = 0.0802;
 
 =head1 NAME
 
@@ -93,7 +93,7 @@ and random salt. Should be unique and reasonably hard to guess.
 # Premature optimisation at its best.
 # Should be more or less secure and unique though.
 my $max = 2*1024*1024*1024;
-my $uniq;
+my $uniq = 0;
 my $old_rand = 0;
 my $old_mix = '';
 our $Seed = hostname() || '';
@@ -101,7 +101,7 @@ our $Seed = hostname() || '';
 sub get_session_id {
     # argument not used
 
-    $uniq = int( rand() * $max )
+    $uniq = $max
         unless ($uniq-->0);
     my $rand = int ( rand() * $max );
     my ($time, $ms) = gettimeofday();
