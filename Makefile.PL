@@ -21,6 +21,8 @@ WriteMakefile(
         'JSON::XS'       => 1.4,
         'HTTP::Headers'  => 0,
         'Digest::SHA'    => 0,
+        'parent'         => 0,
+        'CGI'            => 0,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'MVC-Neaf-*' },
