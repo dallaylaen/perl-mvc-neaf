@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session;
 
 use strict;
 use warnings;
-our $VERSION = 0.0901;
+our $VERSION = 0.0902;
 
 =head1 NAME
 
@@ -133,6 +133,7 @@ sub get_session_id {
     # public data (session_id) should NOT be used for generation
     $old_rand = int (rand() * $max );
     my $ret = encode_base64( $Hash->( pack "aL", $old_mix, $old_rand ) );
+    $ret =~ s/\s+//gs;
     $ret = substr( $ret, 0, $Truncate )
         if $Truncate and $Truncate < length $ret;
     return $ret;
