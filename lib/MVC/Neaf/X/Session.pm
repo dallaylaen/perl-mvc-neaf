@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session;
 
 use strict;
 use warnings;
-our $VERSION = 0.0902;
+our $VERSION = 0.0903;
 
 =head1 NAME
 
@@ -76,11 +76,13 @@ The default constructor just happily closes over whatever is given to it.
 This is supposed to be a constant regular expression
 compatible with whatever get_session_id generates.
 
-If none given, a sane default is supplied by Neaf itself.
+If none given, a sane default is supplied.
 
 =cut
 
-sub session_id_regex {return};
+sub session_id_regex {
+    return qr([A-Za-z_\d\.\/\?\-\@+=]+);
+};
 
 =head2 get_session_id( [$user_salt] )
 
@@ -133,7 +135,7 @@ sub get_session_id {
     # public data (session_id) should NOT be used for generation
     $old_rand = int (rand() * $max );
     my $ret = encode_base64( $Hash->( pack "aL", $old_mix, $old_rand ) );
-    $ret =~ s/\s+//gs;
+    $ret =~ s/[\s=]+//gs;
     $ret = substr( $ret, 0, $Truncate )
         if $Truncate and $Truncate < length $ret;
     return $ret;

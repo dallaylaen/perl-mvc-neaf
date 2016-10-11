@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.09;
+our $VERSION = 0.0901;
 
 =head1 NAME
 
@@ -598,8 +598,7 @@ sub set_session_handler {
     $self->_croak("engine object does not have methods: @missing")
         if @missing;
 
-    # This default regex supports base64, dot-catenated numbers, etc
-    my $regex = $sess->session_id_regex || qr([A-Za-z_0-9/\-\+\@\.]+);
+    my $regex = $sess->session_id_regex || qr(^$);
     my $ttl   = $opt{ttl} || $sess->session_ttl || 0;
 
     $self->{session_handler} = [ $sess, $cook, $regex, $ttl ];
