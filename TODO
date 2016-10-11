@@ -1,6 +1,8 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
+0.09    0.10    API MINOR add is_post to Req
+0.09    0.20    MOD Add predefined regexps to default FORM impl
 
 -- backlog --
 0.02    0.20    TPL Add TT caching
@@ -14,6 +16,9 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.06    0.20    API Apply defaults to error tpl also
 0.06    0.20    NET REST
 0.06    0.20    NET HMAC
+0.09    0.90    MOD Split static outside core
+0.09    0.90    MOD Static can show dir
+0.09    0.90    MOD Static can cache small files
 0.01    0.90    DEV REPL - MVC::Neaf::Cli? with term session etc
 0.06    0.90    DOC Add plugin guidelines
 0.06    0.90    TPL TT View - somehow denote application root for links/forms
