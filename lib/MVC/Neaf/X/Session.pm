@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session;
 
 use strict;
 use warnings;
-our $VERSION = 0.0903;
+our $VERSION = 0.0904;
 
 =head1 NAME
 
@@ -113,7 +113,7 @@ my $count = 0;
 my $old_rand = 0;
 my $old_mix = '';
 our $Host = hostname() || '';
-our $Hash = \&Digest::MD5::md5_base64;
+our $Hash = \&Digest::MD5::md5;
 our $Truncate;
 
 sub get_session_id {
@@ -126,7 +126,7 @@ sub get_session_id {
     $salt = '' unless defined $salt;
 
     # using old entropy means attacker will have to guess ALL previous sessions
-    $old_mix = $Hash->(pack "LaaaaLLLLaL"
+    $old_mix = $Hash->(pack "La*a*a*a*LLLLa*L"
         , $rand, $old_mix, "#"
         , $Host, '#', $$, $time, $ms, $count
         , $salt, $old_rand);
@@ -134,7 +134,7 @@ sub get_session_id {
     # salt before second round of hashing
     # public data (session_id) should NOT be used for generation
     $old_rand = int (rand() * $max );
-    my $ret = encode_base64( $Hash->( pack "aL", $old_mix, $old_rand ) );
+    my $ret = encode_base64( $Hash->( pack "a*L", $old_mix, $old_rand ) );
     $ret =~ s/[\s=]+//gs;
     $ret = substr( $ret, 0, $Truncate )
         if $Truncate and $Truncate < length $ret;
