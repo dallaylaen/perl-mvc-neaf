@@ -117,6 +117,15 @@ Eugene Ponizovsky aka IPH had great influence over my understanding of MVC.
 
 Ideas were shamelessly stolen from PSGI, Dancer, and Catalyst.
 
+# CONTRIBUTING TO THE PROJECT
+
+* Version is just a real number x.yyzz (x=major, y=minor, z=patch)
+Please increase patch number when you commit to muster.
+
+* Indentation is 4 spaces.
+
+* Try to make sure tests pass w/o warnings.
+
 # LICENSE AND COPYRIGHT
 
 Copyright 2016 Konstantin S. Uvarin aka KHEDIN
