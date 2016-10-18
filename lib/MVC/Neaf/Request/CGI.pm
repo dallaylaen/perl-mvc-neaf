@@ -2,8 +2,24 @@ package MVC::Neaf::Request::CGI;
 
 use strict;
 use warnings;
+our $VERSION = 0.1002;
 
-our $VERSION = 0.1001;
+=head1 NAME
+
+MVC::Neaf::Request::CGI - CGI driver for Not Even A Framework.
+
+=head1 DESCRIPTION
+
+Mostly useful for command-line based debugging via L<MVC::Neaf::CLI>.
+However, a Neaf app can run as a CGI script (unless, of course, it relies on
+in-memory storage somewhere).
+
+See L<MVC::Neaf::Request> for the API. Nothing really interesting here.
+
+L<CGI> is used internally.
+
+=cut
+
 use Carp;
 use Encode;
 use HTTP::Headers;
