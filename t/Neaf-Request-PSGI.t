@@ -24,6 +24,9 @@ is ($capture_req->scheme, "http", "No https in fake req");
 ok (!$capture_req->secure, "No https = no secure");
 is ($capture_req->user_agent, undef, "no user agent");
 
+is ($capture_req->method, 'GET', "get is default method");
+ok (!$capture_req->is_post, "is_post is false");
+
 is ($capture_req->upload("masha"), undef, "No uploads");
 
 done_testing;

@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.09;
+our $VERSION = 0.0901;
 
 =head1 NAME
 
@@ -128,13 +128,31 @@ sub secure {
 =head2 method()
 
 Return the HTTP method being used.
-GET is the default value (useful for CLI debugging).
+GET is the default value if cannot find out (useful for CLI debugging).
 
 =cut
 
 sub method {
     my $self = shift;
     return $self->{method} ||= $self->do_get_method || "GET";
+};
+
+=head2 is_post()
+
+Alias for $self->method eq 'POST'.
+May be useful in form submission, as in
+
+    $form = $request->form( $validator );
+    if ($request->is_post and $form->is_valid) {
+        # save & redirect
+    };
+    # show form again
+
+=cut
+
+sub is_post {
+    my $self = shift;
+    return $self->method eq 'POST';
 };
 
 =head2 hostname()
