@@ -1,13 +1,10 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.09    0.10    API MINOR add is_post to Req
 0.09    0.10    MOD Add predefined regexps to default FORM impl
 0.09    0.10    MOD Add form defaults populating BOTH raw and data
-0.09    0.10    MOD Neaf::CLI a pain to use, autodetect by @ARGV and void ctx
 0.09    0.10    MOD Form->hmac(salt)
 0.02    0.10    TPL Add TT caching
-0.09    0.10    MOD Split static outside core
 0.09    0.10    MOD Static can cache small files
 
 -- backlog --
