@@ -20,7 +20,7 @@ WriteMakefile(
         'Template'       => 0,
         'JSON::XS'       => 1.4,
         'HTTP::Headers'  => 0,
-        'Digest::SHA'    => 0,
+        'Digest::MD5'    => 0,
         'parent'         => 0,
         'CGI'            => 0,
     },
