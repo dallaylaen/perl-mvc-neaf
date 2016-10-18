@@ -2,7 +2,7 @@ package MVC::Neaf::CLI;
 
 use strict;
 use warnings;
-our $VERSION = 0.09;
+our $VERSION = 0.0901;
 
 =head1 NAME
 
@@ -16,7 +16,7 @@ This is only useful for debugging, slightly better than CGI.pm's though.
 
 =head1 SINOPSYS
 
-    perl -MMVC::Neaf::CLI application.pl --post /foo/bar arg=42
+    perl application.pl --post /foo/bar arg=42
 
 =head1 OPTIONS
 
@@ -42,6 +42,12 @@ usage message
 
 =back
 
+=head2 METHODS
+
+The usage doesn't expect these are called directly.
+
+But just for the sake of completeness...
+
 =cut
 
 use Getopt::Long;
@@ -52,52 +58,16 @@ use MVC::Neaf;
 use MVC::Neaf::Request::CGI;
 use MVC::Neaf::Upload;
 
-my $skip;
-sub import {
-    # Don't run twice
-    $skip++
-        if (@_ == 2 and $_[1] eq 'skip');
-    return if $skip++;
+=head2 run()
 
-    my $self = shift; # TODO args?
+Run the application.
+This reads command line options, as shown in the summary above.
 
-    # Hijack MVC::Neaf->run
-    # run() may be called in scalar context, this is ok (e.g. in require);
-    # we're waiting for the final call w/o context.
-    my $realrun = MVC::Neaf->can("run");
+B<NOTE> Spoils @AGRV.
 
-    no warnings 'redefine', 'once'; ## no critic
-    *MVC::Neaf::run = sub {
-        if (defined wantarray) {
-            $realrun->(@_);
-        } else {
-            $self->_run();
-        };
-    };
-};
+=cut
 
-sub _usage {
-    my $pack = __PACKAGE__;
-
-    print <<"USAGE";
-Usage: perl -M$pack [options] <your-script> <param=value>
-RRun a Neaf application from command line with variour parameters altered.
-Options may include:
-    --post - set method to POST
-    --method METHOD - set method to anything else
-    --upload id=/path/to/file - add upload. Requires --post.
-    --cookie name="value" - add cookie.
-    --header name="value" - set http header.
-    --view - force (JS,TT,Dumper) view.
-    --list - print routes configured in the application.
-    --help - this message
-See `perldoc $pack` for more.
-USAGE
-
-    exit 0; # Yes this module may exit if used at startup & --help given
-};
-
-sub _run {
+sub run {
     my $self = shift;
 
     my $todo = "run";
@@ -108,7 +78,7 @@ sub _run {
     my $view;
 
     GetOptions(
-        "help"      => \&_usage,
+        "help"      => \&usage,
         "list"      => sub { $todo = "list" },
         "post"      => sub { $opt{method} = 'POST' },
         "method=s"  => \$opt{method},
@@ -125,7 +95,7 @@ sub _run {
         if @upload and $opt{method} ne 'POST';
 
     if ($todo eq 'list') {
-        return $self->_list;
+        return $self->list;
     };
 
     foreach (@upload) {
@@ -167,7 +137,42 @@ sub _run {
     MVC::Neaf->handle_request( $req );
 };
 
-sub _list {
+=head2 usage()
+
+Display help message and exit(0).
+
+B<NOTE> exit() used.
+
+=cut
+
+sub usage {
+    my $pack = __PACKAGE__;
+
+    print <<"USAGE";
+Usage: perl -M$pack [options] <your-script> <param=value>
+RRun a Neaf application from command line with variour parameters altered.
+Options may include:
+    --post - set method to POST
+    --method METHOD - set method to anything else
+    --upload id=/path/to/file - add upload. Requires --post.
+    --cookie name="value" - add cookie.
+    --header name="value" - set http header.
+    --view - force (JS,TT,Dumper) view.
+    --list - print routes configured in the application.
+    --help - this message
+See `perldoc $pack` for more.
+USAGE
+
+    exit 0; # Yes, MVC::Neaf::CLI->usage() will exit deliberately.
+};
+
+=head2 list()
+
+List registered Neaf routes.
+
+=cut
+
+sub list {
     my ($self, $req) = @_;
 
     my $routes = MVC::Neaf->get_routes;

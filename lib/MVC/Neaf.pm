@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0901;
+our $VERSION = 0.0902;
 
 =head1 NAME
 
@@ -170,11 +170,6 @@ use parent qw(Exporter);
 our @EXPORT_OK = qw(neaf_err);
 
 use MVC::Neaf::Request;
-if ($ENV{MOD_PERL}) {
-    # If we're being requested from within Apache, try loading its driver
-    # RIGHT NOW so that startup fails loudly if it fails.
-    require MVC::Neaf::Request::Apache2;
-};
 
 our $Inst = __PACKAGE__->new;
 
@@ -710,15 +705,26 @@ sub error_template {
 =head2 run()
 
 Run the applicaton.
+This should be in the last statement in your appication main file.
 
-Returns a (PSGI-compliant) coderef under PSGI.
+If called in void context, assumes CGI is being used and instantiates
+L<MVC::Neaf::Request::CGI>.
+If command line options are present at the time,
+enters debug mode via L<MVC::Neaf::CLI>.
+
+Otherwise returns a PSGI-compliant coderef.
+This will also happen if you application is C<require>'d,
+meaning that it returns a true value and actually serves nothing until
+run() is called again.
+
+Running under mod_perl requires setting a handler with
+L<MVC::Neaf::Request::Apache2>.
 
 =cut
 
 sub run {
     my $self = shift;
     $self = $Inst unless ref $self;
-    # TODO Better detection still wanted
 
     $self->{route_re} ||= $self->_make_route_re;
 
@@ -737,8 +743,14 @@ sub run {
     } else {
         # void context - CGI called.
         require MVC::Neaf::Request::CGI;
-        my $req = MVC::Neaf::Request::CGI->new;
-        $self->handle_request( $req );
+
+        if (@ARGV) {
+            require MVC::Neaf::CLI;
+            MVC::Neaf::CLI->run;
+        } else {;
+            my $req = MVC::Neaf::Request::CGI->new;
+            $self->handle_request( $req );
+        };
     };
 };
 
