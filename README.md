@@ -81,7 +81,7 @@ No need for separate web server to test your CSS/images.
 
 # NOT SO BORING FEATURES
 
-* CLI-based debugging via `perl -MMVC::Neaf::CLI <your_app.pl>`
+* CLI-based debugging via `perl <your_app.pl> --help|--list|--method GET`
 
 * Can gather performance statistics if needed;
 

@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.10;
+our $VERSION = 0.1001;
 
 =head1 NAME
 
@@ -56,7 +56,7 @@ as a CGI script, PSGI application, or Apache handler.
 
 =head2 THE CONTROLLER
 
-The Controller sub receives a L<MCV::Neaf::Request> object
+The Controller sub receives an L<MVC::Neaf::Request> object
 and outputs a \%hashref.
 
 It may also die, which will be interpreted as an error 500,
@@ -488,19 +488,19 @@ The engine MUST provide the following methods
 
 =over
 
-=item *session_ttl (implemented in MVC::Neaf::X::Session);
+=item * session_ttl (implemented in MVC::Neaf::X::Session);
 
-=item *session_id_regex (implemented in MVC::Neaf::X::Session);
+=item * session_id_regex (implemented in MVC::Neaf::X::Session);
 
-=item *get_session_id (implemented in MVC::Neaf::X::Session);
+=item * get_session_id (implemented in MVC::Neaf::X::Session);
 
-=item *create_session (implemented in MVC::Neaf::X::Session);
+=item * create_session (implemented in MVC::Neaf::X::Session);
 
-=item *save_session (required);
+=item * save_session (required);
 
-=item *load_session (required);
+=item * load_session (required);
 
-=item *delete_session (implemented in MVC::Neaf::X::Session);
+=item * delete_session (implemented in MVC::Neaf::X::Session);
 
 =back
 
@@ -981,18 +981,17 @@ sub _croak {
     croak( (ref $self || $self)."->$where: $msg" );
 };
 
-=head1 AUTHOR
-
-Konstantin S. Uvarin, C<< <khedin at gmail.com> >>
-
 =head1 BUGS
 
-Lots of them, this is ALPHA software.
+Lots of them, this software is still under heavy development.
 
-Please report any bugs or feature requests to C<bug-mvc-neaf at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=MVC-Neaf>.  I will be notified, and then you'll
+Please report any bugs or feature requests to
+L<https://github.com/dallaylaen/perl-mvc-neaf/issues>.
+
+Alternatively, email them to C<bug-mvc-neaf at rt.cpan.org>, or report through
+the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=MVC-Neaf>.
+I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
-
 
 =head1 SUPPORT
 
@@ -1000,10 +999,13 @@ You can find documentation for this module with the perldoc command.
 
     perldoc MVC::Neaf
 
-
 You can also look for information at:
 
 =over 4
+
+=item * Github: https://github.com/dallaylaen/perl-mvc-neaf
+
+=item * MetaCPAN: https://metacpan.org/pod/MVC::Neaf
 
 =item * RT: CPAN's request tracker (report bugs here)
 

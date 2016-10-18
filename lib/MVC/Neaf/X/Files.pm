@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.10;
+our $VERSION = 0.1001;
 
 =head1 NAME
 

@@ -1,6 +1,6 @@
 \.(git|svn)(/|$)
 blib\.*
-Makefile
+Makefile$
 Makefile.old
 Build
 Build.bat
@@ -13,7 +13,6 @@ pod2htm.*.tmp
 MVC-Neaf-.*
 \..*\.swp
 nocommit-.*
-MYMETA.*
 nytprof.*
 .*\.(bak|old|orig|rej)
 ^apache.cgi
