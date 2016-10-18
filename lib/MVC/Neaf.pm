@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.0903;
+our $VERSION = 0.0904;
 
 =head1 NAME
 
@@ -312,7 +312,11 @@ Known file types are listed in %MVC::Neaf::ExtType hash. Patches welcome.
 =over
 
 =item * buffer => nnn - buffer size for reading/writing files.
-Default is 4096. Smaller value may be set, but are NOT recommended.
+Default is 4096. Smaller values may be set, but are NOT recommended.
+
+=item * cache_ttl => nnn - if given, files below the buffer size will be stored
+in memory for cache_ttl seconds.
+B<EXPERIMENTAL>. Cache API is not yet established.
 
 =back
 

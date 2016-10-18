@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.0901;
+our $VERSION = 0.0902;
 
 =head1 NAME
 
@@ -30,6 +30,10 @@ use parent qw(MVC::Neaf::X);
 
 =item * buffer - buffer size for serving files.
 
+=item * cache_ttl - if given, files below the buffer size will be stored
+in memory for cache_ttl seconds.
+B<EXPERIMENTAL>. Cache API is not yet established.
+
 =back
 
 =cut
@@ -37,12 +41,12 @@ use parent qw(MVC::Neaf::X);
 sub new {
     my ($class, %options) = @_;
 
+    defined $options{root}
+        or $class->my_croak( "option 'root' is required" );
+
     $options{buffer} ||= 4096;
     $options{buffer} =~ /^(\d+)$/
         or $class->my_croak( "option 'buffer' must be a positive integer" );
-
-    defined $options{root}
-        or $class->my_croak( "option 'root' is required" );
 
     return $class->SUPER::new(%options);
 };
@@ -84,11 +88,23 @@ sub make_handler {
         $file =~ s#/*$##;
         $file =~ s#/+#/#g;
 
-        # open file
-        $file = join "", $dir, $file;
+        my $time = time;
 
-        die 403 if -d $file;
-        my $ok = open (my $fd, "<", "$file");
+        if (my $data = $self->{cache_content}{$file}) {
+            if ($data->{expire} < $time) {
+                delete $self->{cache_content}{$file};
+            } else {
+                $req->set_header( content_disposition => $data->{disposition} )
+                    if $data->{disposition};
+                return { -content => $data->{data}, -type => $data->{type} };
+            };
+        };
+
+        # open file
+        my $xfile = join "", $dir, $file;
+
+        die 403 if -d $xfile;
+        my $ok = open (my $fd, "<", "$xfile");
         if (!$ok) {
             # TODO Warn
             die 404;
@@ -100,18 +116,28 @@ sub make_handler {
 
         # determine type, fallback to extention
         my $type;
-        $file =~ m#(?:^|/)([^\/]+?(?:\.(\w+))?)$#;
+        $xfile =~ m#(?:^|/)([^\/]+?(?:\.(\w+))?)$#;
         $type = $ExtType{lc $2} if defined $2;
 
         my $show_name = $1;
         $show_name =~ s/[\"\x00-\x19\\]/_/g;
-        $req->set_header( content_disposition =>
-            "attachment; filename=\"$show_name\"")
-                unless $type and $type =~ qr#^text|^image|javascript#;
+
+        my $disposition = ($type && $type =~ qr#^text|^image|javascript#)
+            ? ''
+            : "attachment; filename=\"$show_name\"";
+        $req->set_header( content_disposition => $disposition )
+                if $disposition;
 
         # return whole file if possible
-        return { -content => $buf, -type => $type }
-            if $size < $bufsize;
+        if ($size < $bufsize) {
+            if ($self->{cache_ttl}) {
+                $self->{cache_content}{$file}{data} = $buf;
+                $self->{cache_content}{$file}{expire} = $time + $self->{cache_ttl};
+                $self->{cache_content}{$file}{type} = $type;
+                $self->{cache_content}{$file}{disposition} = $disposition;
+            };
+            return { -content => $buf, -type => $type }
+        };
 
         # If file is big, print header & first data chunk ASAP
         # then do the rest via a second callback
