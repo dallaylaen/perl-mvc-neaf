@@ -1,5 +1,11 @@
 Revision history for MVC-Neaf
 
+0.10    Tue Oct 18 2016
+        API Add cache_ttl to cache static files, move static to X::Files
+        DEV Make MVC::Neaf call cli-debug if CGI detected w/nonempty @ARGV
+        API add is_post shorthand for method() eq POST
+        BUG Fix X::Session sloppy pack() and double base64
+
 0.09    Sat Oct 01 2016
         MOD Add form validator with resubmission, redo LIVR support completely
         DEV Add CLI debugging module

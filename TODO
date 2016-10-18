@@ -1,13 +1,12 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.09    0.10    MOD Add predefined regexps to default FORM impl
-0.09    0.10    MOD Add form defaults populating BOTH raw and data
-0.09    0.10    MOD Form->hmac(salt)
-0.02    0.10    TPL Add TT caching
-0.09    0.10    MOD Static can cache small files
 
 -- backlog --
+0.09    0.20    MOD Add predefined regexps to default FORM impl
+0.09    0.20    MOD Add form defaults populating BOTH raw and data
+0.09    0.20    MOD Form->hmac(salt)
+0.02    0.20    TPL Add TT caching
 0.09    0.20    API Make path_info have no /, screw standards
 0.08    0.20    API Add Req alias methods for -dashed -return -keys
 0.08    0.20    API Req->reply to return immediately

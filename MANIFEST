@@ -30,6 +30,7 @@ lib/MVC/Neaf/View/Dumper.pm
 lib/MVC/Neaf/View/JS.pm
 lib/MVC/Neaf/View/TT.pm
 lib/MVC/Neaf/X.pm
+lib/MVC/Neaf/X/Files.pm
 lib/MVC/Neaf/X/Form.pm
 lib/MVC/Neaf/X/Form/Data.pm
 lib/MVC/Neaf/X/Form/LIVR.pm
@@ -53,6 +54,7 @@ t/Neaf-Upload.t
 t/Neaf-view.t
 t/Neaf.t
 t/plackup-integration.t
+t/Request-header-out.t
 t/todo.t
 t/X-CLI.t
 t/X-Form-LIVR.t
