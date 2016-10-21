@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1002;
+our $VERSION = 0.1003;
 
 =head1 NAME
 
@@ -182,7 +182,9 @@ will now be directed to CODEREF.
 
 Longer paths are GUARANTEED to be checked first.
 
-Dies if same route is given twice.
+Dies if the same method and path combo is given again.
+Multiple methods may be given for the same path,
+e.g. when handling REST.
 
 Exactly one leading slash will be prepended no matter what you do.
 (C<path>, C</path> and C</////path> are all the same).
@@ -193,7 +195,7 @@ Exactly one leading slash will be prepended no matter what you do.
 
 =item * description - just for information, has no action on execution.
 
-=item * method - list of allowed HTTP methods - GET, POST & so on.
+=item * method - list of allowed HTTP methods. Default is [GET, POST, HEAD].
 
 =item * view - default View object for this Controller.
 Must be an object with a C<render> methods, or a CODEREF
