@@ -3,6 +3,7 @@ SINCE VERSION | TBD VERSION | COMMENT
 -- next --
 
 -- backlog --
+0.10    0.10    API Fancy error templates => coderef($req)
 0.09    0.20    MOD Add predefined regexps to default FORM impl
 0.09    0.20    MOD Add form defaults populating BOTH raw and data
 0.09    0.20    MOD Form->hmac(salt)
@@ -18,6 +19,8 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.06    0.20    API Apply defaults to error tpl also
 0.06    0.20    NET REST
 0.06    0.20    NET HMAC
+0.10    0.20    API International - how???
+0.10    0.20    MOD Cookie-based session
 0.09    0.90    MOD Static can show dir
 0.01    0.90    DEV REPL - MVC::Neaf::Cli? with term session etc
 0.06    0.90    DOC Add plugin guidelines

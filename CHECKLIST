@@ -1,10 +1,11 @@
-# Perform these checks before releasing a version
+# Self note for maintainer
+# Perform these checks while releasing a version
 
 % git status
-- on devel
+- on master
 - no extra files
 
-% prove -I lib xt t
+% prove -I lib t
 - no warnings
 
 % perl Makefile.PL
@@ -12,6 +13,14 @@
 % cover -t
 - must exceed 70%
 
+% rm MANIFEST
+% make manifest
+% grep nocommit MANIFEST
+- must be empty
+
+% make disttest
+
+# smoke-test
 % ./apache.cgi start
 - http://localhost:8001/request/parser
 - must redirect, no "unimplemented" (except referer)
@@ -30,29 +39,33 @@
 
 # got here - commit!
 
-% rm MANIFEST
-% make manifest
-% grep nocommit MANIFEST
-- must be empty
+MINOR
+% VERSION=`perl -wne '/^our *\$VERSION *= *(\d.\d{,4})\d*;$/ or next; print $1+0.0001; last' lib/MVC/Neaf.pm`
+% echo $VERSION
+- must be x.yyzz
 
-% grep -r VERSION lib | grep '[0-9][0-9][0-9]' | sed 's/:/ /'
-- version-bump ALL except 0.0x (didn't change since last release)
+MAJOR
+% VERSION=`perl -wne '/^our *\$VERSION *= *(\d.\d\d)\d*;$/ or next; print $1+0.01; last' lib/MVC/Neaf.pm`
+% echo $VERSION
+- must be x.yy
+
+# version-bump
+% find lib/ -name \*.pm | xargs perl -w -i -p -e 's/^our \$VERSION *=.*;/our \$VERSION = '"$VERSION"';/'
+% git diff
+- must ONLY contain version bump
 
 % vim -p Changes TODO README.md
 - :r !git log --oneline | head -n 20
-- remove completed, add new, sort by target version
-- catch up with features
+- todo: remove completed, add new, sort by target version
+- readme: catch up with features
 
-% git commit -a -m "^_^ Version 0.08 released NOCODE"
+% perl Makefile.PL
+% make dist
 
-% git checkout master
-
-% git merge devel
-
-% git tag v.0.08 -m "Version 0.08 released"
-
+% git commit -a -m "^_^ Version $VERSION released NOCODE"
+% git tag "v.$VERSION" -m "Version $VERSION released"
 % git push && git push --tags
 
-% git checkout devel
+- upload to CPAN
 
-ALL FOLKS
+# ALL FOLKS

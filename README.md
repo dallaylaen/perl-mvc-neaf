@@ -64,7 +64,7 @@ on the `?name=` parameter.
 
 # FEATURES
 
-* GET, POST, and HEAD requests; uploads; redirects; and cookies 
+* GET, POST, and HEAD requests; uploads; redirects; and cookies
 are supported.
 Not quite impressive, but it's 95% of what's needed 95% of the time.
 
@@ -111,20 +111,15 @@ Lots of them. Still under heavy development.
 
 Patches and proposals are welcome.
 
+# CONTRIBUTING TO THIS PROJECT
+
+Please see STYLE.md for the style guide.
+
 # ACKNOWLEDGEMENTS
 
 Eugene Ponizovsky aka IPH had great influence over my understanding of MVC.
 
 Ideas were shamelessly stolen from PSGI, Dancer, and Catalyst.
-
-# CONTRIBUTING TO THE PROJECT
-
-* Version is just a real number x.yyzz (x=major, y=minor, z=patch)
-Please increase patch number when you commit to muster.
-
-* Indentation is 4 spaces.
-
-* Try to make sure tests pass w/o warnings.
 
 # LICENSE AND COPYRIGHT
 
