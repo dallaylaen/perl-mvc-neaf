@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1001;
+our $VERSION = 0.1002;
 
 =head1 NAME
 
@@ -222,31 +222,23 @@ sub route {
     # root becomes nothing (which is OK with us).
     $path =~ s#^/*#/#;
     $path =~ s#/+$##;
-    $self->_croak( "Attempting to set duplicate handler for path "
+
+    $args{method} ||= [qw[ GET POST HEAD ]];
+    $args{method} = [ $args{method} ] unless ref $args{method} eq 'ARRAY';
+
+    my @dupe = grep { exists $self->{route}{$path}{$_} } @{ $args{method} };
+    $self->_croak( "Attempting to set duplicate handler for [@dupe] "
         .( length $path ? $path : "/" ) )
-            if $self->{route}{ $path };
-
-    # reset cache
-    $self->{route_re} = undef;
-
-    my %profile;
+            if @dupe;
 
     # Do the work
+    my %profile;
     $profile{code}     = $sub;
     $profile{caller}   = [caller(0)]; # file,line
 
     # Just for information
     $profile{path}        = $path;
     $profile{description} = $args{description};
-
-    if ($args{method}) {
-        $args{method} = [ $args{method} ] unless ref $args{method} eq 'ARRAY';
-        my %allowed;
-        foreach (@{ $args{method} }) {
-            $allowed{ uc $_ }++;
-        };
-        $profile{allowed_methods} = \%allowed;
-    };
 
     if (my $view = $args{view}) {
         if (!ref $view) {
@@ -261,7 +253,11 @@ sub route {
         $profile{view} = $view;
     };
 
-    $self->{route}{ $path } = \%profile;
+    # ready, install handler & burn cache
+    delete $self->{route_re};
+    $self->{route}{ $path }{$_} = \%profile
+        for @{ $args{method} };
+
     return $self;
 };
 
@@ -843,8 +839,7 @@ sub handle_request {
         # Lookup the rules for the given path
         $req->path =~ $self->{route_re} and $route = $self->{route}{$1}
             or die "404\n";
-        !exists $route->{allowed_methods}
-            or $route->{allowed_methods}{ $req->method }
+        $route = $route->{ $req->method }
             or die "405\n";
         $req->set_full_path( $1, $2 );
 
