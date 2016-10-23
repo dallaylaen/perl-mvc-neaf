@@ -1,26 +1,25 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
+0.10    0.20    DOC More examples in doc
 
 -- backlog --
-0.10    0.10    API Fancy error templates => coderef($req)
+0.10    0.30    API Request->begin, Request->commit to hook transation callb
+0.10    0.20    MOD Cookie-based session
+0.10    0.20    API Fancy error templates => coderef($req) - how to pass err?
 0.09    0.20    MOD Add predefined regexps to default FORM impl
 0.09    0.20    MOD Add form defaults populating BOTH raw and data
 0.09    0.20    MOD Form->hmac(salt)
 0.02    0.20    TPL Add TT caching
-0.09    0.20    API Make path_info have no /, screw standards
+0.09    0.20    API Add method for path_info =~ regex , kill leading slash
 0.08    0.20    API Add Req alias methods for -dashed -return -keys
 0.08    0.20    API Req->reply to return immediately
-0.07    0.20    AUX Add Install.PL for in-place installation (do we need it?)
-0.07    0.20    REF session( noinit = 1 ) is WRONG, think better
 0.03    0.20    NET Fixup http header handling, read more
 0.02    0.20    DEV Add dumper to TT view
 0.06    0.20    API Exact matching uris - /$ or /? but not /foo (w/a: die 404 if path_info)
 0.06    0.20    API Apply defaults to error tpl also
-0.06    0.20    NET REST
 0.06    0.20    NET HMAC
 0.10    0.20    API International - how???
-0.10    0.20    MOD Cookie-based session
 0.09    0.90    MOD Static can show dir
 0.01    0.90    DEV REPL - MVC::Neaf::Cli? with term session etc
 0.06    0.90    DOC Add plugin guidelines
@@ -38,3 +37,5 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.02    0.90    API Allow app nesting/isolation
 0.01    0.99    MOD Caching: LIVR form( key present, nocache missing) => sub{}
 0.04    0.99    MOD CGI wrapper: use wrapper; route(/) {...}; run();
+0.07    0.99    AUX Add Install.PL for in-place installation (do we need it?)
+0.07    0.20    REF session( noinit = 1 ) is WRONG, think better

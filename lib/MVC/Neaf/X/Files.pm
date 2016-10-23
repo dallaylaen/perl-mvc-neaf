@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.1001;
+our $VERSION = 0.1002;
 
 =head1 NAME
 
@@ -14,7 +14,16 @@ MVC::Neaf::X::Files - serve static content for Not Even A Framework.
 
      MVC::Neaf->static( "/path/in/url" => "/local/path", %options );
 
+These options would go to this module's new() method described below.
+
 =head1 DESCRIPTION
+
+Serving static content in production via a perl application framework
+is a bad idea.
+However, forcing the user to run a separate web-server just to test
+their CSS, JS, and images is an even worse one.
+
+So this module is here to fill the gap.
 
 =head1 METHODS
 

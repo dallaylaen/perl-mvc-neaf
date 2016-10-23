@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1003;
+our $VERSION = 0.1004;
 
 =head1 NAME
 
@@ -303,7 +303,8 @@ Serve static content located under $file_path.
 
 File type detection is based on extention.
 This MAY change in the future.
-Known file types are listed in %MVC::Neaf::ExtType hash. Patches welcome.
+Known file types are listed in %MVC::Neaf::X::Files::ExtType hash.
+Patches welcome.
 
 %options may include:
 
@@ -315,6 +316,8 @@ Default is 4096. Smaller values may be set, but are NOT recommended.
 =item * cache_ttl => nnn - if given, files below the buffer size will be stored
 in memory for cache_ttl seconds.
 B<EXPERIMENTAL>. Cache API is not yet established.
+
+=item * description - comment. The default is "Static content at $dir"
 
 =back
 
@@ -328,14 +331,21 @@ This is the intended usage.
 
 =cut
 
+my %static_options;
+$static_options{$_}++ for qw( description buffer cache_ttl );
 sub static {
     my ($self, $path, $dir, %options) = @_;
     $self = $Inst unless ref $self;
 
+    my @extra = grep { !$static_options{$_} } keys %options;
+    $self->_croak( "Unknown options @extra" )
+        if @extra;
+
     require MVC::Neaf::X::Files;
     my $xfiles = MVC::Neaf::X::Files->new( %options, root => $dir );
     return $self->route($path => $xfiles->make_handler
-        , method => ['GET', 'HEAD']);
+        , method => ['GET', 'HEAD']
+        , description => $options{description} || "Static content at $dir" );
 };
 
 =head2 pre_route( sub { ... } )
