@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1002;
+our $VERSION = 0.1003;
 
 =head1 NAME
 
@@ -363,12 +363,14 @@ sub form {
 Return a group of form parameters as a hashref.
 Only values that pass corresponding validation are added.
 
-B<EXPERIMANTAL>. API and naming subject to change.
+B<DEPRECATED>. Use L<MVC::Neaf::X::Form> instead.
 
 =cut
 
 sub get_form_as_hash {
     my ($self, %spec) = @_;
+
+    carp "DEPRECATED. get_form_as_hash() will be removed soon.";
 
     my %form;
     foreach (keys %spec) {
@@ -386,14 +388,15 @@ sub get_form_as_hash {
 Return a group of form parameters as a list, in that order.
 Values that fail validation are returned as undef, unless default given.
 
-B<EXPERIMANTAL>. API and naming subject to change.
+B<DEPRECATED>. Use L<MVC::Neaf::X::Form> instead.
 
 =cut
 
 sub get_form_as_list {
     my ($self, $spec, @list) = @_;
 
-    # TODO Should we?
+    carp "DEPRECATED. get_form_as_list() will be removed soon.";
+
     $self->_croak( "Meaningless call in scalar context" )
         unless wantarray;
 

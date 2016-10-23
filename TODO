@@ -1,9 +1,9 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.10    0.20    DOC More examples in doc
 
 -- backlog --
+0.10    0.20    API Multivalues support
 0.10    0.30    API Request->begin, Request->commit to hook transation callb
 0.10    0.20    MOD Cookie-based session
 0.10    0.20    API Fancy error templates => coderef($req) - how to pass err?
