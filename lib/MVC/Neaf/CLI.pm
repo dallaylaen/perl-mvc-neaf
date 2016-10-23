@@ -2,7 +2,7 @@ package MVC::Neaf::CLI;
 
 use strict;
 use warnings;
-our $VERSION = 0.1002;
+our $VERSION = 0.1009;
 
 =head1 NAME
 
@@ -53,6 +53,7 @@ But just for the sake of completeness...
 use Getopt::Long;
 use Carp;
 use HTTP::Headers;
+use File::Basename qw(basename);
 
 use MVC::Neaf;
 use MVC::Neaf::Request::CGI;
@@ -146,21 +147,25 @@ B<NOTE> exit() used.
 =cut
 
 sub usage {
-    my $pack = __PACKAGE__;
+    my $script = basename($0);
 
     print <<"USAGE";
-Usage: perl -M$pack [options] <your-script> <param=value>
-RRun a Neaf application from command line with variour parameters altered.
+    $script
+is a web-application powered by Perl and MVC::Neaf (Not Even A Framework).
+It will behave according to the CGI spec if run without parameters.
+It will return a PSGI-compliant subrouting if require'd from other Perl code.
+To invoke debugging mode, run:
+    perl $script [options] [/path] <param=value> ...
 Options may include:
-    --post - set method to POST
-    --method METHOD - set method to anything else
+    --post - force request method to POST
+    --method METHOD - force method to anything else
     --upload id=/path/to/file - add upload. Requires --post.
     --cookie name="value" - add cookie.
     --header name="value" - set http header.
     --view - force (JS,TT,Dumper) view.
     --list - print routes configured in the application.
-    --help - this message
-See `perldoc $pack` for more.
+    --help - print this message and exit.
+See `perldoc MVC::Neaf::CLI` for more.
 USAGE
 
     exit 0; # Yes, MVC::Neaf::CLI->usage() will exit deliberately.
