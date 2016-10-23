@@ -1,5 +1,4 @@
 Changes
-CHECKLIST
 example/01-request.pl
 example/02-get.pl
 example/03-post.pl
@@ -14,6 +13,7 @@ example/22-jsonp.pl
 example/23-form.pl
 example/24-static.pl
 example/25-session.pl
+example/26-restful.pl
 example/51-wiki.pl
 example/all-of-them.psgi
 example/README
@@ -43,6 +43,7 @@ MYMETA.json
 MYMETA.yml
 README
 README.md
+STYLE.md
 t/Neaf-binary.t
 t/Neaf-content-length.t
 t/Neaf-error-template.t
@@ -52,6 +53,7 @@ t/Neaf-Request-Apache.t
 t/Neaf-Request-CGI.t
 t/Neaf-Request-PSGI.t
 t/Neaf-Request.t
+t/Neaf-rest.t
 t/Neaf-static.t
 t/Neaf-Upload.t
 t/Neaf-view.t

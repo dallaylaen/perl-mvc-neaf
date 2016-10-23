@@ -11,7 +11,7 @@
 % perl Makefile.PL
 
 % cover -t
-- must exceed 70%
+- must exceed 80%
 
 % rm MANIFEST
 % make manifest
@@ -40,12 +40,12 @@
 # got here - commit!
 
 MINOR
-% VERSION=`perl -wne '/^our *\$VERSION *= *(\d.\d{,4})\d*;$/ or next; print $1+0.0001; last' lib/MVC/Neaf.pm`
+% VERSION=`perl -wne '/^our *\\$VERSION *= *(\d.\d{,4})\d*;$/ or next; print $1+0.0001; last' lib/MVC/Neaf.pm`
 % echo $VERSION
 - must be x.yyzz
 
 MAJOR
-% VERSION=`perl -wne '/^our *\$VERSION *= *(\d.\d\d)\d*;$/ or next; print $1+0.01; last' lib/MVC/Neaf.pm`
+% VERSION=`perl -wne '/^our *\\$VERSION *= *(\d.\d\d)\d*;$/ or next; print $1+0.01; last' lib/MVC/Neaf.pm`
 % echo $VERSION
 - must be x.yy
 

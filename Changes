@@ -1,5 +1,11 @@
 Revision history for MVC-Neaf
 
+0.11    Sun Oct 23 2016
+        API Deprecated old form() substitutes
+        API Allow different handlers per (method, path) combo; default allowed methods = [GET, POST, HEAD]
+        DOC Update readme & checklist, write style guide
+        DOC Improve CORE docs, add example snippets there
+
 0.10    Tue Oct 18 2016
         API Add cache_ttl to cache static files, move static to X::Files
         DEV Make MVC::Neaf call cli-debug if CGI detected w/nonempty @ARGV

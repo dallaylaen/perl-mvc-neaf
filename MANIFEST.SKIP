@@ -17,3 +17,4 @@ nytprof.*
 .*\.(bak|old|orig|rej)
 ^apache.cgi
 ^\.
+^CHECKLIST$

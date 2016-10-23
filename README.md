@@ -39,7 +39,7 @@ Request knows all you need to know about the outside world.
 
 * Trust nobody. Validate the data.
 
-* Force UTF8 if possible. It's 21st century already.
+* Force UTF8 if possible. It's 21st century.
 
 # EXAMPLE
 
@@ -78,6 +78,8 @@ Not quite impressive, but it's 95% of what's needed 95% of the time.
 No need for separate web server to test your CSS/images.
 
 * sanitized query parameters and cookies out of the box.
+
+* Easy to develop RESTful web-services.
 
 # NOT SO BORING FEATURES
 
