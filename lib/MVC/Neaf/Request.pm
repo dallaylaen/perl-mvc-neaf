@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1001;
+our $VERSION = 0.1002;
 
 =head1 NAME
 
@@ -782,18 +782,16 @@ sub session {
     my ($self, $noinit) = @_;
 
     # agressive caching FTW
-    return $self->{session} if exists $self->{session};
+    return $self->{session} if exists $self->{session} or $noinit;
 
     if ($self->{session_engine}) {
         my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
         $self->{session} = $self->{session_engine}->load_session( $id )
             if $id;
-        $self->{session} ||= $self->{session_engine}->create_session
-            unless $noinit;
+        $self->{session} ||= $self->{session_engine}->create_session;
     } else {
         # TODO should we die if no engine?..
-        $self->{session} = {}
-            unless $noinit;
+        $self->{session} = {};
     };
     return $self->{session};
 };
