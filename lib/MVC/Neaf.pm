@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1004;
+our $VERSION = 0.1005;
 
 =head1 NAME
 
@@ -988,9 +988,76 @@ sub _croak {
     croak( (ref $self || $self)."->$where: $msg" );
 };
 
+=head1 MORE EXAMPLES
+
+See the examples directory in this distro or at
+L<https://github.com/dallaylaen/perl-mvc-neaf/tree/master/example>
+for complete working examples.
+These below are just code snippets.
+
+All of them are supposed to start and end with:
+
+    use strict;
+    use warnings;
+    use MVC::Neaf;
+
+    # ... snippet here
+
+    MVC::Neaf->run;
+
+=head2 Static content
+
+    MVC::Neaf->static( '/images' => "/local/images" );
+    MVC::Neaf->static( '/favicon.ico' => "/local/images/icon_32x32.png" );
+
+=head2 RESTful web-service returning JSON
+
+    MVC::Neaf->route( '/restful' => sub {
+        # ...
+    }, method => 'GET', view => 'JS' );
+
+    MVC::Neaf->route( '/restful' => sub {
+        # ...
+    }, method => 'POST', view => 'JS' );
+
+    MVC::Neaf->route( '/restful' => sub {
+        # ...
+    }, method => 'PUT', view => 'JS' );
+
+=head2 Form submission
+
+    use MVC::Neaf::X::Form;
+
+    my %profile = (
+        name => [ required => '\w+' ],
+        age  => '\d+',
+    );
+    my $validator = MVC::Neaf::X::Form->new( \%profile );
+
+    MVC::Neaf->route( '/submit' => sub {
+        my $req = shift;
+
+        my $form = $req->form( $validator );
+        if ($req->is_post and $form->is_valid) {
+            do_somethong( $form->data );
+            $req->redirect( "/result" );
+        };
+
+        return {
+            -template   => 'form.tt',
+            errors      => $form->error,
+            fill_values => $form->raw,
+        };
+    } );
+
+More examples to follow as usage (hopefuly) accumulates.
+
 =head1 BUGS
 
 Lots of them, this software is still under heavy development.
+
+* Apache2 handler is a joke and requires work.
+It can still serve requests though.
 
 Please report any bugs or feature requests to
 L<https://github.com/dallaylaen/perl-mvc-neaf/issues>.
@@ -1002,9 +1069,15 @@ automatically be notified of progress on your bug as I make changes.
 
 =head1 SUPPORT
 
+This is BETA software.
+Feel free to email the author to get instant help!
+Or you can comment the L<announce|http://perlmonks.org/?node_id=1174241>
+at the Perlmonks forum.
+
 You can find documentation for this module with the perldoc command.
 
     perldoc MVC::Neaf
+    perldoc MVC::Neaf::Request
 
 You can also look for information at:
 
@@ -1032,9 +1105,16 @@ L<http://search.cpan.org/dist/MVC-Neaf/>
 
 =back
 
+=head1 SEE ALSO
+
+The L<Kelp> framework has very similar concept.
 
 =head1 ACKNOWLEDGEMENTS
 
+Ideas were shamelessly stolen from L<Catalyst>, L<Dancer>, and L<PSGI>.
+
+Thanks to Eugene Ponizovsky aka L<IPH|https://metacpan.org/author/IPH>
+for introducing me to the MVC concept.
 
 =head1 LICENSE AND COPYRIGHT
 
@@ -1045,7 +1125,6 @@ under the terms of either: the GNU General Public License as published
 by the Free Software Foundation; or the Artistic License.
 
 See http://dev.perl.org/licenses/ for more information.
-
 
 =cut
 
