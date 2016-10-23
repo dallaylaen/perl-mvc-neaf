@@ -90,7 +90,7 @@ note $resp->decoded_content;
 close (SKIP);
 close (ALSO_SKIP);
 
-undef $SIG{CHLD};
+delete $SIG{CHLD};
 kill 'INT', $pid;
 
 while (<LOG>) {
