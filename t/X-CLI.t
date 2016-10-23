@@ -25,7 +25,8 @@ my $data;
 
     MVC::Neaf->run;
 };
-is ($data, "/bar\n/foo\n", "--list works");
+like ($data, qr(^/bar.*GET.*\n/foo.*GET.*\n$)s, "--list works");
+note $data;
 
 {
     local *STDOUT;

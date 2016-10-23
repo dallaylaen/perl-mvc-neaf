@@ -175,10 +175,12 @@ foreach my $file (glob "$Bin/example/*.pl") {
 };
 
 my $list = MVC::Neaf->get_routes();
+my %seen;
 my @public = sort { $a->{path} cmp $b->{path} }
+    grep { !$seen{ $_->{path} }++ }
     grep { $_->{description} }
     grep { $_->{path} =~ m,^/cgi/, }
-    values %$list;
+    map { $_->{GET} || () } values %$list;
 
 # Process conf template
 my %vars = (

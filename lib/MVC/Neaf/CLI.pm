@@ -2,7 +2,7 @@ package MVC::Neaf::CLI;
 
 use strict;
 use warnings;
-our $VERSION = 0.1001;
+our $VERSION = 0.1002;
 
 =head1 NAME
 
@@ -177,16 +177,20 @@ sub list {
 
     my $routes = MVC::Neaf->get_routes;
 
-    foreach( sort keys %$routes ) {
-        my $profile = $routes->{$_};
-        my $method = $profile->{allowed_methods}
-            ? " [".(join ",", keys %{ $profile->{allowed_methods} })."]"
-            : "";
+    foreach my $path( sort keys %$routes ) {
+        my $batch = $routes->{$path};
 
-        my $descr = $profile->{description} ? " # $profile->{description}" : "";
-        my $path = $_ || '/';
-
-        print "$path$method$descr\n";
+        my %descr_method;
+        foreach my $method ( keys %$batch ) {
+            my $descr = $batch->{$method}{description} || '';
+            $descr = " # $descr" if $descr;
+            push @{ $descr_method{$descr} }, $method;
+        };
+        foreach my $descr( keys %descr_method ) {
+            my $method = join ",", @{ $descr_method{$descr} };
+            $path ||= '/';
+            print "$path [$method]$descr\n";
+        };
     };
 };
 
