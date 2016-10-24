@@ -18,3 +18,4 @@ nytprof.*
 ^apache.cgi
 ^\.
 ^CHECKLIST$
+MYMETA\..*

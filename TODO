@@ -7,6 +7,7 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.10    0.20    API Fancy error templates => coderef($req) - how to pass err?
 0.09    0.20    MOD Add predefined regexps to default FORM impl
 0.09    0.20    API Add method(???) for path_info =~ regex , kill leading slash 
+0.11    0.20    NET Add how-long-to-cache header to static, cache head
 
 -- backlog --
 0.10    0.20    API International - how???

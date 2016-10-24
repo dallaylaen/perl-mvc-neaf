@@ -36,6 +36,6 @@ done
 
 check_fail
 
-prove -Ilib -r xt t || fail "tests fail"
+prove -Ilib -r xt t it || fail "tests fail"
 
 check_fail
