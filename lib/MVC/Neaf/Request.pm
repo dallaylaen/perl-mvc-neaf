@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.11;
+our $VERSION = 0.1101;
 
 =head1 NAME
 
@@ -770,14 +770,21 @@ sub dump {
 =head2 session([ $noinit ])
 
 Get reference to session data.
+This reference is guaranteed to be the same throughtout the request lifetime.
 
-If set_session_handler() was called during application setup,
+If MVC::Neaf->set_session_handler() was called during application setup,
 this data will be initialized by that handler;
 otherwise initializes with an empty hash.
 
 If noinit is set to true value, don't try to initialize a new session.
 
-The reference is guaranteed to be the same throughtout the request lifetime.
+B<NOTE> noinit flag is a horribe idea. It was added so that
+session can be queried but NOT initialized from scratch
+when C<view_as> was given to set_session_handler().
+
+B<NOTE> currently session-related methods don't die if session handler
+wasn't set. Instead, they behave as if session wasn't there.
+This MAY change in the future.
 
 =cut
 
@@ -785,16 +792,18 @@ sub session {
     my ($self, $noinit) = @_;
 
     # agressive caching FTW
-    return $self->{session} if exists $self->{session} or $noinit;
+    return $self->{session} if exists $self->{session};
 
     if ($self->{session_engine}) {
         my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
         $self->{session} = $self->{session_engine}->load_session( $id )
             if $id;
-        $self->{session} ||= $self->{session_engine}->create_session;
+        $self->{session} ||= $self->{session_engine}->create_session
+            unless $noinit;
     } else {
         # TODO should we die if no engine?..
-        $self->{session} = {};
+        $self->{session} = {}
+            unless $noinit;
     };
     return $self->{session};
 };
