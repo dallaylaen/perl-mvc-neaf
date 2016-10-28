@@ -1,5 +1,9 @@
 Revision history for MVC-Neaf
 
+0.1101  Fri Oct 28 2016
+        TST Fix tests
+        BUG Fix Request->session vs view_as behaviour
+
 0.11    Sun Oct 23 2016
         API Deprecated old form() substitutes
         API Allow different handlers per (method, path) combo; default allowed methods = [GET, POST, HEAD]

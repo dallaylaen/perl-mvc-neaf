@@ -17,6 +17,8 @@ example/26-restful.pl
 example/51-wiki.pl
 example/all-of-them.psgi
 example/README
+it/plackup.t
+it/README
 lib/MVC/Neaf.pm
 lib/MVC/Neaf/CLI.pm
 lib/MVC/Neaf/Exception.pm
@@ -42,6 +44,7 @@ MANIFEST.SKIP
 README
 README.md
 STYLE.md
+t/Neaf-alias.t
 t/Neaf-binary.t
 t/Neaf-content-length.t
 t/Neaf-error-template.t
