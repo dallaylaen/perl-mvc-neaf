@@ -15,7 +15,6 @@ WriteMakefile(
     PREREQ_PM => {
         'Test::More'     => 0.87,
         'URI::Escape'    => 0,
-        'LWP::UserAgent' => 0,
         'Plack::Request' => 0,
         'Template'       => 0,
         'JSON::XS'       => 1.4,

@@ -59,7 +59,6 @@ t/Neaf-static.t
 t/Neaf-Upload.t
 t/Neaf-view.t
 t/Neaf.t
-t/plackup-integration.t
 t/Request-header-out.t
 t/todo.t
 t/X-CLI.t
