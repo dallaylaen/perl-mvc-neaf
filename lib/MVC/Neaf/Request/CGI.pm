@@ -2,7 +2,7 @@ package MVC::Neaf::Request::CGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.11;
+our $VERSION = 0.1101;
 
 =head1 NAME
 
@@ -131,6 +131,16 @@ sub do_get_params {
         $hash{$_} = $q->param($_);
     };
     return \%hash;
+};
+
+=head2 do_get_param_as_array
+
+=cut
+
+sub do_get_param_as_array {
+    my ($self, $name) = @_;
+
+    return $self->{driver}->param( $name );
 };
 
 =head2 do_get_path

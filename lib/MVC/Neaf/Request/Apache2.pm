@@ -3,11 +3,11 @@ package MVC::Neaf::Request::Apache2;
 use strict;
 use warnings;
 
-our $VERSION = 0.11;
+our $VERSION = 0.1101;
 
 =head1 NAME
 
-MVC::Neaf::Request::Apache - Apache2 (mod_perl) driver for Not Even A Framework.
+MVC::Neaf::Request::Apache2 - Apache2 (mod_perl) driver for Not Even A Framework.
 
 =head1 DESCRIPTION
 
@@ -156,6 +156,16 @@ sub do_get_params {
     $hash{$_} = $r->param($_) for $r->param;
 
     return \%hash;
+};
+
+=head2 do_get_param_as_array
+
+=cut
+
+sub do_get_param_as_array {
+    my ($self, $name) = @_;
+
+    return $self->{driver}->param( $name );
 };
 
 =head2 do_get_header_in()

@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1102;
+our $VERSION = 0.1103;
 
 =head1 NAME
 
@@ -319,6 +319,34 @@ sub param {
     return (defined $value and $value =~ /^$regex$/s)
         ? $value
         : $default;
+};
+
+=head2 param_arrayref( name => qr/regex/ )
+
+Get a single multivalue GET/POST parameter as arrayref.
+
+ALL values must match the regex, or an empty array is returned.
+
+B<EXPERIMENTAL> This method's behaviour MAY change in the future.
+Please be careful when upgrading.
+
+=cut
+
+# TODO merge param_arrayref, param, and _all_params
+# backend mechanism.
+
+sub param_arrayref {
+    my ($self, $name, $regex) = @_;
+
+    $self->_croak( "validation regex is REQUIRED" )
+        unless defined $regex;
+
+    my $ret = $self->{param_arrayref}{$name} ||= [
+        map { decode_utf8($_) } $self->do_get_param_as_array( $name ),
+    ];
+
+    # ANY mismatch = no go. Replace with simple grep if want filter EVER.
+    return (grep { !/^$regex$/s } @$ret) ? [] : $ret;
 };
 
 =head2 set_param( name => $value )
@@ -1075,6 +1103,8 @@ They shall not generally be called directly inside the app.
 
 =item * do_get_params()
 
+=item * do_get_param_as_array() - get single GET/POST param in list context
+
 =item * do_get_upload()
 
 =item * do_get_header_in() - returns a HTTP::Headers object.
@@ -1092,7 +1122,7 @@ They shall not generally be called directly inside the app.
 foreach (qw(
     do_get_method do_get_scheme do_get_hostname do_get_port do_get_path
     do_get_client_ip do_get_http_version
-    do_get_params do_get_upload do_get_header_in
+    do_get_params do_get_param_as_array do_get_upload do_get_header_in
     do_reply do_write)) {
     my $method = $_;
     my $code = sub {
