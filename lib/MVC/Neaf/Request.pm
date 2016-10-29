@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1101;
+our $VERSION = 0.1102;
 
 =head1 NAME
 
@@ -296,13 +296,14 @@ sub set_path_info {
 
 =head2 param($name, $regex [, $default])
 
-Return param, if it passes regex check, default value (or '') otherwise.
+Return param, if it passes regex check, default value or undef otherwise.
 
 The regular expression is applied to the WHOLE string,
 from beginning to end, not just the middle.
 Use '.*' if you really need none.
 
-A default value of C<undef> is possible, but must be supplied explicitly.
+B<NOTE> Behaviour changed since 0.11 - missing default value no more
+interpreted as '', returns undef.
 
 =cut
 
@@ -311,7 +312,6 @@ sub param {
 
     $self->_croak( "validation regex is REQUIRED" )
         unless defined $regex;
-    $default = '' if @_ <= 3; # deliberate undef as default = ok
 
     # Some write-through caching
     my $value = $self->_all_params->{ $name };

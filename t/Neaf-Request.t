@@ -29,7 +29,7 @@ is ($req->path, "/foo/bar/woo", "Path also modified" );
 $req->set_path_info;
 is ($req->path, "/foo/bar", "Path reset to where it was");
 
-is ($req->param( foo => qr/.*/), '', "Empty param - no undef");
+is ($req->param( foo => qr/.*/), undef, "Empty param - undef");
 $req->set_param( foo => 137 );
 is ($req->param( foo => qr/.*/), 137, "set_param round trip" );
 

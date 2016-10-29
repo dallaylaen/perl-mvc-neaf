@@ -41,7 +41,7 @@ MVC::Neaf->route( cgi => $script => sub {
     my $req = shift;
 
     my $size = $req->param( size => qr/\d+/, 100 );
-    my $mod  = $req->param( 'mod' => qr/.*/ );
+    my $mod  = $req->param( 'mod' => qr/.+/, '' );
     $mod =~ /\+/ and $size++;
     $mod =~ /\-/ and $size--;
 

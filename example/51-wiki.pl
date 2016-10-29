@@ -143,7 +143,7 @@ MVC::Neaf->route( wiki_forms => update => sub {
 
     my $topic = $req->param( topic => '[^<>&]+' );
     my $article = $req->param( article => '.*', undef );
-    length $topic and defined $article or die 422;
+    defined $topic and defined $article or die 422;
 
     $art->{$topic} = $article;
     $req->redirect( "/wiki/" . uri( $topic ) );
@@ -155,7 +155,7 @@ MVC::Neaf->route( wiki_forms => edit => sub {
 
     my $topic = $req->param( topic => '[^<>&]+' );
     my $article = $art->{$topic};
-    length $topic or die 422;
+    defined $topic or die 422;
 
     return {
         -template => \$edit,
@@ -169,7 +169,7 @@ MVC::Neaf->route( wiki_forms => edit => sub {
 MVC::Neaf->route( wiki_forms => search => sub {
     my $req = shift;
 
-    my $q = $req->param( q => qr/.*/ );
+    my $q = $req->param( q => qr/.*/, '' );
     $q =~ s/\s+/\\s+/g;
     $q =~ s/\(/\(?:/g;
 
