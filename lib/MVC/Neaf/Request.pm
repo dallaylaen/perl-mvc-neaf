@@ -3,11 +3,11 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1103;
+our $VERSION = 0.1104;
 
 =head1 NAME
 
-MVC::Neaf::Request - Request class for Neaf.
+MVC::Neaf::Request - Request class for Not Even A Framework.
 
 =head1 DESCRIPTION
 
@@ -29,8 +29,8 @@ Here's a brief overview of what a Neaf request returns:
     $req->port         = 1337
     $req->path         = /mathing/route/some/more/slashes
     $req->script_name  = /mathing/route
-    $req->path_info    = /some/more/slashes
 
+    $req->path_info( '.+' )     = some/more/slashes
     $req->param( foo => '\d+' ) = 1
 
 =head1 REQUEST METHODS
@@ -212,23 +212,34 @@ sub script_name {
     return $self->{script_name};
 };
 
-=head2 path_info( [ $trim = 0|1 ])
+=head2 path_info( $regexp )
 
-Return path_info, the part of URL between script_name and parameters.
-Empty if no such part exists.
+Returns the part of URI path beyond what matched the application's path.
 
-If trim=1 is given, removed the leading slashes.
+Contrary to the
+L<CGI specification|https://tools.ietf.org/html/rfc3875#section-4.1.5>,
+the leading slash is REMOVED before checking the regexp.
+
+The WHOLE path_info value is matched against the given regular expression.
+
+If there's no match, undef is returned.
+
+Otherwise, $1 (if present) or the whole string is returned.
 
 =cut
 
 sub path_info {
-    my ($self, $trim) = @_;
+    my ($self, $regexp) = @_;
 
+    if (!defined $regexp) {
+        carp((ref $self)."->path_info(): DEPRECATED: validation regex is now REQUIRED");
+        $regexp = '.*';
+    };
     return '' unless exists $self->{path_info};
 
-    my $path = $self->{path_info};
-    $path =~ s#^/+## if $trim;
-    return $path;
+    $self->{path_info} =~ /^$regexp$/
+        or return undef; ## no critic # YES, return undef in list context
+    return defined $1 ? $1 : $self->{path_info};
 };
 
 =head2 set_full_path( $path )
@@ -259,15 +270,17 @@ sub set_full_path {
 
     if (defined $path_info) {
         # Make sure path_info always has a slash if nonempty
-        $path_info = "/$path_info" if $path_info =~ /^[^\/]/;
+        $path_info =~ s#^/+##;
         $self->{path_info} = Encode::is_utf8($path_info)
                 ? $path_info
                 : decode_utf8(uri_unescape($path_info));
     } elsif (!defined $self->{path_info}) {
         $self->{path_info} = '';
     };
+    # assert $self->{path_info} is defined by now
 
-    $self->{path} = "$self->{script_name}$self->{path_info}";
+    $self->{path} = "$self->{script_name}"
+        .(length $self->{path_info} ? "/$self->{path_info}" : '');
     return $self;
 };
 
@@ -286,11 +299,12 @@ sub set_path_info {
     my ($self, $path_info) = @_;
 
     $path_info = '' unless defined $path_info;
-    $path_info = "/$path_info" if $path_info =~ /^[^\/]/;
+    $path_info =~ s#^/+##;
 
     $self->{path_info} = $path_info;
+    $self->{path} = "$self->{script_name}"
+        .(length $self->{path_info} ? "/$self->{path_info}" : '');
 
-    $self->{path} = "$self->{script_name}$self->{path_info}";
     return $self;
 };
 
@@ -781,7 +795,7 @@ sub dump {
 
     my %raw;
     foreach my $method (qw( http_version scheme secure method hostname port
-        path script_name path_info
+        path script_name
         referer user_agent )) {
             $raw{$method} = eval { $self->$method }; # deliberately skip errors
     };
@@ -789,6 +803,7 @@ sub dump {
     $raw{header_in} = $self->header_in->as_string;
     $self->get_cookie( noexist => '' ); # warm up cookie cache
     $raw{cookie_in} = $self->{neaf_cookie_in};
+    $raw{path_info} = $self->path_info( qr'.*'s );
 
     return \%raw;
 };

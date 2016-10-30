@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.11;
+our $VERSION = 0.1101;
 
 =head1 NAME
 
@@ -89,7 +89,7 @@ sub make_handler {
     my $handler = sub {
         my $req = shift;
 
-        my $file = $req->path_info;
+        my $file = $req->path_info( '.*' );
 
         # sanitize file path
         $file =~ m#/../# and die 404;

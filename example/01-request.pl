@@ -51,7 +51,7 @@ Host: <span title="hostname">[% hostname %]</span>
 <span title="hostname">[% hostname %]</span>:
 <span title="port">[% port %]</span>
 <span title="script_name">[% script_name %]</span>
-<span title="path_info">[% path_info %]</span>
+/<span title="path_info">[% path_info %]</span>
 <br><br>
 [% IF error.size %]
 <h1>Error list</h1>
@@ -65,17 +65,18 @@ MVC::Neaf->route( cgi => $script => sub {
     my $req = shift;
 
     $req->redirect( $req->path . "/and/beyond" )
-        unless $req->path_info;
+        unless $req->path_info( '.+' );
 
     my @error;
     local $SIG{__DIE__} = sub { push @error, shift };
     return {
         -template => \$tpl,
         error => \@error,
+        path_info => $req->path_info( '.*' ),
         map {
             $_ => eval { $req->$_ } || "unimplemented: $_";
         } qw(method path http_version scheme hostname port
-            script_name path_info client_ip referer user_agent),
+            script_name client_ip referer user_agent),
     };
 }, description => $descr );
 
