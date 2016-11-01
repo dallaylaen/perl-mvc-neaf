@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1104;
+our $VERSION = 0.1105;
 
 =head1 NAME
 
@@ -333,34 +333,6 @@ sub param {
     return (defined $value and $value =~ /^$regex$/s)
         ? $value
         : $default;
-};
-
-=head2 param_arrayref( name => qr/regex/ )
-
-Get a single multivalue GET/POST parameter as arrayref.
-
-ALL values must match the regex, or an empty array is returned.
-
-B<EXPERIMENTAL> This method's behaviour MAY change in the future.
-Please be careful when upgrading.
-
-=cut
-
-# TODO merge param_arrayref, param, and _all_params
-# backend mechanism.
-
-sub param_arrayref {
-    my ($self, $name, $regex) = @_;
-
-    $self->_croak( "validation regex is REQUIRED" )
-        unless defined $regex;
-
-    my $ret = $self->{param_arrayref}{$name} ||= [
-        map { decode_utf8($_) } $self->do_get_param_as_array( $name ),
-    ];
-
-    # ANY mismatch = no go. Replace with simple grep if want filter EVER.
-    return (grep { !/^$regex$/s } @$ret) ? [] : $ret;
 };
 
 =head2 set_param( name => $value )
