@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1105;
+our $VERSION = 0.1106;
 
 =head1 NAME
 
@@ -316,6 +316,9 @@ The regular expression is applied to the WHOLE string,
 from beginning to end, not just the middle.
 Use '.*' if you really need none.
 
+B<NOTE> param() ALWAYS returns a single value, even in list context.
+Use multi_param() (see below) if you really want a list.
+
 B<NOTE> Behaviour changed since 0.11 - missing default value no more
 interpreted as '', returns undef.
 
@@ -333,6 +336,35 @@ sub param {
     return (defined $value and $value =~ /^$regex$/s)
         ? $value
         : $default;
+};
+
+=head2 multi_param( name => qr/regex/ )
+
+Get a single multivalue GET/POST parameter as a @list.
+The name generally follows that of newer L<CGI> (4.08+).
+
+ALL values must match the regex, or an empty list is returned.
+
+B<EXPERIMENTAL> This method's behaviour MAY change in the future.
+Please be careful when upgrading.
+
+=cut
+
+# TODO merge multi_param, param, and _all_params
+# backend mechanism.
+
+sub multi_param {
+    my ($self, $name, $regex) = @_;
+
+    $self->_croak( "validation regex is REQUIRED" )
+        unless defined $regex;
+
+    my $ret = $self->{multi_param}{$name} ||= [
+        map { decode_utf8($_) } $self->do_get_param_as_array( $name ),
+    ];
+
+    # ANY mismatch = no go. Replace with simple grep if want filter EVER.
+    return (grep { !/^$regex$/s } @$ret) ? () : @$ret;
 };
 
 =head2 set_param( name => $value )

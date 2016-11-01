@@ -6,18 +6,15 @@ use Test::More;
 
 use MVC::Neaf::Request::PSGI;
 
-plan skip_all => 'TODO: multi_param not ready yet';
-exit 0;
-
 my $req = MVC::Neaf::Request::PSGI->new( env => {
         REQUEST_METHOD => 'GET',
         QUERY_STRING   => 'foo=42&foo=137',
     } );
 
 is ( $req->param( foo => '\d+' ), 137, "Second value if single param" );
-is_deeply ( [ $req->multi_param( foo => '\d+' ) ], [ 42, 137 ]
+is_deeply ( [$req->multi_param( foo => '\d+' )], [ 42, 137 ]
     , "Multi param happy case" );
-is_deeply ( [ $req->multi_param( foo => '\d\d' ) ], []
+is_deeply ( [$req->multi_param( foo => '\d\d' )], []
     , "Mismatch = no go" );
 
 
