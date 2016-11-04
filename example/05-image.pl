@@ -10,7 +10,7 @@ if ( $has_gd ) {
 };
 
 # This script demonstrates...
-my $descr  = $has_gd && "Serving raw content, like images";
+my $descr  = $has_gd ? "Serving raw content, like images" : "";
 
 # Always use latest and greatest Neaf, no matter what's in the @INC
 use FindBin qw($Bin);

@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1106;
+our $VERSION = 0.1107;
 
 =head1 NAME
 
@@ -333,7 +333,7 @@ sub param {
     # Some write-through caching
     my $value = $self->_all_params->{ $name };
 
-    return (defined $value and $value =~ /^$regex$/s)
+    return (defined $value and $value =~ /^(?:$regex)$/s)
         ? $value
         : $default;
 };
@@ -364,7 +364,7 @@ sub multi_param {
     ];
 
     # ANY mismatch = no go. Replace with simple grep if want filter EVER.
-    return (grep { !/^$regex$/s } @$ret) ? () : @$ret;
+    return (grep { !/^(?:$regex)$/s } @$ret) ? () : @$ret;
 };
 
 =head2 set_param( name => $value )

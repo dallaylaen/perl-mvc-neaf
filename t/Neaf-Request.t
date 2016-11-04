@@ -34,6 +34,7 @@ is ($req->path, "/foo/bar", "Path reset to where it was");
 is ($req->param( foo => qr/.*/), undef, "Empty param - undef");
 $req->set_param( foo => 137 );
 is ($req->param( foo => qr/.*/), 137, "set_param round trip" );
+is ($req->param( foo => '1|7' ), undef, "^foo|bar\$ forbids partial match" );
 
 is ($req->referer, "http://google.com", "referer works");
 is ($req->user_agent, "test bot", "user_agent works");
