@@ -2,7 +2,7 @@ package MVC::Neaf::Request::PSGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.1102;
+our $VERSION = 0.1103;
 
 =head1 NAME
 
@@ -184,6 +184,16 @@ sub do_get_header_in {
     my $self = shift;
 
     return $self->{driver}->headers;
+};
+
+=head2 do_get_body
+
+=cut
+
+sub do_get_body {
+    my $self = shift;
+
+    return $self->{driver}->content;
 };
 
 =head2 do_reply( $status_line, \%headers, $content )

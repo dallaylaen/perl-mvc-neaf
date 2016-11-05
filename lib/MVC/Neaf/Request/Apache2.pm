@@ -3,7 +3,7 @@ package MVC::Neaf::Request::Apache2;
 use strict;
 use warnings;
 
-our $VERSION = 0.1102;
+our $VERSION = 0.1103;
 
 =head1 NAME
 
@@ -201,6 +201,25 @@ sub do_get_upload {
         tempfile => $upload->tempname,
         filename => $upload->filename,
     } : ();
+};
+
+=head2 do_get_body
+
+=cut
+
+sub do_get_body {
+    my $self = shift;
+
+    # use Apache2::RequestIO
+    # read until there's EOF, then concatenate & return
+    my $r = $self->{driver_raw};
+
+    my @buf = ('');
+    while ( $r->read( $buf[-1], 8192, 0 ) ) {
+        push @buf, '';
+    };
+
+    return join '', @buf;
 };
 
 =head2 do_reply( $status, $content )

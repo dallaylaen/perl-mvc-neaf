@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1108;
+our $VERSION = 0.1109;
 
 =head1 NAME
 
@@ -510,6 +510,23 @@ sub _all_params {
 
         $raw;
     };
+};
+
+=head2 body()
+
+Returns request body for PUT/POST requests.
+This is not regex-checked - the check is left for the user.
+
+Also the data is NOT converted to utf8.
+
+=cut
+
+sub body {
+    my $self = shift;
+
+    $self->{body} = $self->do_get_body
+        unless exists $self->{body};
+    return $self->{body};
 };
 
 =head2 set_default( key => $value, ... )
@@ -1172,6 +1189,8 @@ They shall not generally be called directly inside the app.
 
 =item * do_get_upload()
 
+=item * do_get_body()
+
 =item * do_get_header_in() - returns a HTTP::Headers object.
 
 =item * do_reply( $status, $content ) - write reply to client
@@ -1188,6 +1207,7 @@ foreach (qw(
     do_get_method do_get_scheme do_get_hostname do_get_port do_get_path
     do_get_client_ip do_get_http_version
     do_get_params do_get_param_as_array do_get_upload do_get_header_in
+    do_get_body
     do_reply do_write)) {
     my $method = $_;
     my $code = sub {

@@ -2,7 +2,7 @@ package MVC::Neaf::Request::CGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.1102;
+our $VERSION = 0.1103;
 
 =head1 NAME
 
@@ -185,6 +185,23 @@ sub do_get_header_in {
     };
 
     return $head;
+};
+
+=head2 do_get_body()
+
+=cut
+
+sub do_get_body {
+    my $self = shift;
+
+    # TODO also check content-type header
+    if ($self->method eq 'POST') {
+        return $self->{driver}->param('POSTDATA');
+    } elsif ($self->method eq 'PUT') {
+        return $self->{driver}->param('PUTDATA');
+    };
+
+    return;
 };
 
 =head2 do_reply( $status, $content )
