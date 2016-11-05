@@ -3,7 +3,7 @@ package MVC::Neaf::X::ServerStat;
 use strict;
 use warnings;
 
-our $VERSION = 0.11;
+our $VERSION = 0.1101;
 
 =head1 NAME
 
@@ -24,6 +24,7 @@ the rest of it and can be used se[parately.
 
 use Carp;
 use Time::HiRes qw(time);
+use Scalar::Util qw(weaken);
 
 =head2 new( %args )
 
@@ -63,10 +64,24 @@ sub new {
 
     $opt{write_thresh_count} ||= 100;
     $opt{write_thresh_time}  ||= 10;
-    ref $opt{on_write} eq 'CODE'
-        or croak "$class->new(): on_write must be a coderef";
 
-    return bless \%opt, $class;
+    my $self = bless \%opt, $class;
+
+    $self->{on_write} ||= do {
+        croak "$class->new(): do_write unimplemented and on_write not set"
+            unless $class->can("do_write");
+
+        my $other_self = $self;
+        weaken $other_self; # avoid circular pointers
+        sub {
+            defined $other_self and $other_self->do_write( @_ );
+        };
+    };
+
+    croak "$class->new(): on_write must be a coderef"
+        unless ref $self->{on_write} eq 'CODE';
+
+    return $self;
 };
 
 =head2 record_start()
@@ -148,6 +163,16 @@ sub record_finish {
 
     return $self;
 };
+
+=head2 do_write( [[ ... ], ... ] )
+
+If this method is implemented in a subclass,
+it will be used instead of on_write callback if no such callback provided.
+
+The first argument is the stat object itself,
+the second one is the same as for on_write.
+
+=cut
 
 sub DESTROY {
     my $self = shift;

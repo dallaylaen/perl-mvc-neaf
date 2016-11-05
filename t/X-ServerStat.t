@@ -33,4 +33,36 @@ is ($data[1][0], "/bar", "location retained");
 is (scalar @{ $data[0] }, 5, "5 elements");
 is (scalar @{ $data[1] }, 5, "5 elements (2)");
 
+@data = ();
+$stat->record_start;
+$stat->record_controller( "/bar" );
+$stat->record_finish( 500 );
+is (scalar @data, 0, "1 req => data not flushed");
+undef $stat;
+
+is (scalar @data, 1, "ref gone => data flushed");
+
+note "TESTING SERVER STAT SUBCLASS (with do_write)";
+{
+    package My::Stat;
+    use parent qw(MVC::Neaf::X::ServerStat);
+    sub do_write {
+        my ($self, $rows) = @_;
+        @data = @$rows;
+    };
+}
+
+$stat = My::Stat->new(
+    write_thresh_time => 9**9**9, # never
+    write_thresh_count => 2,
+);
+@data = ();
+$stat->record_start;
+$stat->record_controller( "/bar" );
+$stat->record_finish( 500 );
+is (scalar @data, 0, "1 req => data not flushed");
+undef $stat;
+
+is (scalar @data, 1, "ref gone => data flushed");
+
 done_testing;
