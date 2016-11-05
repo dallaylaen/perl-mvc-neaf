@@ -33,11 +33,16 @@ foreach my $file( glob "$Bin/*.pl" ) {
 };
 
 my $routes = MVC::Neaf->get_routes;
+
 my @list = sort { $a->{path} cmp $b->{path} }
     grep { $_->{description} }
+    map  { $_->{GET} || $_->{HEAD} }
     values %$routes;
 
 MVC::Neaf->route( "/" => sub {
+    my $req = shift;
+
+    die 404 if $req->path_info( '.+' );
     return {
         -template => \$tt,
         list => \@list,
