@@ -8,8 +8,9 @@ use MVC::Neaf;
 
 note "TESTING error_template()";
 my $n = MVC::Neaf->new;
-$n->error_template( 404, { -template => \'NotFounded' } );
-is_deeply ( $n->run->({})->[2], [ "NotFounded" ], "Template worked" );
+$n->set_error_handler( 404, { -template => \'NotFounded [% status %]' } );
+is_deeply ( $n->run->({})->[0], 404, "Status preserved" );
+is_deeply ( $n->run->({})->[2], [ "NotFounded 404" ], "Template worked" );
 
 note "TESTING on_error()";
 my @log;

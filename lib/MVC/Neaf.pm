@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1102;
+our $VERSION = 0.1103;
 
 =head1 NAME
 
@@ -579,7 +579,14 @@ sub server_stat {
 
 =head2 on_error( sub { my ($req, $err) = @_ } )
 
-Install custom error handler (e.g. write to log).
+Install custom error handler for dying controller.
+Neaf's own exceptions and 'die \d\d\d' status returns will NOT
+trigger it.
+
+E.g. write to log, or something.
+
+Return value from this callback is ignored.
+If it dies, a warning is emitted.
 
 =cut
 
@@ -598,43 +605,69 @@ sub on_error {
     return $self;
 };
 
-=head2 error_template ( status => { ... } )
+=head2 set_error_handler ( status => CODEREF( $req, %options ) )
 
 Set custom error handler.
 
 Status must be either a 3-digit number (as in HTTP), or "view".
 Other allowed keys MAY appear in the future.
 
-The second argument follows the same rules as controller return.
-
-The following fields are expected to exist if this handler fires:
+The following options will be passed to coderef:
 
 =over
 
-=item * -status - defaults to actual status (e.g. 500);
+=item * status - status being returned (500 in case of 'view');
 
 =item * caller - array with the point where MVC::Neaf->route was set up;
 
-=item * error - in case of exception, this will be the error.
+=item * error - exception, if there was one.
 
 =back
 
-Returns self.
+The coderef MUST return an unblessed hash just like controller does.
+
+In case of exception or unexpected return format text message "Error XXX"
+will be returned instead.
+
+=head2 set_error_handler ( status => \%hash )
+
+Return a static template as { %options, %hash }.
 
 =cut
 
-sub error_template {
-    my ($self, $status, $tpl) = @_;
+sub set_error_handler {
+    my ($self, $status, $code) = @_;
     $self = $Inst unless ref $self;
 
     $status =~ /^(\d\d\d|view)$/
         or $self->_croak( "1st arg must be http status or a const(see docs)");
-    ref $tpl eq 'HASH'
-        or $self->_croak( "2nd arg must be hash (just as controller returns)");
+    if (ref $code eq 'HASH') {
+        my $hash = $code;
+        $code = sub {
+            my ($req, %opt) = @_;
 
-    $self->{error_template}{$status} = $tpl;
+            return { -status => $opt{status}, %opt, %$hash };
+        };
+    };
+    ref $code eq 'CODE'
+        or $self->_croak( "2nd arg must be callback or hash");
+
+    $self->{error_template}{$status} = $code;
 
     return $self;
+};
+
+=head2 error_template( ... )
+
+B<DEPRECATED>. Same as above, bu issues a warning.
+
+=cut
+
+sub error_template {
+    my $self = shift;
+
+    carp "error_template() is deprecated, use set_error_handler() instead";
+    return $self->set_error_handler(@_);
 };
 
 =head2 run()
@@ -952,8 +985,9 @@ sub _error_to_reply {
         return $err;
     };
 
-    # A generic error...
     my $status = (!ref $err && $err =~ /^(\d\d\d)/) ? $1 : 500;
+
+    # Try exception handler
     if( !$1 ) {
         exists $self->{on_error}
             and eval { $self->{on_error}->($req, $err, $where) };
@@ -962,18 +996,26 @@ sub _error_to_reply {
             if $@;
     };
 
+    # Try fancy error template
     if (exists $self->{error_template}{$status}) {
-        my %ret = %{ $self->{error_template}{$status} }; # don't spoil the original
-        $ret{-status} = $status;
-        $ret{caller} = $where;
-        $ret{error} = $err;
-        return \%ret;
-    } else {
-        return {
-            -status     => $status,
-            -type       => 'text/plain',
-            -content    => "Error $status\n",
+        my $ret = eval {
+            $self->{error_template}{$status}->( $req,
+                status => $status,
+                caller => $where,
+                error => $err,
+            );
         };
+        return $ret
+            if (ref $ret eq 'HASH');
+        warn "ERROR: Error status handler for $status failed: $@"
+            if $@;
+    };
+
+    # Options exhausted - return plain error message
+    return {
+        -status     => $status,
+        -type       => 'text/plain',
+        -content    => "Error $status\n",
     };
 };
 
