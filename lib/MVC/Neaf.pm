@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1103;
+our $VERSION = 0.1104;
 
 =head1 NAME
 
@@ -536,75 +536,6 @@ sub set_session_handler {
     return $self;
 };
 
-=head2 server_stat ( MVC::Neaf::X::ServerStat->new( ... ) )
-
-Record server performance statistics during run.
-
-The interface of ServerStat is as follows:
-
-    my $stat = MVC::Neaf::X::ServerStat->new (
-        write_threshold_count => 100,
-        write_threshold_time  => 1,
-        on_write => sub {
-            my $array_of_arrays = shift;
-
-            foreach (@$array_of_arrays) {
-                # @$_ = (script_name, http_status,
-                #       controller_duration, total_duration, start_time)
-                # do something with this data
-                warn "$_->[0] returned $_->[1] in $_->[3] sec\n";
-            };
-        },
-    );
-
-on_write will be executed as soon as either count data points are accumulated,
-or time is exceeded by difference between first and last request in batch.
-
-Returns self.
-
-=cut
-
-sub server_stat {
-    my ($self, $obj) = @_;
-    $self = $Inst unless ref $self;
-
-    if ($obj) {
-        $self->{stat} = $obj;
-    } else {
-        delete $self->{stat};
-    };
-
-    return $self;
-};
-
-=head2 on_error( sub { my ($req, $err) = @_ } )
-
-Install custom error handler for dying controller.
-Neaf's own exceptions and 'die \d\d\d' status returns will NOT
-trigger it.
-
-E.g. write to log, or something.
-
-Return value from this callback is ignored.
-If it dies, a warning is emitted.
-
-=cut
-
-sub on_error {
-    my ($self, $code) = @_;
-    $self = $Inst unless ref $self;
-
-    if (defined $code) {
-        ref $code eq 'CODE'
-            or $self->_croak( "Argument MUST be a callback" );
-        $self->{on_error} = $code;
-    } else {
-        delete $self->{on_error};
-    };
-
-    return $self;
-};
-
 =head2 set_error_handler ( status => CODEREF( $req, %options ) )
 
 Set custom error handler.
@@ -659,7 +590,7 @@ sub set_error_handler {
 
 =head2 error_template( ... )
 
-B<DEPRECATED>. Same as above, bu issues a warning.
+B<DEPRECATED>. Same as above, but issues a warning.
 
 =cut
 
@@ -668,6 +599,34 @@ sub error_template {
 
     carp "error_template() is deprecated, use set_error_handler() instead";
     return $self->set_error_handler(@_);
+};
+
+=head2 on_error( sub { my ($req, $err) = @_ } )
+
+Install custom error handler for dying controller.
+Neaf's own exceptions and 'die \d\d\d' status returns will NOT
+trigger it.
+
+E.g. write to log, or something.
+
+Return value from this callback is ignored.
+If it dies, only a warning is emitted.
+
+=cut
+
+sub on_error {
+    my ($self, $code) = @_;
+    $self = $Inst unless ref $self;
+
+    if (defined $code) {
+        ref $code eq 'CODE'
+            or $self->_croak( "Argument MUST be a callback" );
+        $self->{on_error} = $code;
+    } else {
+        delete $self->{on_error};
+    };
+
+    return $self;
 };
 
 =head2 run()
@@ -803,6 +762,47 @@ sub set_forced_view {
     return $self unless $view;
 
     $self->{force_view} = $self->load_view( $view );
+
+    return $self;
+};
+
+=head2 server_stat ( MVC::Neaf::X::ServerStat->new( ... ) )
+
+Record server performance statistics during run.
+
+The interface of ServerStat is as follows:
+
+    my $stat = MVC::Neaf::X::ServerStat->new (
+        write_threshold_count => 100,
+        write_threshold_time  => 1,
+        on_write => sub {
+            my $array_of_arrays = shift;
+
+            foreach (@$array_of_arrays) {
+                # @$_ = (script_name, http_status,
+                #       controller_duration, total_duration, start_time)
+                # do something with this data
+                warn "$_->[0] returned $_->[1] in $_->[3] sec\n";
+            };
+        },
+    );
+
+on_write will be executed as soon as either count data points are accumulated,
+or time is exceeded by difference between first and last request in batch.
+
+Returns self.
+
+=cut
+
+sub server_stat {
+    my ($self, $obj) = @_;
+    $self = $Inst unless ref $self;
+
+    if ($obj) {
+        $self->{stat} = $obj;
+    } else {
+        delete $self->{stat};
+    };
 
     return $self;
 };
