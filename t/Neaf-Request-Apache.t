@@ -15,7 +15,7 @@ BEGIN {
         $INC{ "$mod.pm" } = 1;
     };
 
-    sub Apache2::Const::OK() { 0 };
+    sub Apache2::Const::OK() { 0 }; ## no critic # const
 
     package Apache2::Request;
     use Carp;
@@ -25,6 +25,9 @@ BEGIN {
         my (%opt) = @_;
         return bless \%opt, $class;
     };
+
+    sub method { "GET" };
+    sub args { "" };
 
     our $AUTOLOAD;
     sub AUTOLOAD {

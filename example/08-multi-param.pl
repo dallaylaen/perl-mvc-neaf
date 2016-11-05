@@ -22,6 +22,7 @@ my $tpl = <<'TT';
 </form>
 Non-multi value: [% day_single %]<br>
 All values: [% day_multi.join(",") %]<br>
+Query value: [% day_url %]<br>
 TT
 
 MVC::Neaf->route( cgi => basename(__FILE__) => sub {
@@ -32,11 +33,12 @@ MVC::Neaf->route( cgi => basename(__FILE__) => sub {
     $on{$_}++ for @select;
 
     return {
-        -template => \$tpl,
-        on => \%on,
-        days => \@days,
+        -template  => \$tpl,
+        on         => \%on,
+        days       => \@days,
         day_multi  => \@select,
         day_single => $req->param( day => '.*' ),
+        day_url    => $req->url_param( day => '.*' ),
     };
 }, description => "Multi-value parameters");
 

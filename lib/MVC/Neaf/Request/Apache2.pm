@@ -3,7 +3,7 @@ package MVC::Neaf::Request::Apache2;
 use strict;
 use warnings;
 
-our $VERSION = 0.1101;
+our $VERSION = 0.1102;
 
 =head1 NAME
 
@@ -253,7 +253,11 @@ sub handler : method {
     my $self = $class->new(
         driver_raw => $r,
         driver => Apache2::Request->new($r),
+        query_string => $r->args,
     );
+    if (!$MVC::Neaf::Request::query_allowed{ $r->method }) {
+        $r->args('');
+    };
     my $reply = MVC::Neaf->handle_request( $self );
 
     return Apache2::Const::OK();

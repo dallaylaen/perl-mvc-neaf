@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1107;
+our $VERSION = 0.1108;
 
 =head1 NAME
 
@@ -316,6 +316,10 @@ The regular expression is applied to the WHOLE string,
 from beginning to end, not just the middle.
 Use '.*' if you really need none.
 
+If method other than GET/HEAD is being used, whatever is in the
+address line after ? is IGNORED.
+Use url_param() (see below) if you intend to mix GET/POST parameters.
+
 B<NOTE> param() ALWAYS returns a single value, even in list context.
 Use multi_param() (see below) if you really want a list.
 
@@ -333,6 +337,48 @@ sub param {
     # Some write-through caching
     my $value = $self->_all_params->{ $name };
 
+    return (defined $value and $value =~ /^(?:$regex)$/s)
+        ? $value
+        : $default;
+};
+
+=head2 url_param( name => qr/regex/ )
+
+If method is GET or HEAD, identic to param.
+
+Otherwise would return the parameter from query string,
+AS IF it was a GET request.
+
+Multiple values are deliberately ignored.
+
+See L<CGI>.
+
+=cut
+
+our %query_allowed = ( GET => 1, HEAD => 1);
+sub url_param {
+    my ($self, $name, $regex, $default) = @_;
+
+    if ($query_allowed{ $self->method }) {
+        return $self->param( $name, $regex, $default );
+    };
+
+    # HACK here - some lazy caching + parsing string by hand
+    $self->{url_param_hash} ||= do {
+        my %hash;
+
+        foreach (split /[&;]/, $self->{query_string} || '' ) {
+            /^(.*?)(?:=(.*))?$/ or next;
+            $hash{$1} = $2;
+        };
+
+        # causes error w/o + (context issues?)
+        # do decoding AFTER uniq'ing params (plus it was simpler to write)
+        +{ map { decode_utf8(uri_unescape($_)) } %hash };
+    };
+    my $value = $self->{url_param_hash}{$name};
+
+    # this is copypaste from param(), do something (or don't)
     return (defined $value and $value =~ /^(?:$regex)$/s)
         ? $value
         : $default;

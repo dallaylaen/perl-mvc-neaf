@@ -2,7 +2,7 @@ package MVC::Neaf::Request::CGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.1101;
+our $VERSION = 0.1102;
 
 =head1 NAME
 
@@ -44,6 +44,7 @@ sub new {
 
     $args{driver} ||= $cgi->new;
     $args{fd}     ||= \*STDOUT;
+    $args{query_string} ||= $args{driver}->query_string;
 
     return bless \%args, $class;
 };

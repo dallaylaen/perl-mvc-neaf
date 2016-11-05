@@ -2,7 +2,7 @@ package MVC::Neaf::Request::PSGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.1101;
+our $VERSION = 0.1102;
 
 =head1 NAME
 
@@ -20,14 +20,32 @@ use parent qw(MVC::Neaf::Request);
 
 =head2 new( env => $psgi_input )
 
-Constructor.
+Constructor. C<env> MUST follow L<PSGI> requirements.
 
 =cut
 
+my %default_env = (
+    REQUEST_METHOD => 'GET',
+);
+
 sub new {
     my $class = shift;
+
     my $self = $class->SUPER::new( @_ );
-    $self->{driver} ||= Plack::Request->new( $self->{env} || {} );
+
+    # Don't modify env!
+    # Remove query string if not GET|HEAD
+    # so that GET params are not available inside POST by default
+    my $env = $self->{env} || \%default_env;
+    $self->{query_string} = $env->{QUERY_STRING};
+
+    $self->{driver} ||= Plack::Request->new({
+        REQUEST_METHOD => 'GET',
+        %$env,
+        ($MVC::Neaf::Request::query_allowed{ $env->{REQUEST_METHOD} || 'GET' }
+            ? () : (QUERY_STRING => '')),
+    });
+
     return $self;
 };
 
