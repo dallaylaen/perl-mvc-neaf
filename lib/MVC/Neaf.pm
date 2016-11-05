@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1101;
+our $VERSION = 0.1102;
 
 =head1 NAME
 
@@ -353,10 +353,9 @@ sub static {
 Mangle request before serving it.
 E.g. canonize uri or read session cookie.
 
-If the sub returns a MVC::Neaf::Request object in scalar context,
-it is considered to replace the original one.
-It looks like it's hard to return an unrelated Request by chance,
-but beware!
+Return value from callback is ignored.
+
+Dying in callback is treated the same way as in normal controller sub.
 
 =cut
 
@@ -843,9 +842,7 @@ sub handle_request {
 
         # Try running the pre-routing callback.
         if (exists $self->{pre_route}) {
-            my $new_req = $self->{pre_route}->( $req );
-            blessed $new_req and $new_req->isa("MVC::Neaf::Request")
-                and $req = $new_req;
+            $self->{pre_route}->( $req );
         };
 
         # Lookup the rules for the given path
