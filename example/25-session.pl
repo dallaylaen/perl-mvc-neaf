@@ -9,7 +9,7 @@ my $Bin;
 BEGIN { $Bin = dirname( __FILE__ ) || "." };
 use lib $Bin."/../lib";
 use MVC::Neaf;
-use MVC::Neaf::X::Session;
+use MVC::Neaf::X::Session::File;
 
 my $script = basename(__FILE__);
 my $storage = "$Bin/nocommit-$script-storage";
@@ -17,38 +17,10 @@ my $storage = "$Bin/nocommit-$script-storage";
 mkdir $storage; # ignore result
 -d $storage or die "Failed to find directory '$storage' ($!)";
 
-# Let's make an in-place file-based storage class
-{
-    package My::Session;
-    use parent qw(MVC::Neaf::X::Session);
-
-    use JSON::XS;
-    use URI::Escape;
-
-    sub save_session {
-        my ($self, $key, $data) = @_;
-        my $file = "$storage/".uri_escape($key);
-        open my $fd, ">", $file
-            or die "Failed to write to $file: $!";
-        print $fd encode_json( $data );
-        close $fd; # TODO must handle there errors too, riiiiight?
-    };
-    sub load_session {
-        my ($self, $key) = @_;
-        my $file = "$storage/".uri_escape($key);
-        open my $fd, "<", $file
-            or return {};
-        local $/;
-        return decode_json(<$fd>);
-    };
-    sub delete_session {
-        my ($self, $key) = @_;
-        my $file = "$storage/".uri_escape($key);
-        unlink $file; # ignore errors
-    };
-};
-
-MVC::Neaf->set_session_handler( engine => My::Session->new, view_as => 'session' );
+MVC::Neaf->set_session_handler(
+    engine => MVC::Neaf::X::Session::File->new( dir => $storage ),
+    view_as => 'session'
+);
 
 my $tpl_main = <<"TT";
 <html>
