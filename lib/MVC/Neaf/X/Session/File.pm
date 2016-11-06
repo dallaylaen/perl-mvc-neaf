@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session::File;
 
 use strict;
 use warnings;
-our $VERSION = 0.1101;
+our $VERSION = 0.1102;
 
 =head1 NAME
 
@@ -16,7 +16,7 @@ L<MVC::Neaf::X::Session>.
 It will store session data inside a single directory.
 The file format is JSON but MAY change in the future.
 
-Uses flock to avoid collisions.
+Uses flock() to avoid collisions.
 
 If session_ttl was specified, old session files will be deleted.
 

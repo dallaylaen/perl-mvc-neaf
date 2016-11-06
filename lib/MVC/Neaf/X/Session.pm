@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session;
 
 use strict;
 use warnings;
-our $VERSION = 0.11;
+our $VERSION = 0.1101;
 
 =head1 NAME
 
@@ -23,6 +23,13 @@ During the setup phase, MVC::Neaf->set_session_handler( $engine )
 must be called in order to make use of those.
 
 This class is base class for such $engine.
+
+To actually manage sessions, it MUST be subclassed with methods
+save_session() and load_session() implemented.
+For a working implementation, please see L<MVC::Neaf::X::Session::File>.
+
+This module's interface is still under development and details MAY
+change in the future.
 
 =head1 SINOPSYS
 
@@ -53,6 +60,9 @@ This class is base class for such $engine.
         $req->session->{user} = $user;
         $req->save_session;
     };
+
+This of course is only going to work as a standalone application server
+(plackup, twiggy...), but not CGI or Apache/mod_perl.
 
 =head1 METHODS
 
