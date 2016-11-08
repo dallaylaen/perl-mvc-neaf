@@ -3,17 +3,19 @@ SINCE VERSION | TBD VERSION | COMMENT
 -- next --
 0.10    0.20    MOD Cookie-based session
 0.09    0.20    MOD Add predefined regexps to default FORM impl
+0.10    0.20    MOD ServerStat - kill callbacks, replace with methods
 
 -- backlog --
+0.11    0.20    NET Expires header <= cache_ttl
 0.10    0.20    API International - how???
-0.10    0.20    MOD ServerStat - kill callbacks, replace with methods
 0.09    0.20    MOD Add form defaults populating BOTH raw and data
 0.09    0.20    MOD Form->hmac(salt)
 0.02    0.20    TPL Add TT caching
-0.08    0.30    API Add Req alias methods for -dashed -return -keys
-0.08    0.20    API Req->reply to return immediately
 0.03    0.20    NET Fixup http header handling, read more
+0.11    0.20    NET Allow header on 405 error
+0.08    0.30    API Add Req alias methods for -dashed -return -keys
 0.02    0.30    DEV Add dumper to TT view
+0.08    0.30    API Req->reply to return immediately
 0.06    0.30    API Exact matching uris - /$ or /? but not /foo (w/a: die 404 if path_info)
 0.06    0.20    API Apply defaults to error tpl also
 0.06    0.30    NET HMAC
