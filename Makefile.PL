@@ -16,7 +16,7 @@ WriteMakefile(
         'CGI'            => 0,
         'Digest::MD5'    => 0,
         'File::Temp'     => 0,
-        'Getopn::Long'   => 0,
+        'Getopt::Long'   => 0,
         'HTTP::Headers'  => 0,
         'JSON::XS'       => 1.4,
         'parent'         => 0,
