@@ -3,7 +3,7 @@ package MVC::Neaf::View::JS;
 use strict;
 use warnings;
 
-our $VERSION = 0.11;
+our $VERSION = 0.1101;
 
 =head1 NAME
 
@@ -28,8 +28,9 @@ use JSON::XS;
 
 use parent qw(MVC::Neaf::View);
 
-my $codec = JSON::XS->new->allow_blessed->convert_blessed;
-my $jsonp_re = qr/^(?:[A-Z_a-z][A-Z_a-z\d]*)(?:\.(?:[A-Z_a-z][A-Z_a-z\d]*))*$/;
+my $codec = JSON::XS->new->allow_blessed->convert_blessed->allow_unknown;
+my $js_id_re = qr/[A-Z_a-z][A-Z_a-z\d]*/;
+my $jsonp_re = qr/^$js_id_re(?:\.$js_id_re)*$/;
 
 =head2 new( %options )
 
@@ -58,21 +59,14 @@ sub render {
     my $callback = $data->{-jsonp};
     my $type = $data->{-type};
 
-    # TODO sanitize data in a more efficient way
-    my %copy;
-    foreach (keys %$data) {
-        !$self->{preserve_dash} and /^-/ and next;
-        if (ref $data->{$_} eq 'CODE') {
-            $copy{$_} = $self->{replace_code}
-                if exists $self->{replace_code};
-        } elsif (ref $data->{$_} eq 'SCALAR') {
-            $copy{$_} = [ ${ $data->{$_} } ];
-        } else {
-            $copy{$_} = $data->{$_};
-        };
+    $self->{preserve_dash} or $data = do {
+        my %shallow_copy;
+        /^-/ or $shallow_copy{$_} = $data->{$_}
+            for keys %$data;
+        \%shallow_copy;
     };
 
-    my $content = $codec->encode( \%copy );
+    my $content = $codec->encode( $data );
     return $callback && $callback =~ $jsonp_re
         ? ("$callback($content);", "application/javascript; charset=utf-8")
         : ($content, "application/json; charset=utf-8");
