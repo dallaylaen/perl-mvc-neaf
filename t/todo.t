@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-# This script tests nothing (except the fact that modules load w/o warnings).
+# This script tests nothing (except the fact that modules load).
 # However, it tries to load them all.
 # This means that untested modules would also be included into
 # code coverage summary, lowering total coverage to its actual value.
@@ -44,9 +44,5 @@ foreach my $file (@files) {
 foreach (@warn) {
     diag "WARN: $_";
 };
-
-# If you are concerned about cover -t, then probably warnings during load
-# are not OK with you
-is( scalar @warn, 0, "No warnings during load (except redefined)" );
 
 done_testing;
