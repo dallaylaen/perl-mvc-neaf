@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1109;
+our $VERSION = 0.1110;
 
 =head1 NAME
 
@@ -904,17 +904,27 @@ sub session {
     # agressive caching FTW
     return $self->{session} if exists $self->{session};
 
-    if ($self->{session_engine}) {
-        my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
-        $self->{session} = $self->{session_engine}->load_session( $id )
-            if $id;
-        $self->{session} ||= $self->{session_engine}->create_session
-            unless $noinit;
-    } else {
-        # TODO should we die if no engine?..
-        $self->{session} = {}
-            unless $noinit;
+    if (!$self->{session_engine}) {
+        # TODO should we just die here?
+        $self->{session} ||= {} unless $noinit;
+        return $self->{session};
     };
+
+    # Try loading session...
+    my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
+    my $hash = $id && $self->{session_engine}->load_session( $id );
+    if ($hash && ref $hash eq 'HASH' && $hash->{data} ) {
+        # Loaded, cache it & refresh if needed
+        $self->{session} = $hash->{data};
+
+        $self->set_cookie(
+            $self->{session_cookie} => $hash->{id}, expire => $hash->{expire} )
+                if $hash->{id};
+    } elsif ( !$noinit ) {
+        # Not loaded - init
+        $self->{session} = $self->{session_engine}->create_session
+    };
+
     return $self->{session};
 };
 
@@ -939,14 +949,14 @@ sub save_session {
 
     # TODO set "save session" flag, save later
     my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
+    $id ||= $self->{session_engine}->get_session_id();
 
-    if (!$id) {
-        # new session - generate id!
-        $id = $self->{session_engine}->get_session_id();
+    my $hash = $self->{session_engine}->save_session( $id, $self->session );
+    if ( $hash && ref $hash eq 'HASH' && $hash->{id} ) {
+        # save successful - send cookie to user
+        $self->set_cookie( $self->{session_cookie} => $hash->{id}, expire => $hash->{expire} );
     };
 
-    $self->set_cookie( $self->{session_cookie} => $id, ttl => $self->{session_ttl} );
-    $self->{session_engine}->save_session( $id, $self->session );
     return $self;
 };
 

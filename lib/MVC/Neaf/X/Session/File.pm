@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session::File;
 
 use strict;
 use warnings;
-our $VERSION = 0.1102;
+our $VERSION = 0.1103;
 
 =head1 NAME
 
@@ -76,9 +76,13 @@ sub save_session {
     my ($self, $id, $data) = @_;
 
     my $raw = $self->encode_content( $data );
-    $self->atomic_write( $id, $raw );
+    my $expire = $self->atomic_write( $id, $raw );
+    $expire = $self->{session_ttl} ? $self->{session_ttl}+$expire : undef;
 
-    return;
+    return {
+        id => $id,
+        expire => $expire,
+    };
 };
 
 =head2 load_session( $id )
@@ -91,8 +95,10 @@ Will DELETE session if session_ttl was specified and exceeded.
 sub load_session {
     my ($self, $id) = @_;
 
-    my $raw = $self->atomic_read( $id );
-    return $raw ? $self->decode_content( $raw ) : $raw;
+    my ($raw, $expire) = $self->atomic_read( $id );
+    return $raw
+        ? { data => $self->decode_content( $raw ) }
+        : $raw;
 };
 
 =head2 delete_session( $id )
@@ -133,7 +139,8 @@ sub atomic_read {
 
     # Remove stale sessions
     my $ttl = $self->session_ttl;
-    if ($ttl and ([stat $fd]->[9] + $ttl < time) ) {
+    my $expire = $ttl && [stat $fd]->[9] + $ttl;
+    if ($expire && $expire < time) {
         $self->delete_session( $id );
         return;
     };
@@ -144,7 +151,7 @@ sub atomic_read {
         or $self->my_croak( "Failed to read from $fname: $!" );
 
     close $fd; # ignore errors
-    return $raw;
+    return ($raw, $expire);
 };
 
 =head2 atomic_write( $id, $content )
@@ -172,7 +179,7 @@ sub atomic_write {
     close $fd
         or $self->my_croak( "Failed to sync(w) $fname: $!" );
 
-    return;
+    return time;
 };
 
 =head2 get_file_name( $id )

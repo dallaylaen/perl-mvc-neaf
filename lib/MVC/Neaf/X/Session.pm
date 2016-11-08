@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session;
 
 use strict;
 use warnings;
-our $VERSION = 0.1101;
+our $VERSION = 0.1102;
 
 =head1 NAME
 
@@ -175,7 +175,19 @@ sub create_session { return {} };
 
 Save session data in the storage.
 
-This MUST be implemented in specific session driver class.
+This method MUST be implemented in specific session driver class.
+
+It MUST return a hashref with the following fields:
+
+=over
+
+=item * id - the id of session (either supplied, or a new one).
+If this value is absent or false, saving is considered unsuccessful.
+
+=item * expire - the expiration time of the session as Unix time.
+This is optional.
+
+=back
 
 =cut
 
@@ -184,6 +196,20 @@ This MUST be implemented in specific session driver class.
 Return session data from the storage.
 
 This MUST be implemented in specific session driver class.
+
+It MUST return a hashref with the following fields:
+
+=over
+
+=item * data - the session data that was passed to corresponding save_session()
+call. If absent or false, loading is considered unsuccessful.
+
+=item * id - if present, this means that session has to be refreshed.
+The session cookie will be sent again to the user.
+
+=item * expire - if id present, this would set new session expiration date.
+
+=back
 
 =cut
 

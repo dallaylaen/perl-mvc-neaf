@@ -17,11 +17,12 @@ use MVC::Neaf::Request;
     sub load_session {
         my $self = shift;
         push @call, [ "load", @_ ];
-        return {};
+        return { data => {} };
     };
     sub save_session {
         my $self = shift;
         push @call, [ "save", @_ ];
+        return { id => shift };
     };
 };
 

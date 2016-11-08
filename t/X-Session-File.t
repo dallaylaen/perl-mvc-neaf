@@ -14,13 +14,17 @@ like ($@, qr/dir/, "no dir = no go");
 
 my $temp = tempdir( CLEANUP => 1 );
 
-my $sess = MVC::Neaf::X::Session::File->new( dir => $temp );
+my $sess = MVC::Neaf::X::Session::File->new( dir => $temp, session_ttl => 600 );
 
-$sess->save_session( 'foo/../bar' => { bar => 42 } );
+
+my $w = $sess->save_session( 'foo/../bar' => { bar => 42 } );
+is ($w->{id}, 'foo/../bar', "save: id round trip" );
+cmp_ok( $w->{expire}, ">", time, "Expires in the future" );
+
 is_deeply( $sess->load_session( "foo" ), undef, "No such session ok" );
-my $data = $sess->load_session( "foo/../bar" );
+my $r = $sess->load_session( "foo/../bar" );
 
-is_deeply( $data, { bar => 42 }, "Session data round trip" );
+is_deeply( $r->{data}, { bar => 42 }, "Session data round trip" );
 
 my $sess_un = MVC::Neaf::X::Session::File->new( dir => $temp
     , session_ttl => -100 );
