@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1110;
+our $VERSION = 0.1111;
 
 =head1 NAME
 
@@ -896,7 +896,13 @@ B<NOTE> currently session-related methods don't die if session handler
 wasn't set. Instead, they behave as if session wasn't there.
 This MAY change in the future.
 
+B<NOTE> The underlying API was changed in 0.12 (see L<MVC::Neaf::X::Session>).
+The fallback & warn code will stay until 0.15, after that older
+session implementations MUST be rewritten.
+
 =cut
+
+my %known_session_keys = ( data => 1, id => 1, expire => 1 ); # TODO Remove 0.15
 
 sub session {
     my ($self, $noinit) = @_;
@@ -913,7 +919,18 @@ sub session {
     # Try loading session...
     my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
     my $hash = $id && $self->{session_engine}->load_session( $id );
-    if ($hash && ref $hash eq 'HASH' && $hash->{data} ) {
+
+    # TODO remove the below block in 0.15 - deprecated API warning
+    if ($hash && ref $hash eq 'HASH') {
+        foreach (keys %$hash) {
+            $known_session_keys{ $_ } and next;
+            carp "DEPRECATED load_session/save_session API changed in Neaf 0.12, trying to continue";
+            $hash = { data => $hash };
+            last;
+        };
+    };
+
+    if ($hash && ref $hash eq 'HASH' && $hash->{data}) {
         # Loaded, cache it & refresh if needed
         $self->{session} = $hash->{data};
 
