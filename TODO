@@ -1,10 +1,11 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
+0.11    0.13    NET Allow header on 405 error
+0.11    0.13    TST Fixup apache.cgi
 
 -- backlog --
 0.11    0.20    REF Replace JSON::XS with JSON for those w/o JSON::XS
-0.11    0.20    NET Allow header on 405 error
 0.09    0.20    MOD Add predefined regexps to default FORM impl
 0.10    0.20    MOD Cookie-based session
 0.11    0.20    NET Expires header <= cache_ttl

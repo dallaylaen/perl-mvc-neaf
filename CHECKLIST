@@ -27,11 +27,12 @@
 - http://localhost:8000/
 - Click on ALL cgis
 
-% plackup example/01-request.pl
+% plackup example/all-of-them.psgi
+- http://localhost:5000/
+- click on examples
 - http://localhost:5000/cgi/01-request.pl
 - no "unimplemented" show up
 
-% plackup example/51-wiki.pl
 - http://localhost:5000/wiki
 - search
 - click

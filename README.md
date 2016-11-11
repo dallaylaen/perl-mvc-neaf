@@ -27,20 +27,6 @@ The same app, verbatim, should be able to run as PSGI app, CGI script, or
 Apache handler.
 Request knows all you need to know about the outside world.
 
-# FOUNDATIONS
-
-* Start out simple, then scale up.
-
-* Enough magic already. Use simple constructs where possible.
-
-* Zeroconf: everything can be configured, nothing needs to.
-
-* It's not software unless you can run it.
-
-* Trust nobody. Validate the data.
-
-* Force UTF8 if possible. It's 21st century.
-
 # EXAMPLE
 
 The following would produce a greeting message depending
@@ -90,7 +76,6 @@ No need for separate web server to test your CSS/images.
 * Delayed and/or unspecified length replies supported;
 
 * Cookie-based sessions supported out of the box.
-Session backends have to be written yet, though.
 
 * Form validation with resubmission ability.
 [Validator::LIVR](https://metacpan.org/pod/Validator::LIVR)
@@ -98,10 +83,29 @@ supported, but not requires.
 
 * Fancy error templates supported.
 
-# EXAMPLES
+# MORE EXAMPLES
 
-The `example/` directory has an app explaining HTTP in a nutshell,
-jsonp app and some 200-line wiki engine.
+The `example/` directory has a number of them, including an app explaining
+HTTP in a nutshell, jsonp call sample and some stupid 200-line wiki engine.
+
+In fact, the current development model relies on these examples
+as an additional test suite, and no major feature is considered complete
+until half a page micro-app can be written to demonstrate it works.
+
+# PHILOSOPHY
+
+* Start out simple, then scale up.
+
+* Don't rely on side effects. Use *explicit* functions receiving *arguments*
+and returning *a value*.
+
+* Zeroconf: everything can be configured, nothing needs to.
+
+* It's not software unless you can run it.
+
+* Trust nobody. Validate the data.
+
+* Force UTF8 if possible. It's 21st century.
 
 # BUGS
 
@@ -109,17 +113,25 @@ Lots of them. Still under heavy development.
 
 * mod\_perl handler is a mess (but it works somehow);
 
-* no session storage mechanisms supported out of the box;
+* native form validator is a joke;
 
-Patches and proposals are welcome.
+* too few session mechanisms.
+
+Bug reports, patches, and proposals are welcome.
 
 # CONTRIBUTING TO THIS PROJECT
 
 Please see STYLE.md for the style guide.
+Please see CHECKLIST if you plan a new major version.
 
 # ACKNOWLEDGEMENTS
 
-Eugene Ponizovsky aka IPH had great influence over my understanding of MVC.
+[Eugene Ponizovsky](https://github.com/iph0)
+had great influence over my understanding of MVC.
+
+[Alexander Kuklev](https://github.com/akuklev)
+gave some great early feedback
+and also drove me towards functional programming and pure functions.
 
 Ideas were shamelessly stolen from PSGI, Dancer, and Catalyst.
 

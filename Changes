@@ -1,5 +1,22 @@
 Revision history for MVC-Neaf
 
+0.12    Fri Nov 11 2016
+        BROKE API! Incompatibilities were gently introduced with a nice
+        DEPRECATED warning to account for early design mistakes.
+        The warnings will NOT become errors until at least 0.15
+        API BREAK Remove pre_route callback return check
+        API BREAK Change session engine return format
+        API BREAK path_info now requires validation regexp, just like param() and get_cookie()
+        API BREAK Remove implicit default empty value in Request->param
+        API BREAK Add set_error_handler (CODEREF || HASH), deprecate error_template(HASH)
+        NET Add Request->body() for raw request data
+        API Add multi_param() feature
+        API Remove GET params from POST request, add url_param() for fetching them
+        MOD Add file-based session engine
+        MOD ServerStat can be subclassed with a do_write method instead of on_write callback
+        MOD Make JSON view faster and more tolerant
+        BUG Fix foo|bar regexps defeating RE quoting
+
 0.1101  Fri Oct 28 2016
         TST Fix tests
         BUG Fix Request->session vs view_as behaviour
