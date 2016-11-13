@@ -1,5 +1,8 @@
 Revision history for MVC-Neaf
 
+0.1201  Sun Nov 13 2016
+        - BUG Fixed File::Session fail under Windows OS
+
 0.12    Fri Nov 11 2016
         BROKE API! Incompatibilities were gently introduced with a nice
         DEPRECATED warning to account for early design mistakes.
