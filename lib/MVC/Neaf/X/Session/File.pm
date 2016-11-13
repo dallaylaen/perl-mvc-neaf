@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session::File;
 
 use strict;
 use warnings;
-our $VERSION = 0.12;
+our $VERSION = 0.1201;
 
 =head1 NAME
 
@@ -19,6 +19,9 @@ The file format is JSON but MAY change in the future.
 Uses flock() to avoid collisions.
 
 If session_ttl was specified, old session files will be deleted.
+
+B<NOTE> The file-locking MAY be prone to race conditions. If you want real secure
+expiration, please specify expiration INSIDE the session, or use a database.
 
 =head1 SYNOPSIS
 
@@ -111,7 +114,7 @@ sub delete_session {
     my ($self, $id) = @_;
 
     if (!unlink $self->get_file_name( $id )) {
-        return 0 if $!{ENOENT}; # missing = ok
+        return 0 if $!{ENOENT} or $!{EPERM} && $^O eq 'MSWin32'; # missing = ok, locked+mswin = ok
         $self->my_croak( "Failed to delete file ".($self->get_file_name( $id ))
             .": $!" );
     };
@@ -141,6 +144,7 @@ sub atomic_read {
     my $ttl = $self->session_ttl;
     my $expire = $ttl && [stat $fd]->[9] + $ttl;
     if ($expire && $expire < time) {
+        close $fd if $^O eq 'MSWin32'; # won't delete under windows
         $self->delete_session( $id );
         return;
     };
