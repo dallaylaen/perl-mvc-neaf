@@ -9,9 +9,9 @@ use MVC::Neaf;
 MVC::Neaf->route( "/" => sub {
     my $req = shift;
     return {
-        -content => $req->path_info('.*'),
+        -content => $req->path_info(),
     };
-});
+}, subpath => '.*' );
 
 my $psgi = MVC::Neaf->run;
 

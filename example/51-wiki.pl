@@ -119,7 +119,7 @@ MVC::Neaf->route( wiki => sub {
     my $req = shift;
 
     # This whole 100+-line example was made for the next line!
-    my $topic = $req->path_info( '.+' );
+    my $topic = $req->path_info( );
     length $topic or $req->redirect( $req->script_name . "/Main%20page" );
 
     # Get some wiki formatting. Don't want to spend too much on it.
@@ -133,7 +133,7 @@ MVC::Neaf->route( wiki => sub {
         action => "Wiki",
         article => $article,
     };
-}, description => "A 200-line stupid Wiki engine");
+}, description => "A 200-line stupid Wiki engine", subpath => '.*' );
 
 # Update article - POST only, redirect in the end.
 MVC::Neaf->route( wiki_forms => update => sub {

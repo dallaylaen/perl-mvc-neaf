@@ -24,9 +24,7 @@ $req->set_full_path("/foo/bar");
 is ($req->path, "/foo/bar", "Path round trip");
 
 $req->set_path_info( "woo" );
-is ($req->path_info( '\w+' ), "woo", "path info" );
-is ($req->path_info( '\d+' ), undef, "path info no match");
-is ($req->path_info( '.(\w).*' ), "o", "path info with capture");
+is ($req->path_info( ), "woo", "path info round trip" );
 is ($req->path, "/foo/bar/woo", "Path also modified" );
 $req->set_path_info;
 is ($req->path, "/foo/bar", "Path reset to where it was");

@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1201;
+our $VERSION = 0.1202;
 
 =head1 NAME
 
@@ -212,39 +212,42 @@ sub script_name {
     return $self->{script_name};
 };
 
-=head2 path_info( $regexp )
+=head2 path_info()
 
 Returns the part of URI path beyond what matched the application's path.
 
 Contrary to the
 L<CGI specification|https://tools.ietf.org/html/rfc3875#section-4.1.5>,
-the leading slash is REMOVED before checking the regexp.
+the leading slash is REMOVED.
 
-The WHOLE path_info value is matched against the given regular expression.
+The validation regexp for this value SHOULD be specified during application
+setup as C<subpath>. See C<route> in L<MVC::Neaf>.
 
-If there's no match, undef is returned.
+B<NOTE> Starting v.0.16 of this module, path_info() will die unless
+validation regexp was provided.
 
-Otherwise, $1 (if present) or the whole string is returned.
+B<NOTE> Experimental. This part of API is undergoing changes.
 
 =cut
 
 sub path_info {
     my ($self, $regexp) = @_;
 
-    if (!defined $regexp) {
-        carp((ref $self)."->path_info(): DEPRECATED: validation regex is now REQUIRED");
-        $regexp = '.*';
+    if ($self->{no_subpath}) {
+        # TODO all instances of no_subpath must be killed in v.0.16,
+        # and undefined path_info die here
+        carp "DEPRECATED path_info() called, but subpath validation was not set in route()";
+    } elsif (defined $regexp) {
+        carp "DEPRECATED path_info() called with regex, use subpath parameter in route() instead";
     };
-    return '' unless exists $self->{path_info};
 
-    $self->{path_info} =~ /^$regexp$/
-        or return undef; ## no critic # YES, return undef in list context
-    return defined $1 ? $1 : $self->{path_info};
+
+    return $self->{path_info};
 };
 
 =head2 set_full_path( $path )
 
-=head2 set_full_path( $script_name, $path_info )
+=head2 set_full_path( $script_name, $path_info, $no_subpath=1|0 )
 
 Set new path elements which will be returned from this point onward.
 
@@ -256,10 +259,13 @@ by the underlying driver.
 
 Returns self.
 
+B<NOTE> This is an internal method, don't call it
+unless you know what you're doing.
+
 =cut
 
 sub set_full_path {
-    my ($self, $script_name, $path_info) = @_;
+    my ($self, $script_name, $path_info, $no_subpath) = @_;
 
     if (!defined $script_name) {
         $script_name = $self->do_get_path;
@@ -274,6 +280,7 @@ sub set_full_path {
         $self->{path_info} = Encode::is_utf8($path_info)
                 ? $path_info
                 : decode_utf8(uri_unescape($path_info));
+        $self->{no_subpath} = $no_subpath;
     } elsif (!defined $self->{path_info}) {
         $self->{path_info} = '';
     };
@@ -302,6 +309,7 @@ sub set_path_info {
     $path_info =~ s#^/+##;
 
     $self->{path_info} = $path_info;
+    delete $self->{no_subpath};
     $self->{path} = "$self->{script_name}"
         .(length $self->{path_info} ? "/$self->{path_info}" : '');
 
@@ -870,7 +878,8 @@ sub dump {
     $raw{header_in} = $self->header_in->as_string;
     $self->get_cookie( noexist => '' ); # warm up cookie cache
     $raw{cookie_in} = $self->{neaf_cookie_in};
-    $raw{path_info} = $self->path_info( qr'.*'s );
+    $raw{path_info} = $self->{path_info}
+        if defined $self->{path_info};
 
     return \%raw;
 };

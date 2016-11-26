@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1201;
+our $VERSION = 0.1202;
 
 =head1 NAME
 
@@ -175,8 +175,8 @@ our $Inst = __PACKAGE__->new;
 
 =head2 route( path => CODEREF, %options )
 
-Creates a new route in the application.
-Any incoming request to uri starting with C</path>
+Set up an URI handler in the application.
+Any incoming request to uri matching C</path>
 (C</path/something/else> too, but NOT C</pathology>)
 will now be directed to CODEREF.
 
@@ -193,13 +193,25 @@ Exactly one leading slash will be prepended no matter what you do.
 
 =over
 
-=item * description - just for information, has no action on execution.
+=item * method - list of allowed HTTP methods.
+Default is [GET, POST, HEAD].
+Multiple handles can be defined for the same path, provided that
+metyhods do not intersect.
 
-=item * method - list of allowed HTTP methods. Default is [GET, POST, HEAD].
+=item * subpath => qr/.../ - allow URI subpaths matching
+the sprecified expression.
+This is a safer PATH_INFO substitute.
+The subpath along with captured values can be extracted via
+C<Request-E<gt>subpath()> method.
+If not specified, only exact URI matches will be allowed for this handler,
+and a 404 error will be generated for anything else.
+Failing the check also results in a 404 error.
 
 =item * view - default View object for this Controller.
 Must be an object with a C<render> methods, or a CODEREF
 receiving hash and returning a list of two scalars.
+
+=item * description - just for information, has no action on execution.
 
 =back
 
@@ -237,6 +249,13 @@ sub route {
     my %profile;
     $profile{code}     = $sub;
     $profile{caller}   = [caller(0)]; # file,line
+    if ( !defined $args{subpath} ) {
+        # TODO replace def subpath with '' in v.0.16 aka '404 if unspecified'
+        $args{subpath}      = '.*';
+    } else {
+        $profile{has_subpath} = 1;
+    };
+    $profile{subpath_regex}  = qr#^/*($args{subpath})$#;
 
     # Just for information
     $profile{path}        = $path;
@@ -687,7 +706,9 @@ sub _make_route_re {
     $hash ||= $self->{route};
 
     my $re = join "|", map { quotemeta } reverse sort keys %$hash;
-    return qr{^($re)(/[^?]*)?(?:\?|$)};
+
+    # make $1, $2 always defined
+    return qr{^($re)((?:/[^?]*)?)(?:\?|$)};
 };
 
 =head1 EXPORTED FUNCTIONS
@@ -883,7 +904,12 @@ sub handle_request {
             or die "404\n";
         $route = $route->{ $req->method }
             or die "405\n";
-        $req->set_full_path( $1, $2 );
+
+        # TODO optimize this or do smth. Still MUST keep route_re a prefix tree
+        my ($path, $subpath) = ($1, $2);
+        $subpath =~ $route->{subpath_regex}
+            or die "404\n";
+        $req->set_full_path( $path, $subpath, !$route->{has_subpath} );
 
         # Run the controller!
         return $route->{code}->($req);
@@ -1025,6 +1051,29 @@ sub _croak {
     my $where = [caller(1)]->[3];
     $where =~ s/.*:://;
     croak( (ref $self || $self)."->$where: $msg" );
+};
+
+=head2 run_test( \%PSGI_ENV )
+
+Run a PSGI request and return ($status, HTTP::Headers, $whole_content ).
+
+Just as the name suggests, useful for testing only (it reduces boilerplate).
+
+Does NOT handle continuation requests.
+
+=cut
+
+sub run_test {
+    my ($self, $env) = @_;
+
+    my $ret = $self->run->( $env );
+    # TODO handle functional return, too!
+
+    return (
+        $ret->[0],
+        HTTP::Headers->new( @{ $ret->[1] } ),
+        join '', @{ $ret->[2] },
+    );
 };
 
 =head1 MORE EXAMPLES

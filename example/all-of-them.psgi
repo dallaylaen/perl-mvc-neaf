@@ -42,11 +42,10 @@ my @list = sort { $a->{path} cmp $b->{path} }
 MVC::Neaf->route( "/" => sub {
     my $req = shift;
 
-    die 404 if $req->path_info( '.+' );
     return {
         -template => \$tt,
         list => \@list,
     };
-});
+}, subpath => '');
 
 MVC::Neaf->run;
