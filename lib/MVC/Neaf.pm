@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1202;
+our $VERSION = 0.1203;
 
 =head1 NAME
 
@@ -334,7 +334,13 @@ Default is 4096. Smaller values may be set, but are NOT recommended.
 
 =item * cache_ttl => nnn - if given, files below the buffer size will be stored
 in memory for cache_ttl seconds.
+
 B<EXPERIMENTAL>. Cache API is not yet established.
+
+=item * allow_dots => 1|0 - if true, serve files/directories
+starting with a dot (.git etc), otherwise give a 404.
+
+B<EXPERIMAENTAL>
 
 =item * description - comment. The default is "Static content at $dir"
 
@@ -351,7 +357,7 @@ This is the intended usage.
 =cut
 
 my %static_options;
-$static_options{$_}++ for qw( description buffer cache_ttl );
+$static_options{$_}++ for qw( description buffer cache_ttl allow_dots );
 sub static {
     my ($self, $path, $dir, %options) = @_;
     $self = $Inst unless ref $self;
@@ -364,6 +370,7 @@ sub static {
     my $xfiles = MVC::Neaf::X::Files->new( %options, root => $dir );
     return $self->route($path => $xfiles->make_handler
         , method => ['GET', 'HEAD']
+        , subpath => '.*'
         , description => $options{description} || "Static content at $dir" );
 };
 

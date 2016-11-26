@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.1201;
+our $VERSION = 0.1202;
 
 =head1 NAME
 
@@ -89,15 +89,13 @@ sub make_handler {
     my $handler = sub {
         my $req = shift;
 
-        my $file = $req->path_info( '.*' );
-
-        # sanitize file path
-        $file =~ m#/../# and die 404;
-        $file =~ s#^/*#/#;
-        $file =~ s#/*$##;
-        $file =~ s#/+#/#g;
-
+        my $file = $req->path_info();
         my $time = time;
+
+        # sanitize file path before caching
+        $file = "/$file";
+        $file =~ s#/+#/#g;
+        $file =~ s#/$##;
 
         if (my $data = $self->{cache_content}{$file}) {
             if ($data->{expire} < $time) {
@@ -108,6 +106,11 @@ sub make_handler {
                 return { -content => $data->{data}, -type => $data->{type} };
             };
         };
+
+        # don't let unsafe paths through
+        $file =~ m#/../# and die 404;
+        $file =~ m#(^|/)\.# and die 404
+            unless $self->{allow_dots};
 
         # open file
         my $xfile = join "", $dir, $file;
