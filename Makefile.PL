@@ -18,7 +18,7 @@ WriteMakefile(
         'File::Temp'     => 0,
         'Getopt::Long'   => 0,
         'HTTP::Headers'  => 0,
-        'JSON::XS'       => 1.4,
+        'JSON'           => 0,
         'parent'         => 0,
         'Plack::Request' => 0,
         'Template'       => 0,

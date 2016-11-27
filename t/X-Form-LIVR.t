@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use Test::More;
-use JSON::XS;
+use JSON;
 
 use MVC::Neaf;
 use MVC::Neaf::X::Form::LIVR;

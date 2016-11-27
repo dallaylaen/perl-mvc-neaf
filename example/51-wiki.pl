@@ -15,7 +15,7 @@ use strict;
 use warnings;
 use FindBin qw($Bin);
 use URI::Escape;
-use JSON::XS;
+use JSON;
 
 # always use latest and greates Neaf
 use FindBin qw($Bin);
