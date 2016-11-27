@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1204;
+our $VERSION = 0.1205;
 
 =head1 NAME
 
@@ -910,10 +910,12 @@ sub handle_request {
         };
 
         # Lookup the rules for the given path
-        $req->path =~ $self->{route_re} and $route = $self->{route}{$1}
+        $req->path =~ $self->{route_re} and my $node = $self->{route}{$1}
             or die "404\n";
-        $route = $route->{ $req->method }
-            or die "405\n";
+        unless ($route = $node->{ $req->method }) {
+            $req->set_header( Allow => join ", ", keys %$node );
+            die "405\n";
+        };
 
         # TODO optimize this or do smth. Still MUST keep route_re a prefix tree
         my ($path, $path_info_regex) = ($1, $2);
