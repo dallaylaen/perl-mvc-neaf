@@ -9,7 +9,7 @@ use MVC::Neaf;
 MVC::Neaf->route( path => sub {
     my $req = shift;
     return { -content => $req->path_info };
-}, subpath => '.*a.*' );
+}, path_info_regex => '.*a.*' );
 
 my @ret = MVC::Neaf->run_test( { REQUEST_URI => '/path/foo' } );
 is ($ret[0], 404, "No match = not found");

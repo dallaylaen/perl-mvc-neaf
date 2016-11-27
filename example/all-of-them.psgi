@@ -46,6 +46,6 @@ MVC::Neaf->route( "/" => sub {
         -template => \$tt,
         list => \@list,
     };
-}, subpath => '');
+}, path_info_regex => '');
 
 MVC::Neaf->run;

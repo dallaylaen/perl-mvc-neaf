@@ -24,7 +24,7 @@ my $data = MVC::Neaf->run->( { REQUEST_URI => "/something" } );
 is ($data->[2][0], "something", "path_info round trip" );
 is (scalar @warn, 1, "1 warn issued" );
 like ($warn[0], qr/path_info/, "path_info in warn");
-like ($warn[0], qr/subpath/, "subpath in warn");
+like ($warn[0], qr/path_info_regex/, "path_info_regex in warn");
 note $_ for @warn;
 
 done_testing;

@@ -11,7 +11,7 @@ MVC::Neaf->route( "/" => sub {
     return {
         -content => $req->path_info(),
     };
-}, subpath => '.*' );
+}, path_info_regex => '.*' );
 
 my $psgi = MVC::Neaf->run;
 

@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1203;
+our $VERSION = 0.1204;
 
 =head1 NAME
 
@@ -198,14 +198,17 @@ Default is [GET, POST, HEAD].
 Multiple handles can be defined for the same path, provided that
 metyhods do not intersect.
 
-=item * subpath => qr/.../ - allow URI subpaths matching
-the sprecified expression.
-This is a safer PATH_INFO substitute.
-The subpath along with captured values can be extracted via
-C<Request-E<gt>subpath()> method.
-If not specified, only exact URI matches will be allowed for this handler,
-and a 404 error will be generated for anything else.
-Failing the check also results in a 404 error.
+=item * path_info_regex => qr/.../ - allow URI subpaths matching
+the specified expression to be handled by this handler.
+
+If specified, 404 error will be returned unless PATH_INFO matches the regex
+(without the leading slash).
+
+Starting from v.0.16, this parameter is going to be REQUIRED for path_info()
+method to be used in the handler.
+Until then, a DEPRECATED warning will be generated for a naked path_info call.
+
+B<EXPERIMENTAL>. Name and semantics MAY change in the future.
 
 =item * view - default View object for this Controller.
 Must be an object with a C<render> methods, or a CODEREF
@@ -249,13 +252,13 @@ sub route {
     my %profile;
     $profile{code}     = $sub;
     $profile{caller}   = [caller(0)]; # file,line
-    if ( !defined $args{subpath} ) {
-        # TODO replace def subpath with '' in v.0.16 aka '404 if unspecified'
-        $args{subpath}      = '.*';
+    if ( !defined $args{path_info_regex} ) {
+        # TODO replace def path_info_regex with '' in v.0.16 aka '404 if unspecified'
+        $args{path_info_regex}      = '.*';
     } else {
-        $profile{has_subpath} = 1;
+        $profile{has_path_info_regex} = 1;
     };
-    $profile{subpath_regex}  = qr#^/*($args{subpath})$#;
+    $profile{path_info_regex_regex}  = qr#^/*($args{path_info_regex})$#;
 
     # Just for information
     $profile{path}        = $path;
@@ -370,7 +373,7 @@ sub static {
     my $xfiles = MVC::Neaf::X::Files->new( %options, root => $dir );
     return $self->route($path => $xfiles->make_handler
         , method => ['GET', 'HEAD']
-        , subpath => '.*'
+        , path_info_regex => '.*'
         , description => $options{description} || "Static content at $dir" );
 };
 
@@ -913,10 +916,10 @@ sub handle_request {
             or die "405\n";
 
         # TODO optimize this or do smth. Still MUST keep route_re a prefix tree
-        my ($path, $subpath) = ($1, $2);
-        $subpath =~ $route->{subpath_regex}
+        my ($path, $path_info_regex) = ($1, $2);
+        $path_info_regex =~ $route->{path_info_regex_regex}
             or die "404\n";
-        $req->set_full_path( $path, $subpath, !$route->{has_subpath} );
+        $req->set_full_path( $path, $path_info_regex, !$route->{has_path_info_regex} );
 
         # Run the controller!
         return $route->{code}->($req);

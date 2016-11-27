@@ -77,7 +77,7 @@ MVC::Neaf->route( cgi => $script => sub {
         } qw(method path http_version scheme hostname port
             script_name path_info client_ip referer user_agent),
     };
-}, description => $descr, subpath => '.*' );
+}, description => $descr, path_info_regex => '.*' );
 
 MVC::Neaf->alias( "/request/parser" => "/cgi/$script" );
 

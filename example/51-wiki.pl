@@ -133,7 +133,7 @@ MVC::Neaf->route( wiki => sub {
         action => "Wiki",
         article => $article,
     };
-}, description => "A 200-line stupid Wiki engine", subpath => '.*' );
+}, description => "A 200-line stupid Wiki engine", path_info_regex => '.*' );
 
 # Update article - POST only, redirect in the end.
 MVC::Neaf->route( wiki_forms => update => sub {
