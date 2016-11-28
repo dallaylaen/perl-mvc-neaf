@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.1203;
+our $VERSION = 0.1204;
 
 =head1 NAME
 
@@ -118,7 +118,7 @@ sub make_handler {
         # open file
         my $xfile = join "", $dir, $file;
 
-        die 403 if -d $xfile;
+        die 404 if -d $xfile; # Sic! Don't reveal directory structure
         my $ok = open (my $fd, "<", "$xfile");
         if (!$ok) {
             # TODO Warn
