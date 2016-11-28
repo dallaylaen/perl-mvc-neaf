@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1206;
+our $VERSION = 0.1207;
 
 =head1 NAME
 
@@ -1013,7 +1013,7 @@ sub handle_request {
     $head->init_header( content_length => length $content )
         unless $data->{-continue};
     $head->init_header( expires => _http_date( time + $route->{cache_ttl} ) )
-        if exists $route->{cache_ttl};
+        if exists $route->{cache_ttl} and $data->{-status} == 200;
     $content = '' if $req->method eq 'HEAD';
 
     # END PROCESS REPLY
