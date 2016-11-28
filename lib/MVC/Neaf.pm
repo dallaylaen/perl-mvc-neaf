@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1205;
+our $VERSION = 0.1206;
 
 =head1 NAME
 
@@ -163,8 +163,9 @@ They have nothing to do with serving the request.
 =cut
 
 use Carp;
-use Scalar::Util qw(blessed);
+use Scalar::Util qw(blessed looks_like_number);
 use Encode;
+use POSIX qw(strftime);
 use parent qw(Exporter);
 
 our @EXPORT_OK = qw(neaf_err);
@@ -214,12 +215,18 @@ B<EXPERIMENTAL>. Name and semantics MAY change in the future.
 Must be an object with a C<render> methods, or a CODEREF
 receiving hash and returning a list of two scalars.
 
+=item * cache_ttl - if set, set Expires: HTTP header accordingly.
+
+B<EXPERIMENTAL>. Name and semantics MAY change in the future.
+
 =item * description - just for information, has no action on execution.
+This will be displayed if application called with --list (see L<MVC::Neaf::CLI>).
 
 =back
 
 =cut
 
+my $year = 365 * 24 * 60 * 60;
 sub route {
     my $self = shift;
 
@@ -277,13 +284,22 @@ sub route {
         $profile{view} = $view;
     };
 
+    if ( $args{cache_ttl} ) {
+        $self->_croak("cache_ttl must be a number")
+            unless looks_like_number($args{cache_ttl});
+        # as required by RFC
+        $args{cache_ttl} = -100000 if $args{cache_ttl} < 0;
+        $args{cache_ttl} = $year if $args{cache_ttl} > $year;
+        $profile{cache_ttl} = $args{cache_ttl};
+    };
+
     # ready, install handler & burn cache
     delete $self->{route_re};
     $self->{route}{ $path }{$_} = \%profile
         for @{ $args{method} };
 
     return $self;
-};
+}; # end sub route
 
 =head2 alias( $newpath => $oldpath )
 
@@ -374,6 +390,7 @@ sub static {
     return $self->route($path => $xfiles->make_handler
         , method => ['GET', 'HEAD']
         , path_info_regex => '.*'
+        , cache_ttl => $options{cache_ttl}
         , description => $options{description} || "Static content at $dir" );
 };
 
@@ -995,6 +1012,8 @@ sub handle_request {
     $head->push_header( set_cookie => $req->format_cookies );
     $head->init_header( content_length => length $content )
         unless $data->{-continue};
+    $head->init_header( expires => _http_date( time + $route->{cache_ttl} ) )
+        if exists $route->{cache_ttl};
     $content = '' if $req->method eq 'HEAD';
 
     # END PROCESS REPLY
@@ -1055,6 +1074,12 @@ sub _error_to_reply {
         -type       => 'text/plain',
         -content    => "Error $status\n",
     };
+};
+
+# TODO Make this public?.. Move to Neaf::Util?
+sub _http_date {
+    my $t = shift;
+    return strftime( "%a, %d %b %Y %H:%M:%S GMT", gmtime($t))
 };
 
 sub _croak {

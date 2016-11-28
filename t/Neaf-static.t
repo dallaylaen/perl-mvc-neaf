@@ -21,6 +21,7 @@ is ($status, 200, "Found self");
 is ($head{'Content-Type'}, 'text/plain; charset=utf-8', "Served as text");
 is ($head{'Content-Length'}, length $content, "Length");
 is ($head{'Content-Disposition'}, qq{attachment; filename="$self"}, "Filename");
+like( $head{'Expires'}, qr#\w\w\w, \d.*GMT#, "expire date present");
 
 note "Testing cache now";
 my $old_content = $content;
@@ -33,6 +34,7 @@ is ($status, 200, "Found self");
 is ($head{'Content-Type'}, 'text/plain; charset=utf-8', "Served as text");
 is ($head{'Content-Length'}, length $content, "Length");
 is ($head{'Content-Disposition'}, qq{attachment; filename="$self"}, "Filename");
+like( $head{'Expires'}, qr#\w\w\w, \d.*GMT#, "expire date present");
 
 is ($content, $old_content, "Content not changed");
 done_testing;
