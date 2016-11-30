@@ -3,7 +3,7 @@ package MVC::Neaf::Request::Apache2;
 use strict;
 use warnings;
 
-our $VERSION = 0.1201;
+our $VERSION = 0.1202;
 
 =head1 NAME
 
@@ -74,11 +74,26 @@ use parent qw(MVC::Neaf::Request);
 
 =cut
 
+my $client_ip_name;
 sub do_get_client_ip {
     my $self = shift;
 
     my $conn = $self->{driver_raw}->connection;
-    return $conn->remote_ip;
+    if (!$client_ip_name) {
+        # Apache 2.4 breaks API violently, so autodetect on first run,
+        # fall back to localhost
+        foreach (qw(remote_ip client_ip)) {
+            $conn->can($_) or next;
+            $client_ip_name = $_;
+            last;
+        };
+        if (!$client_ip_name) {
+            carp("WARNING: No client_ip found under Apache2, inform MVC::Neaf author");
+            return '127.0.0.1';
+        };
+    };
+
+    return $conn->$client_ip_name;
 };
 
 =head2 do_get_http_version

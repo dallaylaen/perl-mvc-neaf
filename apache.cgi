@@ -40,6 +40,15 @@ LogLevel info
 PidFile [% dir %]/apache.pid
 
 [% SET modules = modules || "modules" %]
+
+[% IF version >= 2.4 %]
+    # had to do this after upgrading to Ubuntu 14.04 and Apache 2.4
+    LoadModule mpm_prefork_module [% modules %]/mod_mpm_prefork.so
+    LoadModule access_compat_module [% modules %]/mod_access_compat.so
+[% END %]
+# LoadModule authn_core_module [% modules %]/mod_authn_core.so
+LoadModule authz_core_module [% modules %]/mod_authz_core.so
+
 LoadModule alias_module       [% modules %]/mod_alias.so
 LoadModule dir_module         [% modules %]/mod_dir.so
 LoadModule autoindex_module   [% modules %]/mod_autoindex.so
@@ -59,6 +68,14 @@ ErrorLog [% dir %]/error.log
 
 <VirtualHost *:[% port_cgi %]>
     ServerName localhost
+
+[% IF version >= 2.4 %]
+<Directory />
+    Options FollowSymLinks
+    AllowOverride All
+    Require all granted
+</Directory>
+[% END %]
 
 Alias /forms [% dir %]/forms
 <Directory [% dir %]/forms>
@@ -80,6 +97,14 @@ Alias /cgi [% dir %]/cgi
 ####################
 <VirtualHost *:[% port_perl %]>
     ServerName perl.localhost
+
+[% IF version >= 2.4 %]
+<Directory />
+    Options FollowSymLinks
+    AllowOverride All
+    Require all granted
+</Directory>
+[% END %]
 
 [% FOREACH item IN public %]
 PerlPostConfigRequire [% item.caller.1 %]
@@ -130,6 +155,9 @@ foreach (qw(/usr/sbin/httpd)
     $httpd = $_;
     last;
 };
+
+# Determine version
+my ($version) = `$httpd -v` =~ m#version.*Apache/(\d+\.\d+)#m;
 
 my $modules = "/usr/lib/apache2/modules";
 foreach (qw(/etc/apache2), dirname($httpd), dirname(dirname($httpd)) ) {
@@ -192,6 +220,7 @@ my %vars = (
     modules   => $modules,
     magic     => $magic,
     public    => \@public,
+    version   => $version,
 );
 
 my $tt = Template->new;
