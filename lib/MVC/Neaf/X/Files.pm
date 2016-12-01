@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.13;
+our $VERSION = 0.1301;
 
 =head1 NAME
 
@@ -29,7 +29,7 @@ So this module is here to fill the gap.
 
 =cut
 
-use POSIX qw(strftime);
+use MVC::Neaf::Util qw(http_date);
 use parent qw(MVC::Neaf::X);
 
 =head2 new( %options )
@@ -104,7 +104,7 @@ sub make_handler {
             } else {
                 $req->set_header( content_disposition => $data->{disposition} )
                     if $data->{disposition};
-                $data->{expire_head} ||= _http_date( $data->{expire} );
+                $data->{expire_head} ||= http_date( $data->{expire} );
                 $req->set_header( expires => $data->{expire_head} );
                 return { -content => $data->{data}, -type => $data->{type} };
             };
@@ -173,12 +173,6 @@ sub make_handler {
     }; # end handler sub
 
     return $handler;
-};
-
-# TODO Copied from MVC::Neaf as is. Maybe Neaf::Util?
-sub _http_date {
-    my $t = shift;
-    return strftime( "%a, %d %b %Y %H:%M:%S GMT", gmtime($t))
 };
 
 1;

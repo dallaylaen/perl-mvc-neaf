@@ -3,15 +3,15 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.13;
+our $VERSION = 0.1301;
 
 =head1 NAME
 
-MVC::Neaf::Request - Request class for Not Even A Framework.
+MVC::Neaf::Request - Request class for Not Even A Framework
 
 =head1 DESCRIPTION
 
-This is what your application is going to get as its ONLY input.
+This is what your L<MVC::Neaf> application is going to get as its ONLY input.
 
 Here's a brief overview of what a Neaf request returns:
 
@@ -42,10 +42,10 @@ Thus it is expected to have the following methods.
 
 use Carp;
 use URI::Escape;
-use POSIX qw(strftime);
 use Encode;
 use HTTP::Headers;
 
+use MVC::Neaf::Util qw(http_date);
 use MVC::Neaf::Upload;
 use MVC::Neaf::Exception;
 
@@ -713,8 +713,7 @@ sub format_cookies {
         next unless defined $cook; # TODO erase cookie if undef?
 
         $path = "/" unless defined $path;
-        defined $expires and $expires
-             = strftime( "%a, %d %b %Y %H:%M:%S GMT", gmtime($expires));
+        defined $expires and $expires = http_date( $expires );
         my $bake = join "; ", ("$name=".uri_escape_utf8($cook))
             , defined $domain  ? "Domain=$domain" : ()
             , "Path=$path"

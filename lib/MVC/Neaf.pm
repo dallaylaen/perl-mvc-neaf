@@ -4,11 +4,11 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.13;
+our $VERSION = 0.1301;
 
 =head1 NAME
 
-MVC::Neaf - Not Even A Framework for very simple web apps.
+MVC::Neaf - Not Even A Framework for very simple web apps
 
 =head1 OVERVIEW
 
@@ -170,6 +170,7 @@ use parent qw(Exporter);
 
 our @EXPORT_OK = qw(neaf_err);
 
+use MVC::Neaf::Util qw(http_date);
 use MVC::Neaf::Request;
 
 our $Inst = __PACKAGE__->new;
@@ -1012,7 +1013,7 @@ sub handle_request {
     $head->push_header( set_cookie => $req->format_cookies );
     $head->init_header( content_length => length $content )
         unless $data->{-continue};
-    $head->init_header( expires => _http_date( time + $route->{cache_ttl} ) )
+    $head->init_header( expires => http_date( time + $route->{cache_ttl} ) )
         if exists $route->{cache_ttl} and $data->{-status} == 200;
     $content = '' if $req->method eq 'HEAD';
 
@@ -1074,12 +1075,6 @@ sub _error_to_reply {
         -type       => 'text/plain',
         -content    => "Error $status\n",
     };
-};
-
-# TODO Make this public?.. Move to Neaf::Util?
-sub _http_date {
-    my $t = shift;
-    return strftime( "%a, %d %b %Y %H:%M:%S GMT", gmtime($t))
 };
 
 sub _croak {
