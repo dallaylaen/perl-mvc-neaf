@@ -1,5 +1,8 @@
 Revision history for MVC-Neaf
 
+0.1302  Thu Dec  1 2016
+        - BUG Fix locale-dependent dates, create MVC::Neaf::Util class
+
 0.13    Thu Dec  1 2016
         - API BREAK Add path_info_regex => qr/.../ parameter to route() & path_info()
         - API BREAK static() no .dotfiles by default, add allow_dots => 1 to overcome

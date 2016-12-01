@@ -29,6 +29,7 @@ lib/MVC/Neaf/Request/Apache2.pm
 lib/MVC/Neaf/Request/CGI.pm
 lib/MVC/Neaf/Request/PSGI.pm
 lib/MVC/Neaf/Upload.pm
+lib/MVC/Neaf/Util.pm
 lib/MVC/Neaf/View.pm
 lib/MVC/Neaf/View/Dumper.pm
 lib/MVC/Neaf/View/JS.pm
@@ -47,6 +48,7 @@ MANIFEST.SKIP
 README
 README.md
 STYLE.md
+t/core-Request-cookie.t
 t/deprecated-0.16-path_info.t
 t/Neaf-alias.t
 t/Neaf-binary.t
