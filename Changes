@@ -1,5 +1,11 @@
 Revision history for MVC-Neaf
 
+0.13    Thu Dec  1 2016
+        - API BREAK Add path_info_regex => qr/.../ parameter to route() & path_info()
+        - API BREAK static() no .dotfiles by default, add allow_dots => 1 to overcome
+        - NET Add Expires: header controlled by cache_ttl in static() and route()
+        - NET Append Allow: header to a 405 error as per HTTP/1.1 spec
+
 0.1201  Sun Nov 13 2016
         - BUG Fixed File::Session fail under Windows OS
 

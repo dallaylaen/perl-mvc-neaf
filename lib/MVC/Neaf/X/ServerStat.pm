@@ -3,7 +3,7 @@ package MVC::Neaf::X::ServerStat;
 use strict;
 use warnings;
 
-our $VERSION = 0.1201;
+our $VERSION = 0.13;
 
 =head1 NAME
 

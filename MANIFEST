@@ -47,12 +47,14 @@ MANIFEST.SKIP
 README
 README.md
 STYLE.md
+t/deprecated-0.16-path_info.t
 t/Neaf-alias.t
 t/Neaf-binary.t
 t/Neaf-content-length.t
 t/Neaf-error-template.t
 t/Neaf-Exception.t
 t/Neaf-force-view.t
+t/Neaf-path-info.t
 t/Neaf-Request-Apache.t
 t/Neaf-Request-CGI.t
 t/Neaf-Request-PSGI.t
