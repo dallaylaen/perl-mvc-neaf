@@ -4,13 +4,19 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.10    0.20    MOD Cookie-based encrypted session
 
 -- backlog --
+0.13    0.20    REF Util: canonize_path
+0.13    0.20    API Prototyped get /foo/bar => sub { ... } sugar
+0.13    0.20    API Request->clear method to remove outgoing stuff
+0.13    0.20    API Request->on_cleanup method to execute AFTER all postponed
+0.13    0.20    MOD static: X-Accel-Redirect (@cono)
 0.12    0.20    MOD static file_regex, dir_regex
 0.09    0.20    MOD Add predefined regexps to default FORM impl
 0.10    0.20    API International - how???
 0.09    0.20    MOD Add form defaults populating BOTH raw and data
 0.09    0.20    MOD Form->hmac(salt)
 0.02    0.20    TPL Add TT caching
-0.03    0.20    NET Fixup http header handling, read more
+0.13    0.30    NET Add FastCGI support
+0.13    0.30    TPL Add XSLate support
 0.08    0.30    API Add Req alias methods for -dashed -return -keys
 0.02    0.30    DEV Add dumper to TT view
 0.08    0.30    API Req->reply to return immediately
