@@ -84,4 +84,10 @@ note explain $dump;
 undef $req;
 is ($flag, 1, "postpone(): executed in destroy (and close didn't die)");
 
+$req = MVC::Neaf::Request->new;
+$req->push_header( foobar => 42 );
+is ($req->header_out( "foobar" ), 42, "Header set");
+$req->clear;
+is ($req->header_out( "foobar" ), undef, "Clear removed header" );
+
 done_testing;

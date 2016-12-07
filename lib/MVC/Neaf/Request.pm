@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1302;
+our $VERSION = 0.1303;
 
 =head1 NAME
 
@@ -564,6 +564,8 @@ sub set_default {
 
 Returns a hash of previously set default values.
 
+B<EXPERIMANTAL>. API and naming subject to change.
+
 =cut
 
 sub get_default {
@@ -666,7 +668,7 @@ sub set_cookie {
         $opt{expires} = time + $opt{ttl};
     };
 
-    $self->{neaf_cookie_out}{ $name } = [
+    $self->{response}{cookie}{ $name } = [
         $cook, $opt{regex},
         $opt{domain}, $opt{path}, $opt{expires}, $opt{secure}, $opt{httponly}
     ];
@@ -704,7 +706,7 @@ ready to be put into Set-Cookie header.
 sub format_cookies {
     my $self = shift;
 
-    my $cookies = $self->{neaf_cookie_out} || {};
+    my $cookies = $self->{response}{cookie} || {};
 
     my @out;
     foreach my $name (keys %$cookies) {
@@ -1073,7 +1075,7 @@ B<NOTE> This format may change in the future.
 sub header_out {
     my $self = shift;
 
-    my $head = $self->{header_out} ||= HTTP::Headers->new;
+    my $head = $self->{response}{header} ||= HTTP::Headers->new;
     return $head unless @_;
 
     my $name = shift;
@@ -1108,6 +1110,28 @@ sub remove_header {
     return $self->header_out->remove_header( $name );
 };
 
+=head2 reply
+
+Returns reply hashref that was returned by controller, if any.
+Returns undef unless the controller was actually called.
+This may be useful in postponed actions or hooks.
+
+B<EXPERIMENTAL>. This function MAY be removed or changed in the future.
+
+=cut
+
+sub reply {
+    my $self = shift;
+
+    return $self->{response}{stash};
+}
+
+sub _set_reply {
+    my ($self, $data) = @_;
+    $self->{response}{stash} = $data;
+    return $self;
+}
+
 =head2 postpone( CODEREF->(req) )
 
 Execute a function right after the request is served.
@@ -1132,12 +1156,8 @@ sub postpone {
         or $self->_croak( "argument must be a function" );
 
     $prepend_flag
-        ? unshift @{ $self->{postponed} }, $code
-        : push    @{ $self->{postponed} }, $code;
-
-    # TODO UGLY HACK - rely on side-effect to determine state
-    $self->{continue}++;
-    $self->{buffer_size} ||= 4096;
+        ? unshift @{ $self->{response}{postponed} }, $code
+        : push    @{ $self->{response}{postponed} }, $code;
 
     return $self;
 };
@@ -1179,6 +1199,24 @@ sub close {
     return $self->do_close();
 }
 
+=head2 clear()
+
+Remove all data that belongs to reply.
+This is called when a handler bails out to avoid e.g. setting cookies
+in a failed request.
+
+=cut
+
+sub clear {
+    my $self = shift;
+
+    $self->_croak( "called after responding" )
+        if $self->{continue};
+
+    delete $self->{response};
+    return $self;
+}
+
 =head1 METHODS FOR DRIVER DEVELOPERS
 
 The following methods are to be used/redefined by backend writers
@@ -1200,11 +1238,12 @@ Returns self.
 sub execute_postponed {
     my $self = shift;
 
-    my $todo = delete $self->{postponed};
+    $self->{continue}++;
+    my $todo = delete $self->{response}{postponed};
     foreach my $code (@$todo) {
         # avoid dying in DESTROY, as well as when serving request.
         eval { $code->($self); };
-        print STDERR "WARN ".(ref $self).": postponed action failed: $@"
+        carp "WARN ".(ref $self).": postponed action failed: $@"
             if $@;
     };
 
@@ -1215,7 +1254,7 @@ sub DESTROY {
     my $self = shift;
 
     $self->execute_postponed
-        if (exists $self->{postponed});
+        if (exists $self->{response}{postponed});
 };
 
 =head1 DRIVER METHODS
