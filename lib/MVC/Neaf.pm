@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1302;
+our $VERSION = 0.1303;
 
 =head1 NAME
 
@@ -220,6 +220,10 @@ receiving hash and returning a list of two scalars.
 
 B<EXPERIMENTAL>. Name and semantics MAY change in the future.
 
+=item * default - a \%hash with default values for handler's return value.
+
+B<EXPERIMENTAL>. Name and semantics MAY change in the future.
+
 =item * description - just for information, has no action on execution.
 This will be displayed if application called with --list (see L<MVC::Neaf::CLI>).
 
@@ -228,6 +232,9 @@ This will be displayed if application called with --list (see L<MVC::Neaf::CLI>)
 =cut
 
 my $year = 365 * 24 * 60 * 60;
+my %known_route_args;
+$known_route_args{$_}++ for qw(default method view cache_ttl path_info_regex description);
+
 sub route {
     my $self = shift;
 
@@ -242,6 +249,11 @@ sub route {
         if @_ % 2;
     my (%args) = @_;
     $self = $Inst unless ref $self;
+
+    # kill extra args
+    my @extra = grep { !$known_route_args{$_} } keys %args;
+    $self->_croak( "Unexpected keys in route setup: @extra" )
+        if @extra;
 
     # Sanitize path so that we have exactly one leading slash
     # root becomes nothing (which is OK with us).
@@ -283,6 +295,12 @@ sub route {
             unless blessed $view and $view->isa("MVC::Neaf::View");
 
         $profile{view} = $view;
+    };
+
+    if (my $def = $args{default}) {
+        $self->_croak( "default must be unblessed hash" )
+            unless ref $def eq 'HASH';
+        $profile{todo_default} = $args{default};
     };
 
     if ( $args{cache_ttl} ) {
@@ -949,7 +967,7 @@ sub handle_request {
         # post-process data - fill in request(RD) & global(GD) defaults.
         # TODO fill in per-location defaults, too - but do we need them?
         my $RD = $req->get_default;
-        my $GD = $self->{defaults};
+        my $GD = $route->{default} ||= $self->_make_defaults( $route );
         exists $data->{$_} or $data->{$_} = $RD->{$_} for keys %$RD;
         exists $data->{$_} or $data->{$_} = $GD->{$_} for keys %$GD;
     } else {
@@ -1034,6 +1052,25 @@ sub handle_request {
 
     # END DISPATCH CONTENT
 }; # End handle_request()
+
+sub _make_defaults {
+    my ($self, $profile) = @_;
+
+    # merge $self->{defaults} + $profile->{todo_default}
+
+    my %hash;
+
+    foreach my $src( $profile->{todo_default}, $self->{defaults} ) {
+        $src or next;
+        exists $hash{$_} or $hash{$_} = $src->{$_}
+            for keys %$src;
+    };
+
+    defined $hash{$_} or delete $hash{$_}
+        for keys %hash;
+
+    return \%hash;
+};
 
 sub _error_to_reply {
     my ($self, $req, $err, $where) = @_;
