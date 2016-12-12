@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1303;
+our $VERSION = 0.1304;
 
 =head1 NAME
 
@@ -520,13 +520,46 @@ Controller return always overrides these values.
 
 Returns self.
 
+B<DEPRECATED>. Use MVC::Neaf->set_path_defaults( '/', { ... } ) instead.
+
 =cut
 
 sub set_default {
     my ($self, %data) = @_;
     $self = $Inst unless ref $self;
 
-    $self->{defaults}{$_} = $data{$_} for keys %data;
+    carp "DEPRECATED use set_path_defaults( '/', \%data ) instead of MVC::Neaf->set_default()";
+
+    return $self->set_path_defaults( '/', \%data );
+};
+
+=head2 set_path_defaults ( '/path' => \%values )
+
+Use given values as defaults for ANY handler below given path.
+A value of '/' means global.
+
+Longer paths override shorter ones; route-specific defaults override these;
+and anything defined inside handler takes over once again.
+
+B<EXPERIMENTAL> Name and meaning MAY change in the future.
+
+=cut
+
+sub set_path_defaults {
+    my ($self, $path, $src) = @_;
+    $self = $Inst unless ref $self;
+
+    $self->_croak("arguments must be a scalar and a hashref")
+        unless defined $path and !ref $path and ref $src eq 'HASH';
+
+    # canonize path
+    $path =~ s#/+#/#;
+    $path =~ s#^/*#/#;
+    $path =~ s#/$##;
+    my $dst = $self->{path_defaults}{$path} ||= {};
+    $dst->{$_} = $src->{$_}
+        for keys %$src;
+
     return $self;
 };
 
@@ -901,7 +934,6 @@ sub new {
 
     $opt{-type}     ||= "text/html";
     $opt{-view}     ||= "TT";
-    $opt{defaults}  ||= { -status => 200 };
     $opt{on_error}  ||= sub {
         my ($req, $err, $where) = @_;
         my $msg = "ERROR: ".$req->script_name.": $err";
@@ -916,6 +948,8 @@ sub new {
     my $self = bless \%opt, $class;
     $self->set_forced_view( $force )
         if $force;
+    # avoid an extra ||= in handle requ
+    $self->set_path_defaults( '/' => { -status => 200 } );
 
     return $self;
 };
@@ -1056,20 +1090,41 @@ sub handle_request {
 sub _make_defaults {
     my ($self, $profile) = @_;
 
-    # merge $self->{defaults} + $profile->{todo_default}
+    my %ret;
 
-    my %hash;
+    # merge data sources, longer paths first
+    my @sources = (
+          $profile->{todo_default}
+        , map { $self->{path_defaults}{$_} } _path_prefixes( $profile->{path} )
+    );
 
-    foreach my $src( $profile->{todo_default}, $self->{defaults} ) {
+    foreach my $src( @sources ) {
         $src or next;
-        exists $hash{$_} or $hash{$_} = $src->{$_}
+        exists $ret{$_} or $ret{$_} = $src->{$_}
             for keys %$src;
     };
 
-    defined $hash{$_} or delete $hash{$_}
-        for keys %hash;
+    # kill undef values
+    defined $ret{$_} or delete $ret{$_}
+        for keys %ret;
 
-    return \%hash;
+    return \%ret;
+};
+
+# TODO Util?
+# TODO Simpler?
+sub _path_prefixes {
+    my $str = shift;
+
+    $str =~ s#^/*##;
+    $str =~ s#/+$##;
+    my @dir = split '/+', $str;
+    my @ret = ('');
+    my $temp = '';
+
+    push @ret, $temp .= "/$_" for @dir;
+
+    return reverse @ret;
 };
 
 sub _error_to_reply {
