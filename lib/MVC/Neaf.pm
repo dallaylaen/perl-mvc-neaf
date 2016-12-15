@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1304;
+our $VERSION = 0.1305;
 
 =head1 NAME
 
@@ -257,6 +257,7 @@ sub route {
 
     # Sanitize path so that we have exactly one leading slash
     # root becomes nothing (which is OK with us).
+    # CANONIZE
     $path =~ s#^/*#/#;
     $path =~ s#/+$##;
 
@@ -334,6 +335,7 @@ sub alias {
     my ($self, $new, $old) = @_;
     $self = $Inst unless ref $self;
 
+    # CANONIZE
     $old =~ s#^/*#/#;
     $old =~ s#/+$##;
 
@@ -553,6 +555,7 @@ sub set_path_defaults {
         unless defined $path and !ref $path and ref $src eq 'HASH';
 
     # canonize path
+    # CANONIZE
     $path =~ s#/+#/#;
     $path =~ s#^/*#/#;
     $path =~ s#/$##;
@@ -1116,6 +1119,7 @@ sub _make_defaults {
 sub _path_prefixes {
     my $str = shift;
 
+    # CANONIZE
     $str =~ s#^/*##;
     $str =~ s#/+$##;
     my @dir = split '/+', $str;

@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1303;
+our $VERSION = 0.1304;
 
 =head1 NAME
 
@@ -271,6 +271,7 @@ sub set_full_path {
         $script_name = $self->do_get_path;
     };
 
+    # CANONIZE
     $script_name =~ s#^/*#/#;
     $self->{script_name} = $script_name;
 
@@ -306,6 +307,7 @@ sub set_path_info {
     my ($self, $path_info) = @_;
 
     $path_info = '' unless defined $path_info;
+    # CANONIZE
     $path_info =~ s#^/+##;
 
     $self->{path_info} = $path_info;
