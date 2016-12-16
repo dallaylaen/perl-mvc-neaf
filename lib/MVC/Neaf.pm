@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1305;
+our $VERSION = 0.1306;
 
 =head1 NAME
 
@@ -170,7 +170,7 @@ use parent qw(Exporter);
 
 our @EXPORT_OK = qw(neaf_err);
 
-use MVC::Neaf::Util qw(http_date);
+use MVC::Neaf::Util qw(http_date canonize_path path_prefixes);
 use MVC::Neaf::Request;
 
 our $Inst = __PACKAGE__->new;
@@ -255,14 +255,9 @@ sub route {
     $self->_croak( "Unexpected keys in route setup: @extra" )
         if @extra;
 
-    # Sanitize path so that we have exactly one leading slash
-    # root becomes nothing (which is OK with us).
-    # CANONIZE
-    $path =~ s#^/*#/#;
-    $path =~ s#/+$##;
+    $path = canonize_path( $path );
 
-    $args{method} ||= [qw[ GET POST HEAD ]];
-    $args{method} = [ $args{method} ] unless ref $args{method} eq 'ARRAY';
+    _listify( \$args{method}, qw( GET POST HEAD ) );
 
     my @dupe = grep { exists $self->{route}{$path}{$_} } @{ $args{method} };
     $self->_croak( "Attempting to set duplicate handler for [@dupe] "
@@ -313,9 +308,9 @@ sub route {
         $profile{cache_ttl} = $args{cache_ttl};
     };
 
-    # ready, install handler & burn cache
+    # ready, shallow copy handler & burn cache
     delete $self->{route_re};
-    $self->{route}{ $path }{$_} = \%profile
+    $self->{route}{ $path }{$_} = { %profile, my_method => $_ }
         for @{ $args{method} };
 
     return $self;
@@ -335,16 +330,12 @@ sub alias {
     my ($self, $new, $old) = @_;
     $self = $Inst unless ref $self;
 
-    # CANONIZE
-    $old =~ s#^/*#/#;
-    $old =~ s#/+$##;
+    $new = canonize_path( $new );
+    $old = canonize_path( $old );
 
     $self->{route}{$old}
         or $self->_croak( "Cannot create alias for unknown route $old" );
 
-    # The same sanitizing as in route
-    $new =~ s#^/*#/#;
-    $new =~ s#/+$##;
     $self->_croak( "Attempting to set duplicate handler for path "
         .( length $new ? $new : "/" ) )
             if $self->{route}{ $new };
@@ -830,6 +821,83 @@ sub neaf_err(;$) { ## no critic # prototype it for less typing on user's part
     die $err;
 };
 
+=head1 EXPERIMENTAL HOOKS
+
+Hooks are subroutines executed during various phases of request processing.
+Each hook is characterized by phase, code to be executed, path, and method.
+Multiple hooks MAY be added for the same phase/path/method combination.
+ALL hooks matching a given route will be executed, either short to long or
+long to short, depending on the phase.
+
+The list of phases MAY change in the future.
+
+=head2 add_hook ( phase => CODEREF, %options )
+
+Set execution hook for given phase. See list of valid phases below.
+
+The CODEREF receives one and only argument - the $request object.
+
+%options may include:
+
+=over
+
+=item * path => '/path' - where the hook applies. Default is '/'.
+
+=item * exclude => '/path/dont' - don't apply to these locations,
+even if under '/path'. Multiple locations may be supplied via [ /foo, /bar ...]
+
+=item * method => 'METHOD' || [ list ]
+List of request methods subject to given hook.
+
+=back
+
+=cut
+
+my %add_hook_args;
+$add_hook_args{$_}++ for qw(method path exclude);
+
+sub add_hook {
+    my ($self, $phase, $code, %opt) = @_;
+    $self = $Inst unless ref $self;
+
+    my @extra = grep { !$add_hook_args{$_} } keys %opt;
+    $self->_croak( "unknown options: @extra" )
+        if @extra;
+
+    _listify( \$opt{method}, qw( GET HEAD POST PUT PATCH DELETE ) );
+    _listify( \$opt{path}, '/' );
+    _listify( \$opt{exclude} );
+    @{ $opt{path} } = map { canonize_path($_) } @{ $opt{path} };
+
+    $opt{caller} = [ caller(0) ]; # where the hook was set
+    $opt{phase}  = $phase; # just for information
+    $opt{code}   = $code;
+
+    # hooks == {method}{path}{phase}[nnn] => { code => CODE, ... }
+
+    foreach my $method ( @{$opt{method}} ) {
+        foreach my $path ( @{$opt{path}} ) {
+            push @{ $self->{hooks}{$method}{$path}{$phase} }, \%opt;
+        };
+    };
+
+    return $self;
+};
+
+# TODO util?
+# usage: listify ( \$var, default1, default2... )
+# converts scalar in-place to arrayref if needed
+sub _listify {
+    my ($scalref, @default) = @_;
+
+    if (ref $$scalref ne 'ARRAY') {
+        my $array = defined $$scalref ? [ my $tmp = $$scalref ] : \@default;
+        $$scalref = $array;
+    };
+
+    return $$scalref;
+};
+
 =head1 DEVELOPMENT AND DEBUGGING METHODS
 
 =head2 get_routes
@@ -957,7 +1025,7 @@ sub new {
     return $self;
 };
 
-=head2 handle_request( MVC::Neaf::request->new )
+=head2 handle_request( MVC::Neaf::Request->new )
 
 This is the CORE of this module.
 Should not be called directly - use run() instead.
@@ -995,7 +1063,11 @@ sub handle_request {
         $path_info_regex =~ $route->{path_info_regex_regex}
             or die "404\n";
         $req->set_full_path( $path, $path_info_regex, !$route->{has_path_info_regex} );
+        $self->_post_setup( $route )
+            unless exists $route->{lock};
 
+        # execute hooks
+        $_->($req) for @{ $route->{hooks}{pre_logic} };
         # Run the controller!
         return $route->{code}->($req);
     };
@@ -1090,45 +1162,61 @@ sub handle_request {
     # END DISPATCH CONTENT
 }; # End handle_request()
 
-sub _make_defaults {
-    my ($self, $profile) = @_;
+# _post_setup( $route )
+# 1) calc defaults
+# 2) calc hooks
+# 3) lock
+sub _post_setup {
+    my ($self, $route) = @_;
 
-    my %ret;
-
+    # CALCULATE DEFAULTS
+    my %def;
     # merge data sources, longer paths first
     my @sources = (
-          $profile->{todo_default}
-        , map { $self->{path_defaults}{$_} } _path_prefixes( $profile->{path} )
+          $route->{todo_default}
+        , map { $self->{path_defaults}{$_} }
+            reverse path_prefixes( $route->{path} )
     );
 
     foreach my $src( @sources ) {
         $src or next;
-        exists $ret{$_} or $ret{$_} = $src->{$_}
+        exists $def{$_} or $def{$_} = $src->{$_}
             for keys %$src;
     };
 
     # kill undef values
-    defined $ret{$_} or delete $ret{$_}
-        for keys %ret;
+    defined $def{$_} or delete $def{$_}
+        for keys %def;
+    $route->{default} = \%def;
 
-    return \%ret;
-};
+    # CALCULATE HOOKS
+    # select ALL hooks prepared for upper paths
+    my $hook_tree = $self->{hooks}{ $route->{my_method} };
+    my @hook_by_path =
+        map { $hook_tree->{$_} || () } path_prefixes( $route->{path} );
 
-# TODO Util?
-# TODO Simpler?
-sub _path_prefixes {
-    my $str = shift;
+    # merge callback stacks into one hash, in order
+    # hook = {method}{path}{phase}[nnn] => { code => sub{}, ... }
+    # we need to extract that sub {}
+    my %phases;
+    foreach my $hook_by_phase (@hook_by_path) {
+        foreach my $phase ( keys %$hook_by_phase ) {
+            my $hook_list = $hook_by_phase->{$phase};
+            foreach my $hook (@$hook_list) {
+                # TODO process excludes
+                # TODO filter out repetition
+                push @{ $phases{$phase} }, $hook->{code};
+                # TODO also store hook info somewhere
+            };
+        };
+    };
 
-    # CANONIZE
-    $str =~ s#^/*##;
-    $str =~ s#/+$##;
-    my @dir = split '/+', $str;
-    my @ret = ('');
-    my $temp = '';
+    $route->{hooks} = \%phases;
 
-    push @ret, $temp .= "/$_" for @dir;
-
-    return reverse @ret;
+    # LOCK PROFILE
+    $route->{lock}++
+        and die "MVC::Neaf broken, please file a bug";
+    return;
 };
 
 sub _error_to_reply {
