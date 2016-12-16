@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1308;
+our $VERSION = 0.1309;
 
 =head1 NAME
 
@@ -1169,6 +1169,7 @@ sub handle_request {
 
     # END ROUTE REQUEST
 
+    $req->_set_reply( $data );
     exists $self->{stat}
         and $self->{stat}->record_controller($req->script_name);
     if (exists $route->{hooks}{pre_content}) {
@@ -1183,37 +1184,40 @@ sub handle_request {
 
     # Render content if needed. This may alter type, so
     # produce headers later.
-    my ($content, $type);
-    if (defined $data->{-content}) {
-        $content = $data->{-content};
-    } else {
+    my $content = \$data->{-content};
+    if( !defined $$content) {
         my $view = $self->load_view( $data->{-view} || $route->{view} );
+        # TODO move session to hook
         if ( my $key = $self->{session_view_as} and my $sess = $req->session(1) ) {
             $data->{ $key } = $sess;
         };
-        eval { ($content, $type) = $view->render( $data ); };
-        if (!defined $content) {
+        eval {
+            ($$content, my $type) = $view->render( $data );
+            $data->{-type} ||= $type;
+        };
+        if (!defined $$content) {
+            # TODO $req->clear in case of error
             $self->_log_error( view => $@ );
             $data = {
                 -status => 500,
                 -type   => "text/plain",
             };
-            $content = "Template error.";
+            $$content = "Template error.";
         };
-        $data->{-type} ||= $type || 'text/html';
     };
 
+    # TODO should this be a sub?
     # Encode unicode content NOW so that we don't lie about its length
     # Then detect ascii/binary
-    if (Encode::is_utf8( $content )) {
+    if (Encode::is_utf8( $$content )) {
         # UTF8 means text, period
-        $content = encode_utf8( $content );
+        $$content = encode_utf8( $$content );
         $data->{-type} ||= 'text/plain';
         $data->{-type} .= "; charset=utf-8"
             unless $data->{-type} =~ /; charset=/;
     } elsif (!$data->{-type}) {
         # Autodetect binary. Plain text is believed to be in utf8 still
-        $data->{-type} = $content =~ /^.{0,512}?[^\s\x20-\x7F]/s
+        $data->{-type} = $$content =~ /^.{0,512}?[^\s\x20-\x7F]/s
             ? 'application/octet-stream'
             : 'text/plain; charset=utf-8';
     } elsif ($data->{-type} =~ m#^text/#) {
@@ -1228,11 +1232,11 @@ sub handle_request {
     $head->init_header( location => $data->{-location} )
         if $data->{-location};
     $head->push_header( set_cookie => $req->format_cookies );
-    $head->init_header( content_length => length $content )
+    $head->init_header( content_length => length $$content )
         unless $data->{-continue};
     $head->init_header( expires => http_date( time + $route->{cache_ttl} ) )
         if exists $route->{cache_ttl} and $data->{-status} == 200;
-    $content = '' if $req->method eq 'HEAD';
+    $$content = '' if $req->method eq 'HEAD';
 
     # END PROCESS REPLY
 
@@ -1253,10 +1257,10 @@ sub handle_request {
 
     if ($data->{-continue} and $req->method ne 'HEAD') {
         $req->postpone( $data->{'-continue'}, 1 );
-        $req->postpone( sub { $_[0]->write( $content ); }, 1 );
+        $req->postpone( sub { $_[0]->write( $$content ); }, 1 );
         return $req->do_reply( $data->{-status} );
     } else {
-        return $req->do_reply( $data->{-status}, $content );
+        return $req->do_reply( $data->{-status}, $$content );
     };
 
     # END DISPATCH CONTENT
