@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1305;
+our $VERSION = 0.1306;
 
 =head1 NAME
 
@@ -1118,6 +1118,8 @@ Returns reply hashref that was returned by controller, if any.
 Returns undef unless the controller was actually called.
 This may be useful in postponed actions or hooks.
 
+This is killed by a C<clear()> call.
+
 B<EXPERIMENTAL>. This function MAY be removed or changed in the future.
 
 =cut
@@ -1125,14 +1127,38 @@ B<EXPERIMENTAL>. This function MAY be removed or changed in the future.
 sub reply {
     my $self = shift;
 
-    return $self->{response}{stash};
+    return $self->{response}{ret};
 }
 
 sub _set_reply {
     my ($self, $data) = @_;
-    $self->{response}{stash} = $data;
+    $self->{response}{ret} = $data;
     return $self;
 }
+
+=head2 stash()
+
+A hashref that is guaranteed to persist throughout the request lifetime.
+
+This may be useful to maintain shared data accross hooks and callbacks.
+
+Use C<session> if you intend to share data between requests.
+Use C<reply> if you intend to render the data for the user.
+Use C<stash> as a last resort for temporary, private data.
+
+Stash is not killed by C<clear()> function so that cleanup isn't
+botched accidentally.
+
+B<EXPERIMENTAL>. This function MAY be removed if hooks turn out to be
+too cumbersome.
+
+=cut
+
+sub stash {
+    my $self = shift;
+    my $st = $self->{stash} ||= {};
+    return $st;
+};
 
 =head2 postpone( CODEREF->(req) )
 
