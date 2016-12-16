@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1306;
+our $VERSION = 0.1307;
 
 =head1 NAME
 
@@ -855,6 +855,8 @@ List of request methods subject to given hook.
 
 my %add_hook_args;
 $add_hook_args{$_}++ for qw(method path exclude);
+my %hook_phases;
+$hook_phases{$_}++ for qw(pre_logic pre_content pre_reply pre_cleanup);
 
 sub add_hook {
     my ($self, $phase, $code, %opt) = @_;
@@ -863,6 +865,8 @@ sub add_hook {
     my @extra = grep { !$add_hook_args{$_} } keys %opt;
     $self->_croak( "unknown options: @extra" )
         if @extra;
+    $self->_croak( "illegal phase: $phase" )
+        unless $hook_phases{$phase};
 
     _listify( \$opt{method}, qw( GET HEAD POST PUT PATCH DELETE ) );
     _listify( \$opt{path}, '/' );
@@ -1005,18 +1009,15 @@ sub new {
 
     $opt{-type}     ||= "text/html";
     $opt{-view}     ||= "TT";
-    $opt{on_error}  ||= sub {
-        my ($req, $err, $where) = @_;
-        my $msg = "ERROR: ".$req->script_name.": $err";
-        if ($where) {
-            $msg =~ s/\s+$//s;
-            $msg .= " in $where->[1] line $where->[2]";
-        };
-        warn "$msg\n";
-    };
     my $force = delete $opt{force_view};
 
     my $self = bless \%opt, $class;
+
+    $self->{on_error} ||= sub {
+        my ($req, $err, $where) = @_;
+        $self->_log_error( $req->script_name, $err );
+    };
+
     $self->set_forced_view( $force )
         if $force;
     # avoid an extra ||= in handle requ
@@ -1088,6 +1089,13 @@ sub handle_request {
 
     exists $self->{stat}
         and $self->{stat}->record_controller($req->script_name);
+    if (exists $route->{hooks}{pre_content}) {
+        foreach my $hook ( @{ $route->{hooks}{pre_content} } ) {
+            if (!eval { $hook->( $req ); 1 }) {
+                $self->_log_error( "pre_content hook", $@ );
+            };
+        };
+    };
 
     # PROCESS REPLY
 
@@ -1103,7 +1111,7 @@ sub handle_request {
         };
         eval { ($content, $type) = $view->render( $data ); };
         if (!defined $content) {
-            warn "ERROR: In view: $@";
+            $self->_log_error( view => $@ );
             $data = {
                 -status => 500,
                 -type   => "text/plain",
@@ -1146,8 +1154,18 @@ sub handle_request {
 
     # END PROCESS REPLY
 
+    if (exists $route->{hooks}{pre_reply}) {
+        foreach my $hook ( @{ $route->{hooks}{pre_reply} } ) {
+            if (!eval { $hook->( $req ); 1 }) {
+                $self->_log_error( "pre_reply hook", $@ );
+            };
+        };
+    };
     exists $self->{stat}
         and $self->{stat}->record_finish($data->{-status}, $req);
+    if (exists $route->{hooks}{pre_cleanup}) {
+        $req->postpone( $route->{hooks}{pre_cleanup} );
+    };
 
     # DISPATCH CONTENT
 
@@ -1195,21 +1213,32 @@ sub _post_setup {
     my @hook_by_path =
         map { $hook_tree->{$_} || () } path_prefixes( $route->{path} );
 
-    # merge callback stacks into one hash, in order
+    # Merge callback stacks into one hash, in order
     # hook = {method}{path}{phase}[nnn] => { code => sub{}, ... }
-    # we need to extract that sub {}
+    # We need to extract that sub {}
+    # We do so in a rather clumsy way that would short cirtuit
+    #     at all possibilities
+    # Premature optimization FTW!
     my %phases;
     foreach my $hook_by_phase (@hook_by_path) {
         foreach my $phase ( keys %$hook_by_phase ) {
             my $hook_list = $hook_by_phase->{$phase};
             foreach my $hook (@$hook_list) {
-                # TODO process excludes
+                # process excludes - if path starts with any, no go!
+                grep { $route->{path} =~ m#^\Q$_\E(?:/|$)# }
+                    @{ $hook->{exclude} }
+                        and next;
                 # TODO filter out repetition
                 push @{ $phases{$phase} }, $hook->{code};
-                # TODO also store hook info somewhere
+                # TODO also store hook info somewhere for better error logging
             };
         };
     };
+
+    # the pre-reply, pre-cleanup should go in backward direction
+    # those are for cleaning up stuff
+    $phases{$_} and @{ $phases{$_} } = reverse @{ $phases{$_} }
+        for qw(pre_cleanup pre_reply);
 
     $route->{hooks} = \%phases;
 
@@ -1230,12 +1259,9 @@ sub _error_to_reply {
     my $status = (!ref $err && $err =~ /^(\d\d\d)/) ? $1 : 500;
 
     # Try exception handler
-    if( !$1 ) {
-        exists $self->{on_error}
-            and eval { $self->{on_error}->($req, $err, $where) };
-        # ignore errors in error handler
-        warn "ERROR: Error handler failed: $@"
-            if $@;
+    if( !$1 and exists $self->{on_error}) {
+        eval { $self->{on_error}->($req, $err, $where); 1 }
+            or $self->_log_error( "error handler", $@ );
     };
 
     # Try fancy error template
@@ -1249,8 +1275,7 @@ sub _error_to_reply {
         };
         return $ret
             if (ref $ret eq 'HASH');
-        warn "ERROR: Error status handler for $status failed: $@"
-            if $@;
+        $self->_log_error( "status $status handler:", $@ );
     };
 
     # Options exhausted - return plain error message
@@ -1267,6 +1292,15 @@ sub _croak {
     my $where = [caller(1)]->[3];
     $where =~ s/.*:://;
     croak( (ref $self || $self)."->$where: $msg" );
+};
+
+sub _log_error {
+    my ($self, $where, $err) = @_;
+
+    my $msg = "ERROR: in $where: $err";
+    $msg =~ s/\n\s*/ /gs;
+    $msg =~ s/\s*$/\n/;
+    warn $msg;
 };
 
 =head2 run_test( \%PSGI_ENV )

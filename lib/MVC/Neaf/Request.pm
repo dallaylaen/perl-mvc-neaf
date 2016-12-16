@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1304;
+our $VERSION = 0.1305;
 
 =head1 NAME
 
@@ -1136,7 +1136,9 @@ sub _set_reply {
 
 =head2 postpone( CODEREF->(req) )
 
-Execute a function right after the request is served.
+=head2 postpone( [ CODEREF->(req), ... ] )
+
+Execute a function (or several) right after the request is served.
 
 Can be called multiple times.
 
@@ -1154,12 +1156,14 @@ Returns self.
 sub postpone {
     my ($self, $code, $prepend_flag) = @_;
 
-    ref $code eq 'CODE'
-        or $self->_croak( "argument must be a function" );
+    $code = [ $code ]
+        unless ref $code eq 'ARRAY';
+    grep { ref $_ ne 'CODE' } @$code
+        and $self->_croak( "argument must be a function or a list of functions" );
 
     $prepend_flag
-        ? unshift @{ $self->{response}{postponed} }, $code
-        : push    @{ $self->{response}{postponed} }, $code;
+        ? unshift @{ $self->{response}{postponed} }, reverse @$code
+        : push    @{ $self->{response}{postponed} }, @$code;
 
     return $self;
 };

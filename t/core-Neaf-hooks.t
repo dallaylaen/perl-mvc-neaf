@@ -6,15 +6,31 @@ use Test::More;
 
 use MVC::Neaf;
 
+# generate subs that append given constant to $trace
+my $trace = '';
+sub gen ($) { ## no critic # yes need proto in this helper sub
+    my $id = shift;
+    return sub { $trace .= "$id," };
+};
+
 # test route
 MVC::Neaf->route( '/foo/bar/baz' => sub { +{} }, view => 'JS' );
 
 # hooks which we're testing
-my $trace = '';
-MVC::Neaf->add_hook( pre_logic => sub { $trace .= 1 } );
-MVC::Neaf->add_hook( pre_logic => sub { $trace .= 2 }, path => '/foo' );
-MVC::Neaf->add_hook( pre_logic => sub { $trace .= 3 }, path => '/foo' );
-MVC::Neaf->add_hook( pre_logic => sub { $trace .= 4 }, path => '/foo', method => 'POST' );
+MVC::Neaf->add_hook( pre_logic => gen 1.1 );
+MVC::Neaf->add_hook( pre_logic => gen 1.2, path => '/foo' );
+MVC::Neaf->add_hook( pre_logic => gen 1.3, path => '/foo' );
+MVC::Neaf->add_hook( pre_logic => gen 1.4, path => '/foo', method => 'POST' );
+MVC::Neaf->add_hook( pre_logic => gen 1.5, path => '/foo', exclude => '/foo/bar' );
+
+MVC::Neaf->add_hook( pre_content => gen 2.1, path => '/foo/bar/baz' );
+
+MVC::Neaf->add_hook( pre_reply => gen 3.1, path => '/foo/bar////' );
+MVC::Neaf->add_hook( pre_reply => gen 3.2, path => '/foo' );
+MVC::Neaf->add_hook( pre_reply => gen 3.3, path => '/foo' );
+
+MVC::Neaf->add_hook( pre_cleanup => gen 4.1, path => '/' );
+MVC::Neaf->add_hook( pre_cleanup => gen 4.2, path => '/' );
 
 # run it!
 my ($status, $head, $content) = MVC::Neaf->run_test(
@@ -23,10 +39,14 @@ my ($status, $head, $content) = MVC::Neaf->run_test(
 is ($status, 200, "http ok");
 is ($content, '{}', "content ok");
 
-is ($trace, '123', "Hooks come in order" );
+my $order = '1.1,1.2,1.3,2.1,3.1,3.3,3.2,4.2,4.1,';
+is ($trace, $order, "Hooks come in order" );
 
 $trace = '';
 MVC::Neaf->run_test( { REQUEST_URI => '/foo/bar/baz' } );
-is ($trace, '123', "Hooks not reinstalled" );
+is ($trace, $order, "Hooks not reinstalled" );
+
+my $data = MVC::Neaf->get_routes;
+note explain [values %$data]->[0]{GET};
 
 done_testing;
