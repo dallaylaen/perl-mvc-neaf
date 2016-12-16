@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1307;
+our $VERSION = 0.1308;
 
 =head1 NAME
 
@@ -827,29 +827,111 @@ Hooks are subroutines executed during various phases of request processing.
 Each hook is characterized by phase, code to be executed, path, and method.
 Multiple hooks MAY be added for the same phase/path/method combination.
 ALL hooks matching a given route will be executed, either short to long or
-long to short, depending on the phase.
+long to short (aka "event bubbling"), depending on the phase.
 
-The list of phases MAY change in the future.
+B<CAUTION> Avoid hooks if possible.
+Hook handling code is the most convoluted, complex part of the Neaf CORE.
+
+Use normal subroutine calls,
+even if copied-and-pasted across multiple controllers.
+Use guard objects if you want automatic resource deallocation.
+Subclass L<MVC::Neaf::View> and/or its children if you want to add an action
+around content rendering.
+
+Only use hooks when other options are exhausted,
+or there's a clear, straightforward use case.
 
 =head2 add_hook ( phase => CODEREF, %options )
 
-Set execution hook for given phase. See list of valid phases below.
+Set execution hook for given phase. See list of phases below.
 
-The CODEREF receives one and only argument - the $request object.
+The CODEREF receives one and only argument - the C<$request> object.
+Return value is ignored.
+
+Use the following primitives to maintain state accross hooks and the main
+controller:
+
+=over
+
+=item * Use C<session> if you intend to share data between requests.
+
+=item * Use C<reply> if you intend to render the data for the user.
+
+=item * Use C<stash> as a last resort for temporary, private data.
+
+=back
 
 %options may include:
 
 =over
 
 =item * path => '/path' - where the hook applies. Default is '/'.
+Multiple locations may be supplied via [ /foo, /bar ...]
 
 =item * exclude => '/path/dont' - don't apply to these locations,
-even if under '/path'. Multiple locations may be supplied via [ /foo, /bar ...]
+even if under '/path'.
+Multiple locations may be supplied via [ /foo, /bar ...]
 
 =item * method => 'METHOD' || [ list ]
-List of request methods subject to given hook.
+List of request HTTP methods to which given hook applies.
 
 =back
+
+=head2 HOOK PHASES
+
+This list of phases MAY change in the future.
+
+=head3 pre_logic
+
+Executed AFTER finding the correct route, but BEFORE processing the main
+handler code (one that returns \%hash, see C<route> above).
+
+Hooks are executed in order, shorted paths to longer.
+C<reply> is not available at this stage,
+as the controller has not been executed yet.
+
+Dying in this phase stops both further hook processing and controller execution.
+Instead, the corresponding error handler is executed right away.
+
+B<EXAMPLE>: use this hook to produce a 403 error if the user is not logged in
+and looking for a restricted area of the site:
+
+    MVC::Neaf->set_hook( pre_logic => sub {
+        my $request = shift;
+        $request->session->{user_id} or die 403;
+    }, path => '/admin', exclude => '/admin/static' );
+
+=head3 pre_content
+
+This hook is run AFTER the main handler has returned or died, but BEFORE
+content rendering/serialization is performed.
+
+C<reply()> hash is available at this stage.
+
+Dying is ignored, only producing a warning.
+
+=head3 pre_reply
+
+This hook is run AFTER the headers have been generated, but BEFORE the reply is
+actually sent to client. This is the last chance to amend something.
+
+Hooks are executed in REVERSE order, from longer to shorter paths.
+
+C<reply()> hash is available at this stage.
+
+Dying is ignored, only producing a warning.
+
+=head3 pre_cleanup
+
+This hook is run AFTER all postponed actions set up in controller
+(via C<-continue> etc), but BEFORE the request object is actually destroyed.
+This can be useful to deinitialize something or write statistics.
+
+The client conection MAY be closed at this point and SHOULD NOT be relied upon.
+
+Hooks are executed in REVERSE order, from longer to shorter paths.
+
+Dying is ignored, only producing a warning.
 
 =cut
 
