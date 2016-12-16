@@ -21,10 +21,15 @@ is (scalar @log, 1, "1 error issued");
 like ($log[0], qr/^Fubar\s/s, "Error correct" );
 
 note "TESTING set_default()";
+my @warn;
+$SIG{__WARN__} = sub {push @warn, shift};
 $n = MVC::Neaf->new;
 $n->set_default( -template => \'NotFounded2' );
 $n->route( '/' => sub { +{} } );
-is_deeply ( $n->run->({})->[2], [ "NotFounded2" ], "Template worked" );
+is ( $n->run_test({}), "NotFounded2", "Template worked" );
+is (scalar @warn, 1, "1 warning issues" );
+like ($warn[0], qr/DEPRECATED/, "deprecated" );
+delete $SIG{__WARN__};
 
 note "TESTING duplicate route protection";
 eval {
