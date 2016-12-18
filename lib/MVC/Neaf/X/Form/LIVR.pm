@@ -2,7 +2,7 @@ package MVC::Neaf::X::Form::LIVR;
 
 use strict;
 use warnings;
-our $VERSION = 0.1302;
+our $VERSION = 0.1303;
 
 =head1 NAME
 
@@ -10,7 +10,7 @@ MVC::Neaf::X::Form::LIVR - LIVR-based form validator for Not Even A Framework.
 
 =head1 DESCRIPTION
 
-Do input validation using L<Validator::LIRV>.
+Do input validation using L<Validator::LIVR>.
 Return an object with is_valid(), data(), error(), and raw() methods.
 
 =head1 METHODS

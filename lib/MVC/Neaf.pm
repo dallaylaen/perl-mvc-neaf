@@ -4,33 +4,29 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1310;
+our $VERSION = 0.1311;
 
 =head1 NAME
 
-MVC::Neaf - Not Even A Framework for very simple web apps
+MVC::Neaf - Not Even A (Web Application) Framework
 
 =head1 OVERVIEW
 
-Neaf [ni:f] stands for Not Even An (MVC) Framework.
+Neaf [ni:f] stands for Not Even A Framework.
 
-It is made for lazy people without an IDE.
-
-The Model is assumed to be just a regular Perl module,
+The B<Model> is assumed to be just a regular Perl module,
 no restrictions are imposed on it.
 
-The View is an object with one method, C<render>, receiving a hashref
+The B<View> is an object with one method, C<render>, receiving a hashref
 and returning rendered content as string plus optional content-type header.
 
-The Controller is reduced to just one function which receives
-a <MVC::Neaf::Request> object containing all it needs to know
-and returns a simple \%hashref which is forwarded to View.
+The B<Controller> is broken down into handlers associated with URI paths.
+Each such handler receives a L<MVC::Neaf::Request> object
+containing all it needs to know about the outside world,
+and returns a simple C<\%hashref> which is forwarded to View.
 
-Multiple controllers can be set up in the same application
-under different paths.
-
-Please see the examples directory in this distribution
-which demonstrates the features of Neaf.
+Please see the C<example> directory in this distribution
+that demonstrates the features of Neaf.
 
 =head1 SYNOPSIS
 
@@ -56,16 +52,15 @@ as a CGI script, PSGI application, or Apache handler.
 
 =head2 THE CONTROLLER
 
-The Controller sub receives an L<MVC::Neaf::Request> object
-and outputs a \%hashref.
+The handler sub receives an L<MVC::Neaf::Request> object
+and outputs a C<\%hashref>.
 
 It may also die, which will be interpreted as an error 500,
 UNLESS error message starts with 3 digits and a whitespace,
 in which case this is considered the return status.
-E.g. die 404; is a valid method to return "Not Found" right away.
+E.g. C<die 404;> is a valid method to return "Not Found" right away.
 
-Much like in L<Dancer> or L<Kelp>, multiple controllers may be configured
-under different paths using the C<route( path =E<gt> CODEREF );>
+Handlers are set using the C<route( path =E<gt> CODEREF );>
 method discussed below.
 
 =head2 THE REQUEST
@@ -96,19 +91,18 @@ Just use qr/.*/ if you know better.
 Also there are some methods that affect the reply,
 mainly the headers, like C<set_cookie> or C<redirect>.
 This is a step towards a know-it-all God object,
-however, mapping those proverties into a hashref turned out to be
+however, mapping those properties into a hashref turned out to be
 too cumbersome.
 
 =head2 THE RESPONSE
 
 B<The response> may contain regular keys, typically alphanumeric,
-as well as a predefined set of dash-prefixed keys which control
-app's behaviour.
+as well as a predefined set of dash-prefixed keys to control
+Neaf itself.
 
 I<-Note -that -dash-prefixed -options -look -antique
 even to the author of this writing.
-They smell like Tk and CGI. They feel so 90's!
-However, it looks like a meaningful and B<visible> way to separate
+However, it is a concise and B<visible> way to separate
 auxiliary parameters from users's data,
 without requiring a more complex return structure
 (two hashes, array of arrays etc).>
@@ -120,15 +114,15 @@ The small but growing list of these -options is as follows:
 =item * -content - Return raw data and skip view processing.
 E.g. display generated image.
 
-=item * -continue - A callback which receives the Request object.
-It will be executed after the headers and pre-generated content
-are served to the client, and may use $req->write( $data )
-and $req->close to write more data.
+=item * -continue - A callback that receives the Request object.
+It will be executed AFTER the headers and pre-generated content
+are served to the client, and may use C<$req-E<gt>write( $data );>
+and C<$req-E<gt>close;> to output more data.
 
 =item * -jsonp - Used by JS view module as a callback name to produce a
 L<jsonp|https://en.wikipedia.org/wiki/JSONP> response.
-Callback is ignored unless it is a set of identifiers separated by dots,
-for security reasons.
+Callback MUST be a set of identifiers separated by dots.
+Otherwise it's ignored for security reasons.
 
 =item * -location - HTTP Location: header.
 
@@ -146,7 +140,7 @@ Views are initialized lazily and cached by the framework.
 C<TT>, C<JS>, C<Full::Module::Name>, and C<$view_predefined_object>
 are currently supported.
 New short aliases may be created by
-C<MVC::Neaf-E<gt>load_view( "name" => $your_view );>. (See below).
+C<MVC::Neaf-E<gt>load_view( "name" =E<gt> $your_view );> (see below).
 
 =back
 
@@ -201,7 +195,7 @@ Exactly one leading slash will be prepended no matter what you do.
 =item * method - list of allowed HTTP methods.
 Default is [GET, POST, HEAD].
 Multiple handles can be defined for the same path, provided that
-metyhods do not intersect.
+methods do not intersect.
 
 =item * path_info_regex => qr/.../ - allow URI subpaths matching
 the specified expression to be handled by this handler.
@@ -209,21 +203,22 @@ the specified expression to be handled by this handler.
 If specified, 404 error will be returned unless PATH_INFO matches the regex
 (without the leading slash).
 
-Starting from v.0.16, this parameter is going to be REQUIRED for path_info()
+Starting from v.0.16, this parameter is going to be REQUIRED for C<path_info()>
 method to be used in the handler.
 Until then, a DEPRECATED warning will be generated for a naked path_info call.
 
 B<EXPERIMENTAL>. Name and semantics MAY change in the future.
 
 =item * view - default View object for this Controller.
-Must be an object with a C<render> methods, or a CODEREF
-receiving hash and returning a list of two scalars.
+Must be an object with a C<render> method, or a CODEREF
+receiving hashref and returning a list of two scalars
+(content and content-type).
 
 =item * cache_ttl - if set, set Expires: HTTP header accordingly.
 
 B<EXPERIMENTAL>. Name and semantics MAY change in the future.
 
-=item * default - a \%hash with default values for handler's return value.
+=item * default - a C<\%hash> with default values for handler's return value.
 
 B<EXPERIMENTAL>. Name and semantics MAY change in the future.
 
@@ -352,11 +347,11 @@ sub alias {
 
 =head2 static( $req_path => $file_path, %options )
 
-Serve static content located under $file_path.
+Serve static content located under C<$file_path>.
 
 File type detection is based on extention.
 This MAY change in the future.
-Known file types are listed in %MVC::Neaf::X::Files::ExtType hash.
+Known file types are listed in C<%MVC::Neaf::X::Files::ExtType> hash.
 Patches welcome.
 
 %options may include:
@@ -430,31 +425,31 @@ sub pre_route {
 
 =head2 load_view( $view_name, [ $object || $module_name, %options ] )
 
-Return a cached View object named $view_name.
+Fetch existing, if any, or set up a new view object named C<$view_name>.
+
 This will be called whenever the app returns { -view => "foo" }.
 
-If no such object was found, attempts to add new object to cache:
+If no view was found, the following rules apply:
 
 =over
 
-=item * if object is given, just saves it.
+=item * if object is given, just save it.
 
-=item * if module name + parameters is given, tries to load module
+=item * if module name + parameters is given, try to load module
 and create new() instance.
 
-=item * as a last resort, loads stock view: C<TT>, C<JS>, or C<Dumper>.
+=item * as a last resort, load stock view: C<TT>, C<JS>, or C<Dumper>.
 Those are prefixed with C<MVC::Neaf::View::>.
 
 =back
 
-If set_forced_view was called with an argument,
-return THAT view instance instead of all above.
+If C<set_forced_view> was called, return its argument instead.
 
 So the intended usage is as follows:
 
     # in the app initialisation section
     # this can be omitted when using TT, JS, or Dumper as view.
-    MVC::Neaf->load_view( foo => TT, INCLUDE_PATH => "/foo/bar" );
+    MVC::Neaf->load_view( foo => 'TT', INCLUDE_PATH => "/foo/bar" );
         # Short alias for MVC::Neaf::View::TT
 
     # in the app itself
@@ -516,7 +511,7 @@ Controller return always overrides these values.
 
 Returns self.
 
-B<DEPRECATED>. Use MVC::Neaf->set_path_defaults( '/', { ... } ) instead.
+B<DEPRECATED>. Use C<MVC::Neaf-E<gt>set_path_defaults( '/', { ... } );> instead.
 
 =cut
 
@@ -564,8 +559,8 @@ sub set_path_defaults {
 
 Set a handler for managing sessions.
 
-If such handler is set, the request object will provide session(),
-save_session(), and delete_session() methods to manage
+If such handler is set, the request object will provide C<session()>,
+C<save_session()>, and C<delete_session()> methods to manage
 cross-request user data.
 
 % options may include:
@@ -644,7 +639,7 @@ The following options will be passed to coderef:
 
 =item * status - status being returned (500 in case of 'view');
 
-=item * caller - array with the point where MVC::Neaf->route was set up;
+=item * caller - array with the point where C<MVC::Neaf-E<gt>route> was set up;
 
 =item * error - exception, if there was one.
 
@@ -652,12 +647,12 @@ The following options will be passed to coderef:
 
 The coderef MUST return an unblessed hash just like controller does.
 
-In case of exception or unexpected return format text message "Error XXX"
+In case of exception or unexpected return format text message "Error NNN"
 will be returned instead.
 
 =head2 set_error_handler ( status => \%hash )
 
-Return a static template as { %options, %hash }.
+Return a static template as C<{ %options, %hash }>.
 
 =cut
 
@@ -699,7 +694,7 @@ sub error_template {
 =head2 on_error( sub { my ($req, $err) = @_ } )
 
 Install custom error handler for dying controller.
-Neaf's own exceptions and 'die \d\d\d' status returns will NOT
+Neaf's own exceptions and C<die \d\d\d> status returns will NOT
 trigger it.
 
 E.g. write to log, or something.
@@ -727,7 +722,7 @@ sub on_error {
 =head2 run()
 
 Run the applicaton.
-This should be in the last statement in your appication main file.
+This should be the last statement in your appication main file.
 
 If called in void context, assumes CGI is being used and instantiates
 L<MVC::Neaf::Request::CGI>.
@@ -737,7 +732,7 @@ enters debug mode via L<MVC::Neaf::CLI>.
 Otherwise returns a PSGI-compliant coderef.
 This will also happen if you application is C<require>'d,
 meaning that it returns a true value and actually serves nothing until
-run() is called again.
+C<run()> is called again.
 
 Running under mod_perl requires setting a handler with
 L<MVC::Neaf::Request::Apache2>.
@@ -795,7 +790,7 @@ Currently only one function is exportable:
 
 Rethrow Neaf's internal exceptions immediately, do nothing otherwise.
 
-If no argument if given, acts on current $@ value.
+If no argument if given, acts on current C<$@> value.
 
 Currently Neaf uses exception mechanism for internal signalling,
 so this function may be of use if there's a lot of eval blocks
@@ -839,7 +834,7 @@ It is not stable yet, so be careful when upgrading Neaf.
 
 =head2 get '/path' => CODE, %options;
 
-Create a route with GET/HEAD methods enabled.
+Create a route with C<GET/HEAD> methods enabled.
 The %options are the same as those of C<route()> method.
 
 =cut
@@ -852,7 +847,7 @@ sub get(@) { ## no critic # DSL
 
 =head2 post '/path' => CODE, %options;
 
-Create a route with POST method enabled.
+Create a route with C<POST> method enabled.
 The %options are the same as those of C<route()> method.
 
 =cut
@@ -865,7 +860,7 @@ sub post(@) { ## no critic # DSL
 
 =head2 neaf->...
 
-Returns default Neaf instance, so that
+Returns default Neaf instance (C<$MVC::Neaf::Inst>), so that
 C<neaf-E<gt>method_name> is the equivalent of C<MVC::Neaf-E<gt>method_name>.
 
 =head2 neaf shortcut => @options;
@@ -947,11 +942,11 @@ controller:
 =over
 
 =item * path => '/path' - where the hook applies. Default is '/'.
-Multiple locations may be supplied via [ /foo, /bar ...]
+Multiple locations may be supplied via C<[ /foo, /bar ...]>
 
 =item * exclude => '/path/dont' - don't apply to these locations,
 even if under '/path'.
-Multiple locations may be supplied via [ /foo, /bar ...]
+Multiple locations may be supplied via C<[ /foo, /bar ...]>
 
 =item * method => 'METHOD' || [ list ]
 List of request HTTP methods to which given hook applies.
@@ -965,7 +960,7 @@ This list of phases MAY change in the future.
 =head3 pre_logic
 
 Executed AFTER finding the correct route, but BEFORE processing the main
-handler code (one that returns \%hash, see C<route> above).
+handler code (one that returns C<\%hash>, see C<route> above).
 
 Hooks are executed in order, shorted paths to longer.
 C<reply> is not available at this stage,
@@ -1163,7 +1158,7 @@ But it's possible.
 
 Options are not checked whatsoever.
 
-Just in case you're curious, $MVC::Neaf::Inst is the default instance
+Just in case you're curious, C<$MVC::Neaf::Inst> is the default instance
 that handles MVC::Neaf->... requests.
 
 =cut
@@ -1193,7 +1188,7 @@ sub new {
 =head2 handle_request( MVC::Neaf::Request->new )
 
 This is the CORE of this module.
-Should not be called directly - use run() instead.
+Should not be called directly - use C<run()> instead.
 
 =cut
 
@@ -1475,7 +1470,8 @@ sub _log_error {
 
 =head2 run_test( "/path?param=value" )
 
-Run a PSGI request and return ($status, HTTP::Headers, $whole_content ).
+Run a PSGI request and return a list of
+C<($status, HTTP::Headers, $whole_content )>.
 
 Just as the name suggests, useful for testing only (it reduces boilerplate).
 

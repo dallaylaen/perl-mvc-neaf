@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1306;
+our $VERSION = 0.1307;
 
 =head1 NAME
 
@@ -16,7 +16,8 @@ This is what your L<MVC::Neaf> application is going to get as its ONLY input.
 Here's a brief overview of what a Neaf request returns:
 
     # How the application was configured:
-    MVC::Neaf->route( "/matching/route" => sub { my $req = shift; ... } );
+    MVC::Neaf->route( "/matching/route" => sub { my $req = shift; ... },
+        path_info_regex => '.*' );
 
     # What was requested:
     http(s)://server.name:1337/mathing/route/some/more/slashes?foo=1&bar=2
@@ -29,8 +30,9 @@ Here's a brief overview of what a Neaf request returns:
     $req->port         = 1337
     $req->path         = /mathing/route/some/more/slashes
     $req->script_name  = /mathing/route
+    $req->path_info    = some/more/slashes
 
-    $req->path_info( '.+' )     = some/more/slashes
+    # params and cookies require a regexp
     $req->param( foo => '\d+' ) = 1
 
 =head1 REQUEST METHODS
@@ -139,7 +141,7 @@ sub method {
 
 =head2 is_post()
 
-Alias for $self->method eq 'POST'.
+Alias for C<$self-E<gt>method eq 'POST'>.
 May be useful in form submission, as in
 
     $form = $request->form( $validator );
@@ -199,7 +201,7 @@ sub path {
 
 The part of the request that mathed the route to the
 application being executed.
-Guaranteed to start with slash and be a prefix of path().
+Guaranteed to start with slash and be a prefix of C<path()>.
 
 =cut
 
