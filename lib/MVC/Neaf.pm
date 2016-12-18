@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1309;
+our $VERSION = 0.1310;
 
 =head1 NAME
 
@@ -168,7 +168,10 @@ use Encode;
 use POSIX qw(strftime);
 use parent qw(Exporter);
 
-our @EXPORT_OK = qw(neaf_err);
+our @EXPORT_OK = qw(neaf_err neaf get post);
+our %EXPORT_TAGS = (
+    sugar => [qw[neaf get post]],
+);
 
 use MVC::Neaf::Util qw(http_date canonize_path path_prefixes);
 use MVC::Neaf::Request;
@@ -821,6 +824,84 @@ sub neaf_err(;$) { ## no critic # prototype it for less typing on user's part
     die $err;
 };
 
+=head1 EXPERIMENTAL FUNCTIONAL SUGAR
+
+In order to minimize typing, a less cumbersome prototyped interface is provided:
+
+    use MVC::Neaf qw(:sugar);
+
+    get '/foo/bar' => sub { ... }, view => 'TT';
+    neaf error => 404 => \&my_error_template;
+
+    neaf->run;
+
+It is not stable yet, so be careful when upgrading Neaf.
+
+=head2 get '/path' => CODE, %options;
+
+Create a route with GET/HEAD methods enabled.
+The %options are the same as those of C<route()> method.
+
+=cut
+
+sub get(@) { ## no critic # DSL
+    my ($path, $handler, @args) = @_;
+
+    return MVC::Neaf->route( $path, $handler, method => [ 'GET', 'HEAD' ], @args );
+};
+
+=head2 post '/path' => CODE, %options;
+
+Create a route with POST method enabled.
+The %options are the same as those of C<route()> method.
+
+=cut
+
+sub post(@) { ## no critic # DSL
+    my ($path, $handler, @args) = @_;
+
+    return MVC::Neaf->route( $path, $handler, method => [ 'POST' ], @args );
+};
+
+=head2 neaf->...
+
+Returns default Neaf instance, so that
+C<neaf-E<gt>method_name> is the equivalent of C<MVC::Neaf-E<gt>method_name>.
+
+=head2 neaf shortcut => @options;
+
+Shorter alias to method described above. Currently supported:
+
+=over
+
+=item * route - C<route>
+
+=item * error - C<set_error_handler>
+
+=item * view - C<load_view>
+
+=back
+
+=cut
+
+my %method_shortcut = (
+    route => 'route',
+    error => 'set_error_handler',
+    view  => 'load_view',
+);
+
+sub neaf(@) { ## no critic # DSL
+    return $MVC::Neaf::Inst unless @_;
+
+    my ($action, @args) = @_;
+
+    my $method = $method_shortcut{$action};
+    croak "neaf: don't know how to handle '$action'"
+        unless $method;
+
+    return MVC::Neaf->$method( @args );
+};
+
 =head1 EXPERIMENTAL HOOKS
 
 Hooks are subroutines executed during various phases of request processing.
@@ -963,7 +1044,8 @@ sub add_hook {
 
     foreach my $method ( @{$opt{method}} ) {
         foreach my $path ( @{$opt{path}} ) {
-            push @{ $self->{hooks}{$method}{$path}{$phase} }, \%opt;
+            my $where = $self->{hooks}{$method}{$path}{$phase} ||= [];
+            push @$where, \%opt;
         };
     };
 
@@ -1391,17 +1473,31 @@ sub _log_error {
 
 =head2 run_test( \%PSGI_ENV )
 
+=head2 run_test( "/path?param=value" )
+
 Run a PSGI request and return ($status, HTTP::Headers, $whole_content ).
 
 Just as the name suggests, useful for testing only (it reduces boilerplate).
 
-Does NOT handle continuation requests.
+Does NOT handle continuation requests (yet).
 
 =cut
 
 sub run_test {
     my ($self, $env) = @_;
 
+    if (!ref $env) {
+        $env =~ /^(.*?)(?:\?(.*))?$/;
+        $env = {
+            REQUEST_URI => $env,
+            REQUEST_METHOD => 'GET',
+            QUERY_STRING => defined $2 ? $2 : '',
+            SERVER_NAME => 'localhost',
+            SERVER_PORT => 80,
+            SCRIPT_NAME => '',
+            PATH_INFO => $1,
+        }
+    };
     my $ret = $self->run->( $env );
     # TODO handle functional return, too!
 
