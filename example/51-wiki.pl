@@ -17,10 +17,11 @@ use FindBin qw($Bin);
 use URI::Escape;
 use JSON;
 
-# always use latest and greates Neaf
-use FindBin qw($Bin);
-use File::Basename qw(dirname);
-use lib dirname($Bin)."/lib";
+# always use latest and greatest Neaf
+my $Bin;
+use File::Basename qw(basename dirname);
+BEGIN { $Bin = dirname(__FILE__); };
+use lib "$Bin/../lib";
 use MVC::Neaf;
 
 # Define some escaping routines first
@@ -35,30 +36,25 @@ sub html {
     $str =~ s/($replace_re)/$replace{$1}/g;
     return $str;
 };
-sub uri {
-    return uri_escape_utf8(shift);
-};
-MVC::Neaf->set_default( uri => \&uri );
-MVC::Neaf->set_default( html => \&html );
 
 # Now some templates.
 # The head/foot part is also TDB in View::TT.
 my $head = <<"TT";
 <html>
 <head>
-    <title>[% html(topic) %] - [% action %]</title>
+    <title>[% topic | html %] - [% action %]</title>
 </head>
 <html>
-[% IF topic %]<h1>[% html(topic) %]</h1>[% END %]
+[% IF topic %]<h1>[% topic | html %]</h1>[% END %]
 <form method="GET" action="/wiki_forms/search">
-    <input name="q"[% IF query %] value="[% html(query) %][% END %]">
+    <input name="q"[% IF query %] value="[% query | html %][% END %]">
     <input type="submit" value="Search!">
 </form>
 TT
 
 my $show = <<"TT";
 $head
-<a href="/wiki_forms/edit?topic=[% uri(topic) %]">
+<a href="/wiki_forms/edit?topic=[% topic | uri %]">
     [%- IF article %]Edit[% ELSE %]Start[% END %]</a></br>
 <div>
 [% article %]
@@ -68,8 +64,8 @@ TT
 my $edit = <<"TT";
 $head
 <form method="POST" action="/wiki_forms/update">
-<input type="hidden" name="topic" value="[% html(topic) %]"><br>
-<textarea name="article" rows="10" cols="65">[% html(article) %]</textarea><br>
+<input type="hidden" name="topic" value="[% topic | html %]"><br>
+<textarea name="article" rows="10" cols="65">[% article | html %]</textarea><br>
 <input type="submit" value="Save">
 </form>
 TT
@@ -78,10 +74,10 @@ my $search = <<"TT";
 $head
 <ol>
 [% FOREACH item IN result %]
-    <li><a href="/wiki/[% uri(item.0) %]">
-        [% html( item.1 ) %]
-        <span style="color: red">[% html( item.2 ) %]</span>
-        [% html( item.3 ) %]
+    <li><a href="/wiki/[% item.0 | uri %]">
+        [% item.1  | html %]
+        <span style="color: red">[% item.2  | html %]</span>
+        [% item.3  | html %]
     </a></li>
 [% END %]
 </ol>
@@ -91,7 +87,7 @@ TT
 my $art = {};
 
 # Load-save data to a plain file between runs.
-my $save = "$Bin/nocommit-07-save.js";
+my $save = "$Bin/nocommit-".basename(__FILE__).".js";
 $SIG{INT} = sub { exit(0); }; # exit normally on interrupt
 if (-f $save) {
     eval {
@@ -125,7 +121,7 @@ MVC::Neaf->route( wiki => sub {
     # Get some wiki formatting. Don't want to spend too much on it.
     my $article = $art->{$topic} || '';
     $article =~ s#\s*\n\s*\n\s*#\n<br><br>\n#gs; # tex paragraph
-    $article =~ s#\[([^\]]+)\]#'<a href="/wiki/'.uri($1).'">'.html($1).'</a>'#ge; # links
+    $article =~ s#\[([^\]]+)\]#'<a href="/wiki/'.uri_escape_utf8($1).'">'.html($1).'</a>'#ge; # links
 
     return {
         -template => \$show,
@@ -146,7 +142,7 @@ MVC::Neaf->route( wiki_forms => update => sub {
     defined $topic and defined $article or die 422;
 
     $art->{$topic} = $article;
-    $req->redirect( "/wiki/" . uri( $topic ) );
+    $req->redirect( "/wiki/" . uri_escape_utf8( $topic ) );
 });
 
 # Edit article. Not really much to discuss here...
