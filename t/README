@@ -1,0 +1,5 @@
+0xx = if this fails, stop
+1xx = core
+4xx = error handling
+8xx = plugins
+9xx = experimental & deprecated
