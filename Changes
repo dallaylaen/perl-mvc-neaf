@@ -1,5 +1,11 @@
 Revision history for MVC-Neaf
 
+0.14    Sun Dec 18 2016
+        - API add_hook() method, hooks: pre_logic, pre_content, pre_reply, pre_cleanup
+        - API set_path_defaults( '/path' => { foo => ... } )
+        - API Add Request->stash(), Request->reply() for hook intercommunication
+        - API Add experimental prototyped sugar: get /foo, post /bar, neaf error 404 ...;
+
 0.1302  Thu Dec  1 2016
         - BUG Fix locale-dependent dates, create MVC::Neaf::Util class
 

@@ -83,6 +83,8 @@ supported, but not requires.
 
 * Fancy error templates supported.
 
+* Path-based defaults and execution hooks supported.
+
 # MORE EXAMPLES
 
 The `example/` directory has a number of them, including an app explaining
@@ -132,6 +134,9 @@ had great influence over my understanding of MVC.
 [Alexander Kuklev](https://github.com/akuklev)
 gave some great early feedback
 and also drove me towards functional programming and pure functions.
+
+[Akzhan Abdulin](https://github.com/akzhan)
+tricked me into making the hooks.
 
 Ideas were shamelessly stolen from PSGI, Dancer, and Catalyst.
 
