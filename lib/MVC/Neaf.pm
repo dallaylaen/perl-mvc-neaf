@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1311;
+our $VERSION = 0.1312;
 
 =head1 NAME
 
@@ -1475,7 +1475,7 @@ C<($status, HTTP::Headers, $whole_content )>.
 
 Just as the name suggests, useful for testing only (it reduces boilerplate).
 
-Does NOT handle continuation requests (yet).
+Continuation responses are supported.
 
 =cut
 
@@ -1495,7 +1495,11 @@ sub run_test {
         }
     };
     my $ret = $self->run->( $env );
-    # TODO handle functional return, too!
+    if (ref $ret eq 'CODE') {
+        # PSGI functional interface used.
+        require MVC::Neaf::Request::FakeWriter;
+        $ret = MVC::Neaf::Request::FakeWriter->new->respond( $ret );
+    };
 
     return (
         $ret->[0],

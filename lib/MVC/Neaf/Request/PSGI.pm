@@ -2,7 +2,7 @@ package MVC::Neaf::Request::PSGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.1302;
+our $VERSION = 0.1303;
 
 =head1 NAME
 
@@ -216,7 +216,7 @@ sub do_reply {
     # HACK - we're being returned by handler in MVC::Neaf itself in case of
     # PSGI being used.
 
-    if ($self->{postponed}) {
+    if ($self->{response}{postponed}) {
         # Even hackier HACK. If we have a postponed action,
         # we must use PSGI functional interface to ensure
         # reply is sent to client BEFORE
