@@ -45,15 +45,6 @@ is ($req->get_cookie( cook => qr/.*/ ), $copy, "Cookie round-trip");
 is ($req->get_cookie( cook => qr/.*/ ), $copy, "Cookie doesn't get double-decoded");
 is ($req->get_cookie( guy => qr/\w+/ ), "bad", "Secone cookie ok");
 
-my $form_h = $req->get_form_as_hash( x => '\d+', y => '\d+' );
-is_deeply( $form_h, { x => 42 }, "Hash form validation" );
-
-my @form_l = $req->get_form_as_list( '\d+', qw(x y z t) );
-is_deeply ( \@form_l, [ 42, undef, undef, undef ], "List form validation" );
-
-@form_l = $req->get_form_as_list( [ '\d+', -1 ], qw(x y z t) );
-is_deeply ( \@form_l, [ 42, -1, -1, -1 ], "List form validation w/default" );
-
 eval {
     $req->redirect("https://spacex.com");
 };
