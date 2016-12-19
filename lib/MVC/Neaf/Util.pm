@@ -2,7 +2,7 @@ package MVC::Neaf::Util;
 
 use strict;
 use warnings;
-our $VERSION = 0.14;
+our $VERSION = 0.1401;
 
 =head1 NAME
 
@@ -18,10 +18,8 @@ This module optionally exports anything it has.
 
 =cut
 
-use POSIX qw(strftime locale_h);
-
 use parent qw(Exporter);
-our @EXPORT_OK = qw(http_date canonize_path path_prefixes);
+our @EXPORT_OK = qw(http_date canonize_path path_prefixes run_all run_all_nodie);
 
 
 =head2 http_date
@@ -29,14 +27,18 @@ our @EXPORT_OK = qw(http_date canonize_path path_prefixes);
 Return a date in format required by HTTP standard for cookies
 and cache expiration.
 
+# Expires=Wed, 13 Jan 2021 22:23:01 GMT;
+
 =cut
 
+# Yay premature optimization - use ad-hoc weekdays because locale is so botched
+my @week = qw( Sun Mon Tue Wed Thu Fri Sat );
+my @month = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
 sub http_date {
     my $t = shift;
-    my $locale = setlocale( LC_TIME, "C" );
-    my $date = strftime( "%a, %d %b %Y %H:%M:%S GMT", gmtime($t));
-    setlocale( LC_TIME, $locale );
-    return $date;
+    my @date = gmtime($t);
+    return sprintf( "%s, %02d %s %04d %02d:%02d:%02d GMT"
+        , $week[$date[6]], $date[3], $month[$date[4]], 1900+$date[5], @date[2,1,0]);
 };
 
 =head2 canonize_path( path, want_slash )
@@ -79,6 +81,44 @@ sub path_prefixes {
     push @ret, $temp .= "/$_" for @dir;
 
     return @ret;
+};
+
+=head2 run_all( [CODE, ...], @args )
+
+Run all subroutines in array. Exceptions not handled. Return nothing.
+
+=cut
+
+sub run_all {
+    my $list = shift;
+
+    foreach my $sub (@$list) {
+        &$sub;
+    };
+    return;
+};
+
+=head2 run_all_nodie( [CODE, ...], $on_error, @args )
+
+Run all subroutines in array, even if some die.
+
+Execute on_error in such cases.
+
+Return number of failed callbacks.
+
+=cut
+
+sub run_all_nodie {
+    my ($list, $on_error, @args) = @_;
+
+    my $dead = 0;
+    foreach my $sub (@$list) {
+        eval { $sub->(@args); 1; } and next;
+        $dead++;
+        $on_error->( $@ );
+    };
+
+    return $dead;
 };
 
 1;

@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.14;
+our $VERSION = 0.1401;
 
 =head1 NAME
 
@@ -47,7 +47,7 @@ use URI::Escape;
 use Encode;
 use HTTP::Headers;
 
-use MVC::Neaf::Util qw(http_date);
+use MVC::Neaf::Util qw(http_date run_all_nodie);
 use MVC::Neaf::Upload;
 use MVC::Neaf::Exception;
 
@@ -1273,13 +1273,9 @@ sub execute_postponed {
     my $self = shift;
 
     $self->{continue}++;
-    my $todo = delete $self->{response}{postponed};
-    foreach my $code (@$todo) {
-        # avoid dying in DESTROY, as well as when serving request.
-        eval { $code->($self); };
-        carp "WARN ".(ref $self).": postponed action failed: $@"
-            if $@;
-    };
+    run_all_nodie( delete $self->{response}{postponed}, sub {
+            carp "WARN ".(ref $self).": postponed action failed: $@"
+        }, $self );
 
     return $self;
 };

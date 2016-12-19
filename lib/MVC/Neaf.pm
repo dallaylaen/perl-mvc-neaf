@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.14;
+our $VERSION = 0.1401;
 
 =head1 NAME
 
@@ -159,7 +159,6 @@ They have nothing to do with serving the request.
 use Carp;
 use Scalar::Util qw(blessed looks_like_number);
 use Encode;
-use POSIX qw(strftime);
 use parent qw(Exporter);
 
 our @EXPORT_OK = qw(neaf_err neaf get post);
@@ -167,7 +166,7 @@ our %EXPORT_TAGS = (
     sugar => [qw[neaf get post]],
 );
 
-use MVC::Neaf::Util qw(http_date canonize_path path_prefixes);
+use MVC::Neaf::Util qw(http_date canonize_path path_prefixes run_all run_all_nodie);
 use MVC::Neaf::Request;
 
 our $Inst = __PACKAGE__->new;
@@ -272,7 +271,7 @@ sub route {
     } else {
         $profile{has_path_info_regex} = 1;
     };
-    $profile{path_info_regex_regex}  = qr#^/*($args{path_info_regex})$#;
+    $profile{path_info_regex}  = qr#^/*($args{path_info_regex})$#;
 
     # Just for information
     $profile{path}        = $path;
@@ -1219,15 +1218,16 @@ sub handle_request {
         };
 
         # TODO optimize this or do smth. Still MUST keep route_re a prefix tree
-        my ($path, $path_info_regex) = ($1, $2);
-        $path_info_regex =~ $route->{path_info_regex_regex}
+        my ($path, $path_info) = ($1, $2);
+        $path_info =~ $route->{path_info_regex}
             or die "404\n";
-        $req->set_full_path( $path, $path_info_regex, !$route->{has_path_info_regex} );
+        $req->set_full_path( $path, $path_info, !$route->{has_path_info_regex} );
         $self->_post_setup( $route )
             unless exists $route->{lock};
 
         # execute hooks
-        $_->($req) for @{ $route->{hooks}{pre_logic} };
+        run_all( $route->{hooks}{pre_logic}, $req)
+            if exists $route->{hooks}{pre_logic};
         # Run the controller!
         return $route->{code}->($req);
     };
@@ -1236,7 +1236,7 @@ sub handle_request {
         # post-process data - fill in request(RD) & global(GD) defaults.
         # TODO fill in per-location defaults, too - but do we need them?
         my $RD = $req->get_default;
-        my $GD = $route->{default} ||= $self->_make_defaults( $route );
+        my $GD = $route->{default};
         exists $data->{$_} or $data->{$_} = $RD->{$_} for keys %$RD;
         exists $data->{$_} or $data->{$_} = $GD->{$_} for keys %$GD;
     } else {
@@ -1250,11 +1250,9 @@ sub handle_request {
     exists $self->{stat}
         and $self->{stat}->record_controller($req->script_name);
     if (exists $route->{hooks}{pre_content}) {
-        foreach my $hook ( @{ $route->{hooks}{pre_content} } ) {
-            if (!eval { $hook->( $req ); 1 }) {
-                $self->_log_error( "pre_content hook", $@ );
-            };
-        };
+        run_all_nodie( $route->{hooks}{pre_content}, sub {
+                $self->_log_error( "pre_content hook", $@ )
+        }, $req );
     };
 
     # PROCESS REPLY
@@ -1318,11 +1316,9 @@ sub handle_request {
     # END PROCESS REPLY
 
     if (exists $route->{hooks}{pre_reply}) {
-        foreach my $hook ( @{ $route->{hooks}{pre_reply} } ) {
-            if (!eval { $hook->( $req ); 1 }) {
-                $self->_log_error( "pre_reply hook", $@ );
-            };
-        };
+        run_all_nodie( $route->{hooks}{pre_reply}, sub {
+                $self->_log_error( "pre_reply hook", $@ )
+        }, $req );
     };
     exists $self->{stat}
         and $self->{stat}->record_finish($data->{-status}, $req);
