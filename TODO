@@ -4,6 +4,11 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.10    0.20    MOD Cookie-based encrypted session
 
 -- backlog --
+0.14    0.20    API Add pre-render hook
+0.14    0.20    API Sugar: neaf 404 => sub, neaf pre_logic => sub
+0.14    0.20    NET Generate schema from app conf (@cono)
+0.14    0.20    API Add forms to route/hook defs (how?)
+0.14    0.20    API get_routes w/callback
 0.13    0.20    MOD static: X-Accel-Redirect (@cono)
 0.12    0.20    MOD static file_regex, dir_regex
 0.09    0.20    MOD Add predefined regexps to default FORM impl
