@@ -2,7 +2,7 @@ package MVC::Neaf::Util;
 
 use strict;
 use warnings;
-our $VERSION = 0.1401;
+our $VERSION = 0.1402;
 
 =head1 NAME
 
@@ -93,7 +93,7 @@ sub run_all {
     my $list = shift;
 
     foreach my $sub (@$list) {
-        &$sub;
+        $sub->(@_);
     };
     return;
 };

@@ -10,7 +10,10 @@ use MVC::Neaf;
 my $trace = '';
 sub gen ($) { ## no critic # yes need proto in this helper sub
     my $id = shift;
-    return sub { $trace .= "$id," };
+    return sub {
+        $_[0]->isa( "MVC::Neaf::Request" ) or die "No request in hook";
+        $trace .= "$id,";
+    };
 };
 
 # test route
@@ -46,7 +49,7 @@ my ($status, $head, $content) = MVC::Neaf->run_test(
 is ($status, 200, "http ok");
 is ($content, '{}', "content ok");
 
-my $order = '0.1,0.2,1.1,1.2,1.3,2.1,3.1,3.3,3.2,4.1,4.3,4.2,5.2,5.1,';
+my $order = '0.2,0.1,1.1,1.2,1.3,2.1,3.1,3.3,3.2,4.1,4.3,4.2,5.2,5.1,';
 is ($trace, $order, "Hooks come in order" );
 
 $trace = '';

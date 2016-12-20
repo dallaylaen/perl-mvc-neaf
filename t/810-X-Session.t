@@ -53,18 +53,19 @@ like( $req->format_cookies->[0], qr/cook=;/, "Deleted cookie appears" );
 @My::Session::call = ();
 MVC::Neaf->pre_route( sub {
     my $req = shift;
+
     $req->session->{foo}
         or $req->save_session( { foo => 42 } );
 });
 MVC::Neaf->set_session_handler( engine => My::Session->new );
 
-my $ret = MVC::Neaf->run->({});
+my @ret = MVC::Neaf->run_test('/');
 
-is ($ret->[0], 404, "404 returned - no routes defined");
+is ($ret[0], 404, "404 returned - no routes defined");
 
-my %head = @{ $ret->[1] };
+my $head = $ret[1];
 
-my ($sess) = $head{'Set-Cookie'} =~ /session=(\S+);/;
+my ($sess) = $head->header( 'Set-Cookie' ) =~ /session=(\S+);/;
 ok ( $sess, "Set-Cookie appeared" );
 
 is_deeply (\@My::Session::call

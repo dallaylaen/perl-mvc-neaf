@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1402;
+our $VERSION = 0.1403;
 
 =head1 NAME
 
@@ -747,6 +747,33 @@ sub run {
 
     $self->{route_re} ||= $self->_make_route_re;
 
+    # initialize stuff if first run
+    # TODO don't allow modification after lock
+    if (!$self->{lock}) {
+        if (my $engine = $self->{session_handler}) {
+            $self->add_hook( pre_route => sub {
+                $_[0]->_set_session_handler( $engine );
+            }, prepend => 1 );
+            if (my $key = $self->{session_view_as}) {
+                $self->add_hook( pre_render => sub {
+                    my $sess = $_[0]->session(1);
+                    $sess and $_[0]->reply->{$key} = $sess;
+                }, prepend => 1 );
+            };
+        };
+        if (my $engine = $self->{stat}) {
+            $self->add_hook( pre_route => sub {
+                $engine->record_start;
+            }, prepend => 1);
+            $self->add_hook( pre_content => sub {
+                $engine->record_controller( $_[0]->script_name );
+            }, prepend => 1);
+            $self->add_hook( pre_reply => sub {
+                $engine->record_finish($_[0]->reply->{-status}, $_[0]);
+            }, prepend => 1);
+        };
+    };
+
     if (defined wantarray) {
         # The run method is being called in non-void context
         # This is the case for PSGI, but not CGI (where it's just
@@ -1085,7 +1112,8 @@ sub add_hook {
         $self->_croak("cannot specify paths/excludes for $phase")
             if defined $opt{path} || defined $opt{exclude};
         foreach( @{ $opt{method} } ) {
-            push @{ $self->{pre_route}{$_} }, $code;
+            my $where = $self->{pre_route}{$_} ||= [];
+            $opt{prepend} ? unshift @$where, $code : push @$where, $code;
         };
         return $self;
     };
@@ -1260,15 +1288,9 @@ sub handle_request {
     my ($self, $req) = @_;
     $self = $Inst unless ref $self;
 
-    exists $self->{stat} and $self->{stat}->record_start;
-
     # ROUTE REQUEST
     my $route;
     my $data = eval {
-        # Inject session handler into request object
-        $req->_set_session_handler( $self->{session_handler} )
-            if exists $self->{session_handler};
-
         my $method = $req->method;
         # Try running the pre-routing callback.
         run_all( $self->{pre_route}{$method}, $req )
@@ -1312,8 +1334,6 @@ sub handle_request {
     # END ROUTE REQUEST
 
     $req->_set_reply( $data );
-    exists $self->{stat}
-        and $self->{stat}->record_controller($req->script_name);
     if (exists $route->{hooks}{pre_content}) {
         run_all_nodie( $route->{hooks}{pre_content}, sub {
                 $self->_log_error( "pre_content hook", $@ )
@@ -1327,10 +1347,6 @@ sub handle_request {
     my $content = \$data->{-content};
     if( !defined $$content) {
         my $view = $self->load_view( $data->{-view} || $route->{view} );
-        # TODO move session to hook
-        if ( my $key = $self->{session_view_as} and my $sess = $req->session(1) ) {
-            $data->{ $key } = $sess;
-        };
         eval {
             run_all( $route->{hooks}{pre_render}, $req )
                 if exists $route->{hooks}{pre_render};
@@ -1338,13 +1354,13 @@ sub handle_request {
             $data->{-type} ||= $type;
         };
         if (!defined $$content) {
-            # TODO $req->clear in case of error
+            $req->clear;
             $self->_log_error( view => $@ );
             $data = {
                 -status => 500,
                 -type   => "text/plain",
             };
-            $$content = "Template error.";
+            $$content = "Template error."; # TODO configurable
         };
     };
 
@@ -1382,15 +1398,13 @@ sub handle_request {
 
     # END PROCESS REPLY
 
+    if (exists $route->{hooks}{pre_cleanup}) {
+        $req->postpone( $route->{hooks}{pre_cleanup} );
+    };
     if (exists $route->{hooks}{pre_reply}) {
         run_all_nodie( $route->{hooks}{pre_reply}, sub {
                 $self->_log_error( "pre_reply hook", $@ )
         }, $req );
-    };
-    exists $self->{stat}
-        and $self->{stat}->record_finish($data->{-status}, $req);
-    if (exists $route->{hooks}{pre_cleanup}) {
-        $req->postpone( $route->{hooks}{pre_cleanup} );
     };
 
     # DISPATCH CONTENT
