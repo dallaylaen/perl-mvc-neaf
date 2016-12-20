@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1401;
+our $VERSION = 0.1402;
 
 =head1 NAME
 
@@ -412,13 +412,16 @@ Return value from callback is ignored.
 
 Dying in callback is treated the same way as in normal controller sub.
 
+B<DEPRECATED>. Use C<Neaf-E<gt>add_hook( pre_route =E<gt> ... )> instead.
+
 =cut
 
 sub pre_route {
     my ($self, $code) = @_;
     $self = $Inst unless ref $self;
 
-    $self->{pre_route} = $code;
+    carp ("DEPRECATED: pre_route(): use add_hook( pre_route => CODE ) instead");
+    $self->add_hook( pre_route => $code );
     return $self;
 };
 
@@ -864,7 +867,7 @@ C<neaf-E<gt>method_name> is the equivalent of C<MVC::Neaf-E<gt>method_name>.
 
 =head2 neaf shortcut => @options;
 
-Shorter alias to method described above. Currently supported:
+Shorter alias to methods described above. Currently supported:
 
 =over
 
@@ -874,24 +877,53 @@ Shorter alias to method described above. Currently supported:
 
 =item * view - C<load_view>
 
+=item * hook - C<add_hook>
+
+=item * session - C<set_session_handler>
+
+=item * default - C<set_path_defaults>
+
+=item * alias   - C<alias>
+
+=item * static  - C<static>
+
 =back
+
+Also, passing a 3-digit number will trigger C<set_error_handler>,
+and passing a hook phase (see below) will result in setting a hook.
 
 =cut
 
 my %method_shortcut = (
-    route => 'route',
-    error => 'set_error_handler',
-    view  => 'load_view',
+    route    => 'route',
+    error    => 'set_error_handler',
+    view     => 'load_view',
+    hook     => 'add_hook',
+    session  => 'set_session_handler',
+    default  => 'set_path_defaults',
+    alias    => 'alias',
+    static   => 'static',
 );
+my %hook_phases;
+$hook_phases{$_}++ for qw(pre_route pre_logic pre_content pre_render pre_reply pre_cleanup);
 
 sub neaf(@) { ## no critic # DSL
     return $MVC::Neaf::Inst unless @_;
 
     my ($action, @args) = @_;
 
+    if ($action =~ /^\d\d\d$/) {
+        unshift @args, $action;
+        $action = 'error';
+    };
+    if ($hook_phases{$action}) {
+        unshift @args, $action;
+        $action = 'hook';
+    };
+
     my $method = $method_shortcut{$action};
     croak "neaf: don't know how to handle '$action'"
-        unless $method;
+        unless $method and MVC::Neaf->can($method);
 
     return MVC::Neaf->$method( @args );
 };
@@ -950,11 +982,27 @@ Multiple locations may be supplied via C<[ /foo, /bar ...]>
 =item * method => 'METHOD' || [ list ]
 List of request HTTP methods to which given hook applies.
 
+=item * prepend => 0|1 - if true, move hook execution to earlier stage.
+Note that this does NOT override path precedence.
+
 =back
 
 =head2 HOOK PHASES
 
 This list of phases MAY change in the future.
+
+=head3 pre_route
+
+Executed AFTER the event has been received, but BEFORE the path has been
+resolved and handler found.
+
+Dying in this phase stops both further hook processing and controller execution.
+Instead, the corresponding error handler is executed right away.
+
+Setting C<path> and C<exclude> is not available on this stage.
+
+May be useful for mangling path.
+Use C<$request-E<gt>set_full_path($new_path)> if you need to.
 
 =head3 pre_logic
 
@@ -985,6 +1033,14 @@ C<reply()> hash is available at this stage.
 
 Dying is ignored, only producing a warning.
 
+=head3 pre_render
+
+This hook is run BEFORE content rendering is performed, and ONLY IF
+the content is going to be rendered,
+i.e. no C<-content> key set in response hash on previous stages.
+
+Dying will stop rendering, resulting in a template error instead.
+
 =head3 pre_reply
 
 This hook is run AFTER the headers have been generated, but BEFORE the reply is
@@ -1011,9 +1067,7 @@ Dying is ignored, only producing a warning.
 =cut
 
 my %add_hook_args;
-$add_hook_args{$_}++ for qw(method path exclude);
-my %hook_phases;
-$hook_phases{$_}++ for qw(pre_logic pre_content pre_reply pre_cleanup);
+$add_hook_args{$_}++ for qw(method path exclude prepend);
 
 sub add_hook {
     my ($self, $phase, $code, %opt) = @_;
@@ -1026,9 +1080,20 @@ sub add_hook {
         unless $hook_phases{$phase};
 
     _listify( \$opt{method}, qw( GET HEAD POST PUT PATCH DELETE ) );
+    if ($phase eq 'pre_route') {
+        # handle pre_route separately
+        $self->_croak("cannot specify paths/excludes for $phase")
+            if defined $opt{path} || defined $opt{exclude};
+        foreach( @{ $opt{method} } ) {
+            push @{ $self->{pre_route}{$_} }, $code;
+        };
+        return $self;
+    };
+
     _listify( \$opt{path}, '/' );
     _listify( \$opt{exclude} );
     @{ $opt{path} } = map { canonize_path($_) } @{ $opt{path} };
+    @{ $opt{exclude} } = map { canonize_path($_) } @{ $opt{exclude} };
 
     $opt{caller} = [ caller(0) ]; # where the hook was set
     $opt{phase}  = $phase; # just for information
@@ -1039,7 +1104,7 @@ sub add_hook {
     foreach my $method ( @{$opt{method}} ) {
         foreach my $path ( @{$opt{path}} ) {
             my $where = $self->{hooks}{$method}{$path}{$phase} ||= [];
-            push @$where, \%opt;
+            $opt{prepend} ? unshift @$where, \%opt : push @$where, \%opt;
         };
     };
 
@@ -1204,15 +1269,15 @@ sub handle_request {
         $req->_set_session_handler( $self->{session_handler} )
             if exists $self->{session_handler};
 
+        my $method = $req->method;
         # Try running the pre-routing callback.
-        if (exists $self->{pre_route}) {
-            $self->{pre_route}->( $req );
-        };
+        run_all( $self->{pre_route}{$method}, $req )
+            if (exists $self->{pre_route}{$method});
 
         # Lookup the rules for the given path
         $req->path =~ $self->{route_re} and my $node = $self->{route}{$1}
             or die "404\n";
-        unless ($route = $node->{ $req->method }) {
+        unless ($route = $node->{ $method }) {
             $req->set_header( Allow => join ", ", keys %$node );
             die "405\n";
         };
@@ -1267,6 +1332,8 @@ sub handle_request {
             $data->{ $key } = $sess;
         };
         eval {
+            run_all( $route->{hooks}{pre_render}, $req )
+                if exists $route->{hooks}{pre_render};
             ($$content, my $type) = $view->render( $data );
             $data->{-type} ||= $type;
         };
