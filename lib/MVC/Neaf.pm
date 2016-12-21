@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1403;
+our $VERSION = 0.1404;
 
 =head1 NAME
 
@@ -1328,6 +1328,7 @@ sub handle_request {
         exists $data->{$_} or $data->{$_} = $GD->{$_} for keys %$GD;
     } else {
         # Fall back to error page
+        # TODO $req->clear; - but don't kill cleanup hooks
         $data = $self->_error_to_reply( $req, $@, $route->{caller} );
     };
 
@@ -1354,7 +1355,7 @@ sub handle_request {
             $data->{-type} ||= $type;
         };
         if (!defined $$content) {
-            $req->clear;
+            # TODO $req->clear; - but don't kill cleanup hooks
             $self->_log_error( view => $@ );
             $data = {
                 -status => 500,
