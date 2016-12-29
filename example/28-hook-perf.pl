@@ -28,8 +28,10 @@ MVC::Neaf->route( $script => sub {
     +{}
 }, description => "Hook demo");
 
+MVC::Neaf->load_view( TT => TT => INCLUDE_PATH => dirname(__FILE__) );
+
 # set our template as default for this path as below
-MVC::Neaf->set_path_defaults( $script => { -template => \$tpl } );
+MVC::Neaf->set_path_defaults( $script => { -template => basename(__FILE__).".tt" } );
 
 # calculate time spent. Note $req->stash usage as temporary storage
 MVC::Neaf->add_hook(
