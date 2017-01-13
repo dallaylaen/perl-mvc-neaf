@@ -13,7 +13,6 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.10    0.20    API International - how???
 0.09    0.20    MOD Add form defaults populating BOTH raw and data
 0.09    0.20    MOD Form->hmac(salt)
-0.02    0.20    TPL Add TT caching
 0.13    0.30    NET Add FastCGI support
 0.13    0.30    TPL Add XSLate support
 0.08    0.30    API Add Req alias methods for -dashed -return -keys
@@ -31,6 +30,7 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.07    0.90    API Phase callbacks as in Apache (cleanup, pre-view, etc)
 0.07    0.90    API Periodic actions in webapp
 0.07    0.20    MOD Add "cleanup" method to X::Session - for offline cleanups
+0.02    0.99    TPL Add TT caching - TT can by default
 
 -- think --
 0.05    0.20    ??? soft_root - will serve given route as root, if free
