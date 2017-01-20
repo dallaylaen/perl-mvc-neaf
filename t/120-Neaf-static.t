@@ -9,32 +9,47 @@ use File::Basename qw(basename);
 use MVC::Neaf;
 
 MVC::Neaf->static( t => $Bin, buffer => 1024*1024, cache_ttl => 100500 );
+MVC::Neaf->static( t2 => $Bin, buffer => 32, cache_ttl => 100500 );
 
-my $self = basename( __FILE__ );
+my $sample = basename( __FILE__ ).".png";
 
-my $data = MVC::Neaf->run->({ REQUEST_URI => "/t/$self" });
-my ($status, $head_raw, $content) = @$data;
-my %head = @$head_raw;
-$content = join "", @$content;
+my $real_content = do {
+    open my $fd, "<", "$Bin/$sample"
+        or die "Failed to open sample file $sample: $!";
+    binmode $fd;
+    local $/;
+    <$fd>;
+};
+die "Failed to fetch sample content from $sample: $!"
+    unless $real_content;
+
+my ($status, $head, $content) = MVC::Neaf->run_test( "/t/$sample" );
+
+note explain $head;
 
 is ($status, 200, "Found self");
-is ($head{'Content-Type'}, 'text/plain; charset=utf-8', "Served as text");
-is ($head{'Content-Length'}, length $content, "Length");
-is ($head{'Content-Disposition'}, qq{attachment; filename="$self"}, "Filename");
-like( $head{'Expires'}, qr#\w\w\w, \d.*GMT#, "expire date present");
+is ($head->header( 'Content-Type' ), 'image/png', "Served as image");
+is ($head->header( 'Content-Length' ), length $content, "Length");
+like( $head->header( 'Expires' ), qr#\w\w\w, \d.*GMT#, "expire date present");
+ok ($content eq $real_content, "Content matches sample");
 
 note "Testing cache now";
-my $old_content = $content;
-$data = MVC::Neaf->run->({ REQUEST_URI => "/t/$self" });
-($status, $head_raw, $content) = @$data;
-%head = @$head_raw;
-$content = join "", @$content;
+   ($status, $head, $content) = MVC::Neaf->run_test( "/t/$sample" );
 
 is ($status, 200, "Found self");
-is ($head{'Content-Type'}, 'text/plain; charset=utf-8', "Served as text");
-is ($head{'Content-Length'}, length $content, "Length");
-is ($head{'Content-Disposition'}, qq{attachment; filename="$self"}, "Filename");
-like( $head{'Expires'}, qr#\w\w\w, \d.*GMT#, "expire date present");
+is ($head->header( 'Content-Type' ), 'image/png', "Served as image");
+is ($head->header( 'Content-Length' ), length $content, "Length");
+like( $head->header( 'Expires' ), qr#\w\w\w, \d.*GMT#, "expire date present");
 
-is ($content, $old_content, "Content not changed");
+ok ($content eq $real_content, "Content not changed");
+
+note "Testing multipart file";
+   ($status, $head, $content) = MVC::Neaf->run_test( "/t2/$sample" );
+
+is ($status, 200, "Found self");
+is ($head->header( 'Content-Type' ), 'image/png', "Served as image");
+is ($head->header( 'Content-Length' ), length $content, "Length");
+like( $head->header( 'Expires' ), qr#\w\w\w, \d.*GMT#, "expire date present");
+
+ok ($content eq $real_content, "Content not changed");
 done_testing;

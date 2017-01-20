@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.14;
+our $VERSION = 0.1401;
 
 =head1 NAME
 
@@ -158,7 +158,7 @@ sub make_handler {
 
         # If file is big, print header & first data chunk ASAP
         # then do the rest via a second callback
-        $req->header_out( content_length => set => $size );
+        $req->set_header( content_length => $size );
         my $continue = sub {
             my $req = shift;
 
