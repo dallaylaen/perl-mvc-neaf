@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.1401;
+our $VERSION = 0.1402;
 
 =head1 NAME
 
@@ -124,6 +124,7 @@ sub make_handler {
             # TODO Warn
             die 404;
         };
+        binmode $fd;
 
         my $size = [stat $fd]->[7];
         local $/ = \$bufsize;
