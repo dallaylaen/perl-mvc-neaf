@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1401;
+our $VERSION = 0.1402;
 
 =head1 NAME
 
@@ -926,26 +926,13 @@ sub session {
 
     if (!$self->{session_engine}) {
         # TODO should we just die here?
-        $self->{session} ||= {} unless $noinit;
+        $self->{session} = {} unless $noinit;
         return $self->{session};
     };
 
     # Try loading session...
     my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
     my $hash = ($id && $self->{session_engine}->load_session( $id ));
-
-    # TODO remove the below block in 0.15 - deprecated API warning
-    if ($hash && ref $hash eq 'HASH') {
-        foreach (keys %$hash) {
-            $known_session_keys{ $_ } and next;
-            carp "DEPRECATED load_session/save_session API changed in Neaf 0.12, trying to continue";
-            $hash = { data => $hash };
-            last;
-        };
-    } elsif ($hash && ref $hash ne 'HASH') {
-        carp "DEPRECATED load_session/save_session API changed in Neaf 0.12, trying to continue";
-        $hash = { data => $hash };
-    };
 
     if ($hash && ref $hash eq 'HASH' && $hash->{data}) {
         # Loaded, cache it & refresh if needed
@@ -987,19 +974,6 @@ sub save_session {
 
     my $hash = $self->{session_engine}->save_session( $id, $self->session );
 
-    # TODO remove the below block in 0.15 - deprecated API warning
-    if ($hash && ref $hash eq 'HASH') {
-        foreach (keys %$hash) {
-            $known_session_keys{ $_ } and next;
-            carp "DEPRECATED load_session/save_session API changed in Neaf 0.12, trying to continue";
-            $hash = { id => $id };
-            last;
-        };
-    } elsif ($hash && ref $hash ne 'HASH') {
-        carp "DEPRECATED load_session/save_session API changed in Neaf 0.12, trying to continue";
-        $hash = { id => $id };
-    };
-
     if ( $hash && ref $hash eq 'HASH' && $hash->{id} ) {
         # save successful - send cookie to user
         my $expire = $hash->{expire};
@@ -1032,6 +1006,7 @@ sub delete_session {
 };
 
 # TODO This is awkward, but... Maybe optimize later
+# TODO Replace with callback generator (managed by cb anyway)
 sub _set_session_handler {
     my ($self, $data) = @_;
     $self->{session_engine} = $data->[0];
