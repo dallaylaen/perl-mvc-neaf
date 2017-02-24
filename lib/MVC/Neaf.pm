@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1404;
+our $VERSION = 0.1405;
 
 =head1 NAME
 
@@ -159,6 +159,7 @@ They have nothing to do with serving the request.
 use Carp;
 use Scalar::Util qw(blessed looks_like_number);
 use Encode;
+use URI::Escape;
 use parent qw(Exporter);
 
 our @EXPORT_OK = qw(neaf_err neaf get post);
@@ -1306,6 +1307,9 @@ sub handle_request {
 
         # TODO optimize this or do smth. Still MUST keep route_re a prefix tree
         my ($path, $path_info) = ($1, $2);
+        if ($path_info =~ /%/) {
+            $path_info = decode_utf8( uri_unescape( $path_info ) );
+        };
         $path_info =~ $route->{path_info_regex}
             or die "404\n";
         $req->set_full_path( $path, $path_info, !$route->{has_path_info_regex} );
