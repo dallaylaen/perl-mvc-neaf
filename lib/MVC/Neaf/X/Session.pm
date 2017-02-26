@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session;
 
 use strict;
 use warnings;
-our $VERSION = 0.1401;
+our $VERSION = 0.1402;
 
 =head1 NAME
 
@@ -92,7 +92,7 @@ If none given, a sane default is supplied.
 =cut
 
 sub session_id_regex {
-    return qr([A-Za-z_\d\.\/\?\-\@+=]+);
+    return qr([A-Za-z_\d\.\/\?\-\@+=~]+);
 };
 
 =head2 get_session_id( [$user_salt] )
@@ -162,6 +162,37 @@ get_session_id();
 sub session_ttl {
     my $self = shift;
     return $self->{session_ttl};
+};
+
+=head2 make_expire()
+
+Returns current time + session ttl, or undef if C<session_ttl> not set.
+
+=cut
+
+sub make_expire {
+    my $self = shift;
+    my $ttl = $self->session_ttl;
+
+    return ($ttl && $ttl > 0) ? time + $ttl : undef;
+};
+
+=head2 make_renewal()
+
+Returns a timestamp to determine when session needs to be refreshed.
+If a given session's TTL is below this value, it probably needs to be
+prolonged (updated in DB, cookie re-set with new expiration date etc.)
+
+Returns -infinity if cannot determine.
+
+=cut
+
+sub make_renewal {
+    my $self = shift;
+
+    my $ttl = $self->{session_renewal};
+    $ttl = $self->session_ttl / 3 unless defined $ttl;
+    return $ttl ? time + $ttl : -9**9**9;
 };
 
 =head2 create_session()
