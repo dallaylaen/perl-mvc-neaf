@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1405;
+our $VERSION = 0.1406;
 
 =head1 NAME
 
@@ -1548,9 +1548,9 @@ sub _log_error {
     warn $msg;
 };
 
-=head2 run_test( \%PSGI_ENV )
+=head2 run_test( \%PSGI_ENV, %options )
 
-=head2 run_test( "/path?param=value" )
+=head2 run_test( "/path?param=value", %options )
 
 Run a PSGI request and return a list of
 C<($status, HTTP::Headers, $whole_content )>.
@@ -1559,10 +1559,18 @@ Just as the name suggests, useful for testing only (it reduces boilerplate).
 
 Continuation responses are supported.
 
+%options may include:
+
+=over
+
+=item * override = \%hash - force certain data in ENV
+
+=back
+
 =cut
 
 sub run_test {
-    my ($self, $env) = @_;
+    my ($self, $env, %opt) = @_;
 
     if (!ref $env) {
         $env =~ /^(.*?)(?:\?(.*))?$/;
@@ -1576,6 +1584,9 @@ sub run_test {
             PATH_INFO => $1,
         }
     };
+    # TODO more civilized stuff like cookies, headers...
+    $env->{$_} = $opt{override}{$_} for keys %{ $opt{override} };
+
     my $ret = $self->run->( $env );
     if (ref $ret eq 'CODE') {
         # PSGI functional interface used.

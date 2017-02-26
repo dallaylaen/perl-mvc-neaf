@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session;
 
 use strict;
 use warnings;
-our $VERSION = 0.14;
+our $VERSION = 0.1401;
 
 =head1 NAME
 
@@ -43,11 +43,12 @@ change in the future.
         sub save_session {
             my ($self, $id, $data) = @_;
             $self->{data}{ $id } = $data;
+            return { id => $id };
         };
 
         sub load_session {
             my ($self, $id) = @_;
-            return $self->{data}{ $id };
+            return { data => $self->{data}{ $id } };
         };
     };
     MVC::Neaf->set_session_handler( My::Session->new );
@@ -197,7 +198,7 @@ Return session data from the storage.
 
 This MUST be implemented in specific session driver class.
 
-It MUST return a hashref with the following fields:
+It MUST return either false, or a hashref with the following fields:
 
 =over
 
