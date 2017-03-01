@@ -9,12 +9,16 @@ my $Bin;
 BEGIN { $Bin = dirname( __FILE__ ) || "." };
 use lib $Bin."/../lib";
 use MVC::Neaf;
-use MVC::Neaf::X::Session::Cookie;
+use MVC::Neaf::X::Session::File;
 
 my $script = basename(__FILE__);
+my $storage = "$Bin/nocommit-$script-storage";
+
+mkdir $storage; # ignore result
+-d $storage or die "Failed to find directory '$storage' ($!)";
 
 MVC::Neaf->set_session_handler(
-    engine => MVC::Neaf::X::Session::Cookie->new( key => 'foobared' ),
+    engine => MVC::Neaf::X::Session::File->new( dir => $storage ),
     view_as => 'session'
 );
 
