@@ -24,12 +24,14 @@ use Time::HiRes qw(sleep);
 use lib "$Bin/lib";
 use MVC::Neaf;
 
-# skipping 05-lang for now - won't work under apache as CGI
 my $dir = "$Bin/nocommit-apache";
 my $conf = "$dir/httpd.conf";
-my $port_cgi = 8000;
-my $port_perl = 8001;
+
 # TODO autodetect free ports
+my ($action, $port_cgi, $port_perl) = @ARGV;
+$action    ||= '';
+$port_cgi  ||= 8000;
+$port_perl ||= $port_cgi + 1;
 
 my $HTTPD_CONF = <<"TT";
 ServerRoot [% dir %]
@@ -140,9 +142,9 @@ my $INDEX_HTML = <<"TT";
 TT
 
 # Process command line before doing the heavilifting
-my $action = shift || '';
 if ($action !~ /^(start|stop|make)$/) {
-    print "Usage: $0 start|stop|make";
+    print "Usage: $0 start|stop|make [cgi_port] [perl_port]\n";
+    print "cgi_port defaults to 8000 and perl_port defaults to cgi_port +1\n";
     exit 0;
 };
 
