@@ -4,6 +4,10 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.10    0.20    MOD Cookie-based encrypted session
 
 -- backlog --
+0.14    0.20    API Add param regex to route defn
+0.14    0.20    API Add forms to route defn (how? named? array?)
+0.14    0.20    API Add -template, -type default shortcuts to route defn
+0.14    0.20    API GET=GET+HEAD, unless HEAD specified explicitly
 0.14    0.20    NET Generate schema from app conf (@cono)
 0.14    0.20    API Add forms to route/hook defs (how?)
 0.14    0.20    API get_routes w/callback

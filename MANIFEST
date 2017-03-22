@@ -16,6 +16,8 @@ example/24-static.pl
 example/25-session.pl
 example/26-restful.pl
 example/27-raw-post-js.pl
+example/28-hook-perf.pl
+example/28-hook-perf.pl.tt
 example/51-wiki.pl
 example/all-of-them.psgi
 example/README
@@ -67,6 +69,7 @@ t/117-Neaf-Request-post-raw.t
 t/118-Neaf-Request-cookie.t
 t/119-Neaf-Request-postponed-write.t
 t/120-Neaf-static.t
+t/120-Neaf-static.t.png
 t/121-Neaf-binary.t
 t/122-Neaf-force-view.t
 t/123-Neaf-error-template.t
@@ -77,15 +80,17 @@ t/127-Neaf-defaults.t
 t/128-Neaf-hooks.t
 t/129-Neaf-hook-content.t
 t/130-Neaf-sugar.t
+t/131-Neaf-path-info-utf.t
+t/201-Neaf-Util-date.t
 t/801-cli.t
 t/802-X-Form.t
 t/803-X-Form-LIVR.t
 t/804-X-ServerStat.t
+t/805-X-ServerStat-integration.t
 t/810-X-Session.t
 t/811-X-Session-random.t
 t/812-X-Session-File.t
 t/901-0.16-path_info.t
-t/902-X-Session-deprecated.t
 t/903-Request-get-form-as.t
 t/README
 t/todo.t

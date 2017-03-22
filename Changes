@@ -1,5 +1,13 @@
 Revision history for MVC-Neaf
 
+0.15    Wed Mar 22 2017
+
+        - API BREAK Kill session deprecated warning
+        - BUG Allow utf8 path-info
+        - MOD Add form->as_url, form->sign to form data object
+        - BUG Fix binmode in static file serving
+        - API add pre_route, pre_render hook phases, add hook prepend, fixup docs
+
 0.14    Sun Dec 18 2016
         - API add_hook() method, hooks: pre_logic, pre_content, pre_reply, pre_cleanup
         - API set_path_defaults( '/path' => { foo => ... } )

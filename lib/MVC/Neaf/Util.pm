@@ -2,7 +2,7 @@ package MVC::Neaf::Util;
 
 use strict;
 use warnings;
-our $VERSION = 0.1402;
+our $VERSION = 0.15;
 
 =head1 NAME
 

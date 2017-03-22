@@ -4,8 +4,8 @@ MVC::Neaf [ni:f] stands for Not Even A Framework.
 
 # OVERVIEW
 
-Neaf offers very simple rules to build very simple applications.
-For the lazy, by the lazy.
+Neaf offers a simple, yet powerful way to create simple web-applications.
+By the lazy, for the lazy.
 
 It has a lot of similarities to
 [Dancer](https://metacpan.org/pod/Dancer2) and
@@ -111,7 +111,8 @@ and returning *a value*.
 
 # BUGS
 
-Lots of them. Still under heavy development.
+This package is still under heavy development
+(with a test coverage of about 80% though).
 
 * mod\_perl handler is a mess (but it works somehow);
 
