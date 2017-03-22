@@ -51,7 +51,7 @@ note explain $req->format_cookies;
 like( $req->format_cookies->[0], qr/cook=;/, "Deleted cookie appears" );
 
 @My::Session::call = ();
-MVC::Neaf->pre_route( sub {
+MVC::Neaf->add_hook( pre_route => sub {
     my $req = shift;
 
     $req->session->{foo}
