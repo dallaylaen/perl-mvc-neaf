@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session::SQL;
 
 use strict;
 use warnings;
-our $VERSION = 0.1502;
+our $VERSION = 0.1503;
 
 =head1 NAME
 
@@ -18,12 +18,12 @@ having additional session storage (e.g. key-value) would be an overkill.
 =head1 SYNOPSIS
 
     my $session_engine = MVC::Neaf::X::Session::SQL->new (
-        dbh           => $my_db_conn,
-        table         => 'session',
-        id_as         => 'session_name',
-        content_as    => 'json_data',        # optional but recommended
-        expire_as     => 'expires',          # optional, unix timestamp
-        index_by      => [ 'user_id', ... ], # optional
+        dbh         => $my_db_conn,
+        table       => 'session',
+        id_as       => 'session_name',
+        content_as  => 'json_data',        # optional but recommended
+        expire_as   => 'expires',          # optional, unix timestamp
+        mapped_cols => [ 'user_id', ... ], # optional
     );
 
 =head1 METHODS
@@ -34,6 +34,31 @@ use Carp;
 use parent qw(MVC::Neaf::X::Session::Base);
 
 =head2 new (%options)
+
+%options may include
+
+=over
+
+=item * dbh (required) - database connection to use, see L<DBI>.
+
+=item * table (required) - name of table to use for sessions.
+
+=item * id_as (required) - name of session id column.
+Must accept long arbitrary strings.
+
+=item * content_as - name of column containing encoded session data.
+Must accept long arbitrary strings.
+
+=item * expire_as - name of column storing expiration date as a Unix timestamp
+(must accept integer number).
+
+=item * mapped_cols - array of session fields that are mapped into
+database columns. The field name MUST be equal to column name.
+
+=back
+
+At least one of content_as and mapped_cols MUST be present, even though
+it could be technically possible to use sessions with id and timestamp only.
 
 =cut
 
@@ -48,13 +73,13 @@ sub new {
     my $dbh     = $opt{dbh};
     my $table   = $opt{table};
     my $id_as   = $opt{id_as};
-    my $fields  = $opt{index_by};
+    my $fields  = $opt{mapped_cols};
     my $raw     = $opt{content_as};
 
     my @all_fields;
     push @all_fields, $opt{content_as}    if defined $opt{content_as};
-    push @all_fields, @{ $opt{index_by} } if $opt{index_by};
-    $class->my_croak( "At least one of index_by or content_as MUST be present" )
+    push @all_fields, @{ $opt{mapped_cols} } if $opt{mapped_cols};
+    $class->my_croak( "At least one of mapped_cols or content_as MUST be present" )
         unless @all_fields;
     push @all_fields, $opt{expire_as}     if defined $opt{expire_as};
 
@@ -85,7 +110,7 @@ sub new {
         unless $sth_test->execute( "TestSessionId" );
 
     $sth_test->finish;
-    $opt{index_by} ||= [];
+    $opt{mapped_cols} ||= [];
     $opt{where_die} = "table $table for $id_as =";
 
     # Self-test passed, everything just as planned
@@ -105,7 +130,7 @@ sub store {
     # ONLY want raw data as a parameter if we know WHERE to store it!
     my @param;
     push @param, $str                      if $self->{content_as};
-    push @param, $hash->{$_}               for @{ $self->{index_by} };
+    push @param, $hash->{$_}               for @{ $self->{mapped_cols} };
     push @param, scalar $self->get_expire  if $self->{expire_as};
 
     my $sth_upd = $self->{dbh}->prepare_cached( $self->{sql_upd} );

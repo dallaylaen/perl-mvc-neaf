@@ -40,7 +40,7 @@ note "ERR (missing args): $@";
 like $@, qr/one of .* must/i, "no stored data = no go";
 
 $engine = MVC::Neaf::X::Session::SQL->new(
-    %opt, index_by => [ 'user' ], content_as => 'raw', expire_as => 'unixt',
+    %opt, mapped_cols => [ 'user' ], content_as => 'raw', expire_as => 'unixt',
         session_ttl => 1000, session_renewal_ttl => 0 );
 
 my $t0  = time;
