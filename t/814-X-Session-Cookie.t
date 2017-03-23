@@ -14,7 +14,7 @@ is join( ",", sort keys %$hash ), "expire,id", "save: Keys as expected";
 
 my $raw = $hash->{id};
 
-is( $hash->{expire}, undef, "Expiration was not set => undef" );
+like( $hash->{expire}, qr/^\d+$/, "Expiration was not set => some digits" );
 
 note "Session saved as: $raw";
 

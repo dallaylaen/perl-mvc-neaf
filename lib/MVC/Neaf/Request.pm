@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.15;
+our $VERSION = 0.1501;
 
 =head1 NAME
 
@@ -644,8 +644,10 @@ Set HTTP cookie. %options may include:
 0 means no ttl.
 Use negative ttl and empty value to delete cookie.
 
-=item * expires - unix timestamp when the cookie expires
+=item * expire - unix timestamp when the cookie expires
 (overridden by ttl).
+
+=item * expires - DEPRECATED - use 'expire' instead (w/o 's')
 
 =item * domain
 
@@ -666,15 +668,19 @@ sub set_cookie {
 
     defined $opt{regex} and $cook !~ /^$opt{regex}$/
         and $self->_croak( "output value doesn't match regex" );
+    if (exists $opt{expires}) {
+        carp( "set_cookie(): 'expires' parameter detected, use 'expire' instead" );
+        $opt{expire} = delete $opt{expires};
+    };
 
     # Zero ttl is ok and means "no ttl at all".
     if ($opt{ttl}) {
-        $opt{expires} = time + $opt{ttl};
+        $opt{expire} = time + $opt{ttl};
     };
 
     $self->{response}{cookie}{ $name } = [
         $cook, $opt{regex},
-        $opt{domain}, $opt{path}, $opt{expires}, $opt{secure}, $opt{httponly}
+        $opt{domain}, $opt{path}, $opt{expire}, $opt{secure}, $opt{httponly}
     ];
 
     # TODO also set cookie_in for great consistency, but don't
@@ -714,16 +720,16 @@ sub format_cookies {
 
     my @out;
     foreach my $name (keys %$cookies) {
-        my ($cook, $regex, $domain, $path, $expires, $secure, $httponly)
+        my ($cook, $regex, $domain, $path, $expire, $secure, $httponly)
             = @{ $cookies->{$name} };
         next unless defined $cook; # TODO erase cookie if undef?
 
         $path = "/" unless defined $path;
-        defined $expires and $expires = http_date( $expires );
+        defined $expire and $expire = http_date( $expire );
         my $bake = join "; ", ("$name=".uri_escape_utf8($cook))
             , defined $domain  ? "Domain=$domain" : ()
             , "Path=$path"
-            , defined $expires ? "Expires=$expires" : ()
+            , defined $expire ? "Expires=$expire" : ()
             , $secure ? "Secure" : ()
             , $httponly ? "HttpOnly" : ();
         push @out, $bake;
@@ -974,15 +980,14 @@ sub save_session {
 
     my $hash = $self->{session_engine}->save_session( $id, $self->session );
 
-    if ( $hash && ref $hash eq 'HASH' && $hash->{id} ) {
+    if ( $hash && ref $hash eq 'HASH' ) {
         # save successful - send cookie to user
         my $expire = $hash->{expire};
-        if (!defined $expire
-            and defined (my $ttl = $self->{session_engine}->session_ttl)
-        ) {
-            $expire = time + $ttl;
-        };
-        $self->set_cookie( $self->{session_cookie} => $hash->{id}, expire => $expire );
+
+        $self->set_cookie(
+            $self->{session_cookie} => $hash->{id} || $id,
+            expire => $hash->{expire},
+        );
     };
 
     return $self;

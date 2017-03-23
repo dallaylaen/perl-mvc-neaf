@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session::Base;
 
 use strict;
 use warnings;
-our $VERSION = 0.1502;
+our $VERSION = 0.1503;
 
 =head1 DESCRIPTION
 
@@ -50,9 +50,13 @@ sub new {
 
     my $self = $class->SUPER::new( @_ );
 
+    if (!defined $self->{session_ttl}) {
+        $self->{session_ttl} = 7*24*60*60; # default expiration to a week
+    };
+
     if (!defined $self->{session_renewal_ttl}) {
         my $ttl = $self->session_ttl;
-        $self->{session_renewal_ttl} = ($ttl || 0) * 0.625;
+        $self->{session_renewal_ttl} = ($ttl || 0) * 0.875; # 7/8 of expiration
     };
 
     return $self;
@@ -130,10 +134,12 @@ Caclulate expiration time, if applicable.
 
 sub get_expire {
     my ($self, $time) = @_;
-    $time = time unless defined $time;
 
     my $ttl = $self->session_ttl;
-    return $ttl ? $time + $ttl : ();
+    return unless $ttl;
+
+    $time = time unless defined $time;
+    return $time + $ttl;
 };
 
 =head2 need_renewal( $time )
