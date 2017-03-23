@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session::SQL;
 
 use strict;
 use warnings;
-our $VERSION = 0.1503;
+our $VERSION = 0.1504;
 
 =head1 NAME
 
@@ -178,7 +178,7 @@ sub fetch {
     my $expire = delete $override->{ $self->{expire_as}  || '' };
 
     return {
-        data     => $raw,
+        strfy    => $raw,
         override => $override,
         expire   => $expire,
     };

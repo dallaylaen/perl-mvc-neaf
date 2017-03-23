@@ -17,7 +17,7 @@ my %data;
         return { id => $_[1] };
     };
     sub fetch {
-        return { data => $data{$_[1]} };
+        return { strfy => $data{$_[1]} };
     };
 }
 

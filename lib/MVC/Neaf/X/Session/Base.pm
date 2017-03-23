@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session::Base;
 
 use strict;
 use warnings;
-our $VERSION = 0.1503;
+our $VERSION = 0.1504;
 
 =head1 DESCRIPTION
 
@@ -99,15 +99,16 @@ sub load_session {
     my ($self, $id) = @_;
 
     my $hash = $self->fetch( $id );
-    return unless ref $hash eq 'HASH' and ($hash->{data} or $hash->{override});
+    return unless ref $hash eq 'HASH' and ($hash->{strfy} or $hash->{override});
 
     # extract real data and apply overrides if any
-    $hash->{data} = $hash->{data} ? $self->decode( $hash->{data} ) : {};
+    $hash->{data} = $hash->{strfy} ? $self->decode( $hash->{strfy} ) : {};
     if ($hash->{override}) {
         $hash->{data}{$_} = $hash->{override}{$_}
             for keys %{ $hash->{override} };
     };
 
+    # data would be nonepty if strfy is decoded OR at least one override present
     return unless $hash->{data};
 
     # expired = return empty & cleanup
@@ -205,7 +206,7 @@ Must return false value or a hash with following fields (all optional):
 
 =item * expire - indicates that expiration date has changed and/or needs update;
 
-=item * data - stringified session data;
+=item * strfy - stringified session data;
 
 =item * override - hash with individual fields that would override
 decoded content.

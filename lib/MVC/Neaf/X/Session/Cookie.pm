@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session::Cookie;
 
 use strict;
 use warnings;
-our $VERSION = 0.1503;
+our $VERSION = 0.1504;
 
 =head1 NAME
 
@@ -79,7 +79,7 @@ sub fetch {
     return unless $key;
     return unless $self->{hmac_function}->( "$str~$time", $self->{key} ) eq $key;
 
-    return { data => decode_base64($str), expire => $time };
+    return { strfy => decode_base64($str), expire => $time };
 };
 
 =head2 get_session_id
