@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session::Cookie;
 
 use strict;
 use warnings;
-our $VERSION = 0.1501;
+our $VERSION = 0.1502;
 
 =head1 NAME
 
@@ -80,6 +80,12 @@ sub fetch {
 
     return { data => decode_base64($str) };
 };
+
+=head2 get_session_id
+
+Replaced by a stub - we'll generate ID from data anyway.
+
+=cut
 
 sub get_session_id { return 'Cookie Session Need No Id' };
 
