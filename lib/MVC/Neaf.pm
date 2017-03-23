@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1502;
+our $VERSION = 0.1503;
 
 =head1 NAME
 
@@ -193,9 +193,11 @@ Exactly one leading slash will be prepended no matter what you do.
 =over
 
 =item * method - list of allowed HTTP methods.
-Default is [GET, POST, HEAD].
+Default is [GET, POST].
 Multiple handles can be defined for the same path, provided that
 methods do not intersect.
+HEAD method is automatically handled if GET is present, however,
+one MAY define a separate HEAD handler explicitly.
 
 =item * path_info_regex => qr/.../ - allow URI subpaths matching
 the specified expression to be handled by this handler.
@@ -262,7 +264,7 @@ sub route {
 
     $path = canonize_path( $path );
 
-    _listify( \$args{method}, qw( GET POST HEAD ) );
+    _listify( \$args{method}, qw( GET POST ) );
 
     my @dupe = grep { exists $self->{route}{$path}{$_} } @{ $args{method} };
     $self->_croak( "Attempting to set duplicate handler for [@dupe] "
@@ -754,6 +756,12 @@ sub run {
     $self = $Inst unless ref $self;
 
     $self->{route_re} ||= $self->_make_route_re;
+
+    # Add implicit HEAD for all GETs via shallow copy
+    foreach my $node (values %{ $self->{route} }) {
+        $node->{GET} or next;
+        $node->{HEAD} ||= { %{ $node->{GET} }, my_method => 'HEAD' };
+    };
 
     # initialize stuff if first run
     # TODO don't allow modification after lock
