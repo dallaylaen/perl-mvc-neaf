@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1503;
+our $VERSION = 0.1504;
 
 =head1 NAME
 
@@ -765,6 +765,7 @@ sub run {
 
     # initialize stuff if first run
     # TODO don't allow modification after lock
+    # Please bear in mind that $_[0] in callbacks is ALWAYS the Request object
     if (!$self->{lock}) {
         if (my $engine = $self->{session_handler}) {
             $self->add_hook( pre_route => sub {
@@ -772,8 +773,7 @@ sub run {
             }, prepend => 1 );
             if (my $key = $self->{session_view_as}) {
                 $self->add_hook( pre_render => sub {
-                    my $sess = $_[0]->session(1);
-                    $sess and $_[0]->reply->{$key} = $sess;
+                    $_[0]->reply->{$key} = $_[0]->load_session;
                 }, prepend => 1 );
             };
         };

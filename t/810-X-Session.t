@@ -45,7 +45,8 @@ is_deeply (\@My::Session::call
         [ save => 137, { foo => 42 } ],
         # and default delete worked & didn't die
     ]
-    , "Sequence as expected");
+    , "Sequence as expected")
+        or diag explain \@My::Session::call;
 
 note explain $req->format_cookies;
 like( $req->format_cookies->[0], qr/cook=;/, "Deleted cookie appears" );

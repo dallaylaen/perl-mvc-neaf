@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1501;
+our $VERSION = 0.1502;
 
 =head1 NAME
 
@@ -897,44 +897,47 @@ sub dump {
 
 =head1 SESSION MANAGEMENT
 
-=head2 session([ $noinit ])
+=head2 session()
 
 Get reference to session data.
 This reference is guaranteed to be the same throughtout the request lifetime.
 
 If MVC::Neaf->set_session_handler() was called during application setup,
 this data will be initialized by that handler;
-otherwise initializes with an empty hash.
+otherwise initializes with an empty hash (or whatever session engine generates).
 
-If noinit is set to true value, don't try to initialize a new session.
+If session engine was not provided, dies instead.
 
-B<NOTE> noinit flag is a horribe idea. It was added so that
-session can be queried but NOT initialized from scratch
-when C<view_as> was given to set_session_handler().
-
-B<NOTE> currently session-related methods don't die if session handler
-wasn't set. Instead, they behave as if session wasn't there.
-This MAY change in the future.
-
-B<NOTE> The underlying API was changed in 0.12 (see L<MVC::Neaf::X::Session>).
-The fallback & warn code will stay until 0.15, after that older
-session implementations MUST be rewritten.
+See L<MVC::Neaf::X::Session> for details about session engine internal API.
 
 =cut
 
-my %known_session_keys = ( data => 1, id => 1, expire => 1 ); # TODO Remove 0.15
-
 sub session {
-    my ($self, $noinit) = @_;
+    my $self = shift;
 
-    # agressive caching FTW
+    if (my $sess = $self->load_session) {
+        return $sess;
+    };
+
+    return $self->{session} = $self->{session_engine}->create_session;
+};
+
+=head2 load_session
+
+Like above, but don't create session - just fetch from cookies & storage.
+
+Never tries to load anything if session already loaded or created.
+
+=cut
+
+sub load_session {
+    my $self = shift;
+
+    # aggressive caching FTW
     return $self->{session} if exists $self->{session};
 
-    if (!$self->{session_engine}) {
-        # TODO should we just die here?
-        $self->{session} = {} unless $noinit;
-        return $self->{session};
-    };
+    $self->_croak("No session engine found, use Request->stash() for per-request data")
+        unless $self->{session_engine};
 
     # Try loading session...
     my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
@@ -947,9 +950,6 @@ sub session {
         $self->set_cookie(
             $self->{session_cookie} => $hash->{id}, expire => $hash->{expire} )
                 if $hash->{id};
-    } elsif ( !$noinit ) {
-        # Not loaded - init
-        $self->{session} = $self->{session_engine}->create_session
     };
 
     return $self->{session};
