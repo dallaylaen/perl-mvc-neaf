@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session::Base;
 
 use strict;
 use warnings;
-our $VERSION = 0.1501;
+our $VERSION = 0.1502;
 
 =head1 DESCRIPTION
 
@@ -73,6 +73,9 @@ sub save_session {
 
     my $hash = $self->store( $id, $str, $obj );
 
+    $self->my_croak("Failed to save session (unknown reason)")
+        unless (ref $hash eq 'HASH');
+
     $hash->{id} ||= $id;
     $hash->{expire} ||= $self->get_expire;
 
@@ -92,9 +95,15 @@ sub load_session {
     my ($self, $id) = @_;
 
     my $hash = $self->fetch( $id );
-    return unless ref $hash eq 'HASH' and $hash->{data};
+    return unless ref $hash eq 'HASH' and ($hash->{data} or $hash->{override});
 
-    $hash->{data} = $self->decode( $hash->{data} );
+    # extract real data and apply overrides if any
+    $hash->{data} = $hash->{data} ? $self->decode( $hash->{data} ) : {};
+    if ($hash->{override}) {
+        $hash->{data}{$_} = $hash->{override}{$_}
+            for keys %{ $hash->{override} };
+    };
+
     return unless $hash->{data};
 
     # expired = return empty & cleanup
@@ -136,20 +145,9 @@ Tell if session expiring by $time needs to be renewed.
 sub need_renewal {
     my ($self, $time) = @_;
 
-    my $ttl = $self->session_renewal_ttl;
+    my $ttl = $self->{session_renewal_ttl};
 
     return ($time && $ttl) ? ($time < time + $ttl) : ('');
-};
-
-=head2 session_renewal_ttl
-
-Renewal ttl.
-
-=cut
-
-sub session_renewal_ttl {
-    my $self = shift;
-    return $self->{renewal_ttl};
 };
 
 =head2 encode
@@ -192,7 +190,21 @@ sub fetch {
 =head2 store( $id, $stringified_data, $data_as_is)
 
 Stub, to be redefined by real storage access method.
-Return is expected as { id => some_id, expire => unix_time }.
+
+Must return false value or a hash with following fields (all optional):
+
+=over
+
+=item * id - indicates that id has changed and/or client session needs update;
+
+=item * expire - indicates that expiration date has changed and/or needs update;
+
+=item * data - stringified session data;
+
+=item * override - hash with individual fields that would override
+decoded content.
+
+=back
 
 =cut
 
