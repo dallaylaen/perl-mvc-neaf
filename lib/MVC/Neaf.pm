@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.16;
+our $VERSION = 0.1502;
 
 =head1 NAME
 
@@ -227,6 +227,9 @@ This will be displayed if application called with --list (see L<MVC::Neaf::CLI>)
 
 =back
 
+Also, any number of dash-prefixed keys MAY be present.
+This is totally the same as putting them into C<default> hash.
+
 =cut
 
 my $year = 365 * 24 * 60 * 60;
@@ -247,6 +250,10 @@ sub route {
         if @_ % 2;
     my (%args) = @_;
     $self = $Inst unless ref $self;
+
+    # minus-prefixed keys are typically defaults
+    $_ =~ /^-/ and $args{default}{$_} = delete $args{$_}
+        for keys %args;
 
     # kill extra args
     my @extra = grep { !$known_route_args{$_} } keys %args;
