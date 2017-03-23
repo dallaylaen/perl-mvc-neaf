@@ -1,48 +1,35 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.10    0.20    MOD Cookie-based encrypted session
+0.07    0.20    REF session( noinit = 1 ) is WRONG, repl w/has_session or smth
+0.15    0.20    API get+post '/uri'
+0.14    0.20    BUG GET=GET+HEAD, unless HEAD specified explicitly
+0.14    0.20    API Add param regex to route defn
+0.14    0.20    API Add -template, -type default shortcuts to route defn
 
 -- backlog --
-0.14    0.20    API Add param regex to route defn
-0.14    0.20    API Add forms to route defn (how? named? array?)
-0.14    0.20    API Add -template, -type default shortcuts to route defn
-0.14    0.20    API GET=GET+HEAD, unless HEAD specified explicitly
-0.14    0.20    NET Generate schema from app conf (@cono)
-0.14    0.20    API Add forms to route/hook defs (how?)
-0.14    0.20    API get_routes w/callback
+0.02    0.20    DOC HOWTO add dumper to TT view (pre-render)
+0.10    0.20    DOC HOWTO SQL transactions via pre-logic/pre-content hooks
+0.15    0.20    API Make fun sugar main API, OO as backup
 0.13    0.20    MOD static: X-Accel-Redirect (@cono)
-0.12    0.20    MOD static file_regex, dir_regex
-0.09    0.20    MOD Add predefined regexps to default FORM impl
-0.10    0.20    API International - how???
+0.12    0.20    MOD static file_regex, dir_regex, directory indexes if requested
 0.09    0.20    MOD Add form defaults populating BOTH raw and data
-0.09    0.20    MOD Form->hmac(salt)
-0.13    0.30    NET Add FastCGI support
-0.13    0.30    TPL Add XSLate support
-0.08    0.30    API Add Req alias methods for -dashed -return -keys
-0.02    0.30    DEV Add dumper to TT view
+0.09    0.30    MOD Add predefined regexps to default FORM impl
+0.14    0.30    DEV iterate through get_routes w/callback
 0.08    0.30    API Req->reply to return immediately
-0.06    0.20    API Apply defaults to error tpl also
-0.06    0.30    NET HMAC
-0.10    0.30    API Request->begin, Request->commit to hook transation callb
-0.09    0.90    MOD Static can show dir
-0.01    0.90    DEV REPL - MVC::Neaf::Cli? with term session etc
-0.06    0.90    DOC Add plugin guidelines
-0.06    0.90    TPL TT View - somehow denote application root for links/forms
-0.03    0.90    REF Split core into route_request and process_reply
+0.08    0.30    API Add Req alias methods for -dashed -return -keys
+0.07    0.30    MOD Add "cleanup" method to X::Session - for offline cleanups
+0.13    0.90    NET Add FastCGI support
+0.13    0.90    TPL Add XSLate support
 0.04    0.90    REF Req https detection: change to is_secure? http:https.
-0.07    0.90    API Phase callbacks as in Apache (cleanup, pre-view, etc)
+0.06    0.90    NET POST/PUT request HMAC via HTTP header
 0.07    0.90    API Periodic actions in webapp
-0.07    0.20    MOD Add "cleanup" method to X::Session - for offline cleanups
-0.02    0.99    TPL Add TT caching - TT can by default
+0.04    0.90    DEV CGI wrapper: use wrapper; route(/) {...}; run();
+0.01    0.99    DEV REPL - term::readline + neaf->run_test
 
 -- think --
-0.05    0.20    ??? soft_root - will serve given route as root, if free
-0.01    0.20    ??? Route-based defaults - do we even need it??
-0.05    0.20    ??? Warn about unexpected -dash -keys in return?
-0.07    0.30    REF session( noinit = 1 ) is WRONG, think better
-0.02    0.90    API Allow app nesting/isolation
-0.01    0.99    MOD Caching: LIVR form( key present, nocache missing) => sub{}
-0.04    0.99    MOD CGI wrapper: use wrapper; route(/) {...}; run();
-0.07    0.99    AUX Add Install.PL for in-place installation (do we need it?)
+0.14    0.30    API Add forms to route defn (how? named? array?)
+0.14    0.90    NET Generate schema from app conf (@cono)
+0.05    0.90    API Add ability to deploy existing app under unoccupied path
+0.06    0.90    TPL TT View - prepend configurable path to ALL links (mason)
 
