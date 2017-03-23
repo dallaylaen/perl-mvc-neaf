@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session::SQL;
 
 use strict;
 use warnings;
-our $VERSION = 0.1501;
+our $VERSION = 0.1502;
 
 =head1 NAME
 
@@ -21,8 +21,9 @@ having additional session storage (e.g. key-value) would be an overkill.
         dbh           => $my_db_conn,
         table         => 'session',
         id_as         => 'session_name',
-        index_by      => [ 'user_id', ... ], # optional
         content_as    => 'json_data',        # optional but recommended
+        expire_as     => 'expires',          # optional, unix timestamp
+        index_by      => [ 'user_id', ... ], # optional
     );
 
 =head1 METHODS
@@ -51,10 +52,11 @@ sub new {
     my $raw     = $opt{content_as};
 
     my @all_fields;
-    push @all_fields, $opt{content_as} if defined $opt{content_as};
+    push @all_fields, $opt{content_as}    if defined $opt{content_as};
     push @all_fields, @{ $opt{index_by} } if $opt{index_by};
     $class->my_croak( "At least one of index_by or content_as MUST be present" )
         unless @all_fields;
+    push @all_fields, $opt{expire_as}     if defined $opt{expire_as};
 
     # OUCH ORM by hand...
     # We update BEFORE inserting just in case someone forgot unique key
@@ -101,8 +103,10 @@ sub store {
     my ($self, $id, $str, $hash) = @_;
 
     # ONLY want raw data as a parameter if we know WHERE to store it!
-    my @param = $self->{content_as} ? ($str) : ();
-    push @param, map { $hash->{$_} } @{ $self->{index_by} };
+    my @param;
+    push @param, $str                      if $self->{content_as};
+    push @param, $hash->{$_}               for @{ $self->{index_by} };
+    push @param, scalar $self->get_expire  if $self->{expire_as};
 
     my $sth_upd = $self->{dbh}->prepare_cached( $self->{sql_upd} );
     $sth_upd->execute( @param, $id );
@@ -145,11 +149,13 @@ sub fetch {
 
     return unless $override;
 
-    my $raw = $self->{content_as} ? delete $override->{ $self->{content_as} } : undef;
+    my $raw    = delete $override->{ $self->{content_as} || '' };
+    my $expire = delete $override->{ $self->{expire_as}  || '' };
 
     return {
-        data => $raw,
+        data     => $raw,
         override => $override,
+        expire   => $expire,
     };
 };
 
