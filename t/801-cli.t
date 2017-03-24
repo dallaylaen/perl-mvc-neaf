@@ -5,17 +5,13 @@ use warnings;
 use Test::More;
 
 use MVC::Neaf;
-# MVC::Neaf::CLI monkey-patches MVC::Neaf which in turn affects other
-# tests when run under cover -t.
-# So localize the change...
-
-{
-local *MVC::Neaf::run = MVC::Neaf->can("run");
-
 use MVC::Neaf::CLI;
 
-MVC::Neaf->route( foo => sub { +{}} );
-MVC::Neaf->route( bar => sub { +{}} );
+my $app = MVC::Neaf->new;
+
+$app->route( foo => sub { +{}} );
+$app->route( bar => sub { +{}} );
+MVC::Neaf->route( noexist => sub { +{} } );
 
 my $data;
 {
@@ -23,9 +19,10 @@ my $data;
     open (STDOUT, ">", \$data) or die "Failed to redirect STDOUT";
     local @ARGV = qw(--list);
 
-    MVC::Neaf->run;
+    $app->run;
 };
 like ($data, qr(^/bar.*GET.*\n/foo.*GET.*\n$)s, "--list works");
+unlike $data, qr(noexist), "No mentions of parallel reality routes";
 note $data;
 
 {
@@ -33,11 +30,9 @@ note $data;
     open (STDOUT, ">", \$data) or die "Failed to redirect STDOUT";
     local @ARGV = qw(--view JS /foo);
 
-    MVC::Neaf->run;
+    $app->run;
 };
 like ($data, qr/\n\n\{\}$/s, "force view worked");
-
-};
-# end localize
+note $data;
 
 done_testing;
