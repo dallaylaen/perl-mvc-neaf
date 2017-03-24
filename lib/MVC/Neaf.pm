@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1504;
+our $VERSION = 0.1505;
 
 =head1 NAME
 
@@ -804,12 +804,11 @@ sub run {
         };
     } else {
         # void context - CGI called.
-        require MVC::Neaf::Request::CGI;
-
         if (@ARGV) {
             require MVC::Neaf::CLI;
-            MVC::Neaf::CLI->run;
+            MVC::Neaf::CLI->run($self);
         } else {;
+            require MVC::Neaf::Request::CGI;
             my $req = MVC::Neaf::Request::CGI->new;
             $self->handle_request( $req );
         };

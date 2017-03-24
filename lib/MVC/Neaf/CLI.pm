@@ -2,7 +2,7 @@ package MVC::Neaf::CLI;
 
 use strict;
 use warnings;
-our $VERSION = 0.15;
+our $VERSION = 0.1501;
 
 =head1 NAME
 
@@ -55,21 +55,22 @@ use Carp;
 use HTTP::Headers;
 use File::Basename qw(basename);
 
-use MVC::Neaf;
 use MVC::Neaf::Request::CGI;
 use MVC::Neaf::Upload;
 
-=head2 run()
+=head2 run( $app )
 
 Run the application.
 This reads command line options, as shown in the summary above.
+
+$app is an MVC::Neaf object.
 
 B<NOTE> Spoils @AGRV.
 
 =cut
 
 sub run {
-    my $self = shift;
+    my ($self, $app) = @_;
 
     my $todo = "run";
     my %opt;
@@ -96,7 +97,7 @@ sub run {
         if @upload and $opt{method} ne 'POST';
 
     if ($todo eq 'list') {
-        return $self->list;
+        return $self->list( $app );
     };
 
     foreach (@upload) {
@@ -133,9 +134,9 @@ sub run {
     };
 
     # Run the application
-    MVC::Neaf->set_forced_view( $view ) if $view;
-    my $unused = MVC::Neaf->run(); # warm up caches
-    MVC::Neaf->handle_request( $req );
+    $app->set_forced_view( $view ) if $view;
+    my $unused = $app->run(); # warm up caches
+    $app->handle_request( $req );
 };
 
 =head2 usage()
@@ -178,9 +179,9 @@ List registered Neaf routes.
 =cut
 
 sub list {
-    my ($self, $req) = @_;
+    my ($self, $app) = @_;
 
-    my $routes = MVC::Neaf->get_routes;
+    my $routes = $app->get_routes;
 
     foreach my $path( sort keys %$routes ) {
         my $batch = $routes->{$path};
