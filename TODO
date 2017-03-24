@@ -1,19 +1,16 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.07    0.20    REF session( noinit = 1 ) is WRONG, repl w/has_session or smth
 0.15    0.20    API get+post '/uri'
-0.14    0.20    BUG GET=GET+HEAD, unless HEAD specified explicitly
-0.14    0.20    API Add param regex to route defn
-0.14    0.20    API Add -template, -type default shortcuts to route defn
-
--- backlog --
 0.02    0.20    DOC HOWTO add dumper to TT view (pre-render)
 0.10    0.20    DOC HOWTO SQL transactions via pre-logic/pre-content hooks
-0.15    0.20    API Make fun sugar main API, OO as backup
-0.13    0.20    MOD static: X-Accel-Redirect (@cono)
+0.15    0.20    DOC Make fun sugar main API, OO as backup
+
+-- backlog --
 0.12    0.20    MOD static file_regex, dir_regex, directory indexes if requested
 0.09    0.20    MOD Add form defaults populating BOTH raw and data
+0.14    0.20    API Add param regex to route defn
+0.13    0.30    MOD static: X-Accel-Redirect (@cono)
 0.09    0.30    MOD Add predefined regexps to default FORM impl
 0.14    0.30    DEV iterate through get_routes w/callback
 0.08    0.30    API Req->reply to return immediately
