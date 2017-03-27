@@ -2,7 +2,7 @@ package MVC::Neaf::Request::CGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.16;
+our $VERSION = 0.1601;
 
 =head1 NAME
 
@@ -24,7 +24,7 @@ use Carp;
 use Encode;
 use HTTP::Headers;
 
-use base qw(MVC::Neaf::Request);
+use parent qw(MVC::Neaf::Request);
 
 my $cgi;
 foreach (qw(CGI)) {
