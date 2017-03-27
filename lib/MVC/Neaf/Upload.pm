@@ -14,7 +14,7 @@ L<MVC::Neaf::Request> object.
 
 =cut
 
-our $VERSION = 0.15;
+our $VERSION = 0.16;
 use Carp;
 
 =head2 new(%options)

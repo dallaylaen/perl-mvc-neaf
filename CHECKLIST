@@ -18,8 +18,6 @@
 % grep nocommit MANIFEST
 - must be empty
 
-% make disttest
-
 # smoke-test
 % ./apache.cgi start
 - http://localhost:8001/request/parser
@@ -70,3 +68,4 @@ MAJOR
 - upload to CPAN
 
 # ALL FOLKS
+

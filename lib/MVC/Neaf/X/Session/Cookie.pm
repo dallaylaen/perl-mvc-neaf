@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session::Cookie;
 
 use strict;
 use warnings;
-our $VERSION = 0.1504;
+our $VERSION = 0.16;
 
 =head1 NAME
 

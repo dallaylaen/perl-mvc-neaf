@@ -1,7 +1,15 @@
 Revision history for MVC-Neaf
 
-0.15    Wed Mar 22 2017
+0.16    Mon Mar 27 2017
+        - API Add implicit HEAD handler whenever GET is defined
+        - API MINOR Add dash-prefixed defaults to route()
+        - MOD Add cookie-based session backend (X::Session::Cookie)
+        - MOD Add SQL-based session backend (X::Session::SQL)
+        - MOD Add session backend DIY class (X::Session::Base)
+        - BUG Make Neaf::CLI work with given Neaf object and not global one
+        - DEV Add some crude options to run_test()
 
+0.15    Wed Mar 22 2017
         - API BREAK Kill session deprecated warning
         - BUG Allow utf8 path-info
         - MOD Add form->as_url, form->sign to form data object

@@ -75,7 +75,7 @@ No need for separate web server to test your CSS/images.
 
 * Delayed and/or unspecified length replies supported;
 
-* Cookie-based sessions supported out of the box.
+* Sessions supported out of the box with cookie-based and SQL-based backends.
 
 * Form validation with resubmission ability.
 [Validator::LIVR](https://metacpan.org/pod/Validator::LIVR)

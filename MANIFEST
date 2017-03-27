@@ -21,6 +21,7 @@ example/28-hook-perf.pl.tt
 example/51-wiki.pl
 example/all-of-them.psgi
 example/README
+file
 it/plackup.t
 it/README
 lib/MVC/Neaf.pm
@@ -44,7 +45,10 @@ lib/MVC/Neaf/X/Form/Data.pm
 lib/MVC/Neaf/X/Form/LIVR.pm
 lib/MVC/Neaf/X/ServerStat.pm
 lib/MVC/Neaf/X/Session.pm
+lib/MVC/Neaf/X/Session/Base.pm
+lib/MVC/Neaf/X/Session/Cookie.pm
 lib/MVC/Neaf/X/Session/File.pm
+lib/MVC/Neaf/X/Session/SQL.pm
 Makefile.PL
 MANIFEST			This list of files
 MANIFEST.SKIP
@@ -90,6 +94,9 @@ t/805-X-ServerStat-integration.t
 t/810-X-Session.t
 t/811-X-Session-random.t
 t/812-X-Session-File.t
+t/813-X-Session-Base.t
+t/814-X-Session-Cookie.t
+t/815-X-Session-SQL.t
 t/901-0.16-path_info.t
 t/903-Request-get-form-as.t
 t/README
