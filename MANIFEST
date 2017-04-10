@@ -21,7 +21,6 @@ example/28-hook-perf.pl.tt
 example/51-wiki.pl
 example/all-of-them.psgi
 example/README
-file
 it/plackup.t
 it/README
 lib/MVC/Neaf.pm
