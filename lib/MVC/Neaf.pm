@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.16;
+our $VERSION = 0.1601;
 
 =head1 NAME
 
@@ -970,7 +970,7 @@ sub neaf(@) { ## no critic # DSL
     return MVC::Neaf->$method( @args );
 };
 
-=head1 EXPERIMENTAL HOOKS
+=head1 HOOKS
 
 Hooks are subroutines executed during various phases of request processing.
 Each hook is characterized by phase, code to be executed, path, and method.
@@ -978,17 +978,10 @@ Multiple hooks MAY be added for the same phase/path/method combination.
 ALL hooks matching a given route will be executed, either short to long or
 long to short (aka "event bubbling"), depending on the phase.
 
-B<CAUTION> Avoid hooks if possible.
-Hook handling code is the most convoluted, complex part of the Neaf CORE.
-
-Use normal subroutine calls,
-even if copied-and-pasted across multiple controllers.
-Use guard objects if you want automatic resource deallocation.
-Subclass L<MVC::Neaf::View> and/or its children if you want to add an action
-around content rendering.
-
-Only use hooks when other options are exhausted,
-or there's a clear, straightforward use case.
+B<CAUTION> Don't overuse hooks.
+This may lead to a convoluted, hard to follow application.
+Use hooks for repeated auxiliary tasks such as checking permissions or writing
+down statistics, NOT for primary application logic.
 
 =head2 add_hook ( phase => CODEREF, %options )
 
@@ -1024,14 +1017,42 @@ Multiple locations may be supplied via C<[ /foo, /bar ...]>
 =item * method => 'METHOD' || [ list ]
 List of request HTTP methods to which given hook applies.
 
-=item * prepend => 0|1 - if true, move hook execution to earlier stage.
-Note that this does NOT override path precedence.
+=item * prepend => 0|1 - all other parameters being equal,
+hooks will be executed in order of adding.
+This option allows to override this and run given hook first.
+Note that this does NOT override path bubbling order.
 
 =back
 
 =head2 HOOK PHASES
 
 This list of phases MAY change in the future.
+Current request processing diagram looks as follows:
+
+   [*] request created
+    . <- pre_route [no path] [can die]
+    |
+    * route - select handler
+    |
+    . <- pre_logic [can die]
+   [*] execute main handler
+    * apply path-based defaults - reply() is populated now
+    |
+    . <- pre_content
+    ? checking whether content already generated
+    |\
+    | . <- pre_render [can die - template error produced]
+    | [*] render - -content is present now
+    |/
+    * generate default headers (content type & length, cookies, etc)
+    . <- pre_reply [path traversal long to short]
+    |
+   [*] headers sent out, no way back!
+    * output the rest of reply (if -continue specified)
+    * execute postponed actions (if any)
+    |
+    . <- pre_cleanup [path traversal long to short] [no effect on headers]
+   [*] request destroyed
 
 =head3 pre_route
 
@@ -1041,7 +1062,7 @@ resolved and handler found.
 Dying in this phase stops both further hook processing and controller execution.
 Instead, the corresponding error handler is executed right away.
 
-Setting C<path> and C<exclude> is not available on this stage.
+Options C<path> and C<exclude> are not available on this stage.
 
 May be useful for mangling path.
 Use C<$request-E<gt>set_full_path($new_path)> if you need to.
@@ -1339,7 +1360,7 @@ sub handle_request {
 
     if ($data) {
         # post-process data - fill in request(RD) & global(GD) defaults.
-        # TODO fill in per-location defaults, too - but do we need them?
+        # TODO kill request defaults in v.0.20
         my $RD = $req->get_default;
         my $GD = $route->{default};
         exists $data->{$_} or $data->{$_} = $RD->{$_} for keys %$RD;
@@ -1374,6 +1395,7 @@ sub handle_request {
         };
         if (!defined $$content) {
             # TODO $req->clear; - but don't kill cleanup hooks
+            # FIXME bug here - resetting data does NOT affect the inside of req
             $self->_log_error( view => $@ );
             $data = {
                 -status => 500,
