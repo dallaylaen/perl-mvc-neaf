@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1601;
+our $VERSION = 0.1602;
 
 =head1 NAME
 
@@ -162,9 +162,9 @@ use Encode;
 use URI::Escape;
 use parent qw(Exporter);
 
-our @EXPORT_OK = qw(neaf_err neaf get post);
+our @EXPORT_OK = qw( neaf_err neaf get post head put );
 our %EXPORT_TAGS = (
-    sugar => [qw[neaf get post]],
+    sugar => [qw[ neaf get post head put ]],
 );
 
 use MVC::Neaf::Util qw(http_date canonize_path path_prefixes run_all run_all_nodie);
@@ -320,8 +320,30 @@ sub route {
     $self->{route}{ $path }{$_} = { %profile, my_method => $_ }
         for @{ $args{method} };
 
+    # This is for get+post sugar
+    $self->{last_added} = \%profile;
+
     return $self;
 }; # end sub route
+
+# This is for get+post sugar
+# TODO merge with alias, GET => implicit HEAD
+sub _dup_route {
+    my ($self, $method, $profile) = @_;
+
+    $profile ||= $self->{last_added};
+    my $path = $profile->{path};
+
+    $self->_croak( "Attempting to set duplicate handler for [$method] "
+        .($path || '/'))
+            if $self->{route}{ $path }{$method};
+
+    $self->{route}{ $path }{$method}
+        and $self->_croak("Attempting to set duplicate ");
+
+    delete $self->{route_re};
+    $self->{route}{ $path }{$method} = { %$profile, my_method => $method };
+};
 
 =head2 alias( $newpath => $oldpath )
 
@@ -881,25 +903,44 @@ It is not stable yet, so be careful when upgrading Neaf.
 Create a route with C<GET/HEAD> methods enabled.
 The %options are the same as those of C<route()> method.
 
-=cut
+=head2 head '/path' => CODE, %options;
 
-sub get(@) { ## no critic # DSL
-    my ($path, $handler, @args) = @_;
-
-    return MVC::Neaf->route( $path, $handler, method => [ 'GET', 'HEAD' ], @args );
-};
+Create a route with C<HEAD> method enabled.
+The %options are the same as those of C<route()> method.
 
 =head2 post '/path' => CODE, %options;
 
 Create a route with C<POST> method enabled.
 The %options are the same as those of C<route()> method.
 
+=head2 put '/path' => CODE, %options;
+
+Create a route with C<PUT> method enabled.
+The %options are the same as those of C<route()> method.
+
+=head2 get + post '/path' => CODE, %options;
+
+B<EXPERIMENTAL>. Set multiple methods in one go.
+
 =cut
 
-sub post(@) { ## no critic # DSL
-    my ($path, $handler, @args) = @_;
+foreach (qw(get head post put)) {
+    my $method = uc $_;
 
-    return MVC::Neaf->route( $path, $handler, method => [ 'POST' ], @args );
+    my $code = sub(@) { ## no critic
+        # get + post sugar
+        if (@_ == 1 and UNIVERSAL::isa( $_[0], __PACKAGE__ )) {
+            return $_[0]->_dup_route( $method );
+        };
+
+        # normal operation
+        my ($path, $handler, @args) = @_;
+
+        return $Inst->route( $path, $handler, @args, method => $method );
+    };
+
+    no strict 'refs'; ## no critic
+    *{$_} = $code;
 };
 
 =head2 neaf->...
@@ -1599,6 +1640,8 @@ Continuation responses are supported.
 
 =over
 
+=item * method - set method (default is GET)
+
 =item * override = \%hash - force certain data in ENV
 
 =back
@@ -1621,6 +1664,7 @@ sub run_test {
         }
     };
     # TODO more civilized stuff like cookies, headers...
+    $env->{REQUEST_METHOD} = $opt{method} if $opt{method};
     $env->{$_} = $opt{override}{$_} for keys %{ $opt{override} };
 
     my $ret = $self->run->( $env );
