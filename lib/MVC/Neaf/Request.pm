@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.16;
+our $VERSION = 0.1601;
 
 =head1 NAME
 
@@ -544,17 +544,20 @@ sub body {
 =head2 set_default( key => $value, ... )
 
 Set default values for your return hash.
-May be useful inside MVC::Neaf->pre_route.
+May be useful inside C<pre_route> and C<pre_logic> hooks.
 
 Returns self.
 
-B<EXPERIMANTAL>. API and naming subject to change.
+B<DEPRECATED>. Use path-based defaults and/or $request->stash instead.
+This will be removed in v.0.20+.
 
 =cut
 
 sub set_default {
     my ($self, %args) = @_;
 
+    # TODO remove in v.0.20
+    carp "Neaf:set_default() DEPRECATED. Use path-based defaults or stash()";
     foreach (keys %args) {
         defined $args{$_}
             ? $self->{defaults}{$_} = $args{$_}
