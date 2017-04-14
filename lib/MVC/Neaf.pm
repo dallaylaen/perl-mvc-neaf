@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1602;
+our $VERSION = 0.1603;
 
 =head1 NAME
 
@@ -641,18 +641,30 @@ sub set_session_handler {
     my ($self, %opt) = @_;
     $self = $Inst unless ref $self;
 
-    my $sess = $opt{engine};
-    my $cook = $opt{cookie} || 'session';
+    my $sess = delete $opt{engine};
+    my $cook = $opt{cookie} || 'neaf.session';
 
     $self->_croak("engine parameter is required")
         unless $sess;
+
+    if (!ref $sess) {
+        $opt{session_ttl} = delete $opt{ttl} || $opt{session_ttl};
+
+        my $mod = "$sess.pm";
+        $mod =~ s#::#/#g;
+        my $obj = eval { require $mod; $sess->new( %opt ); }
+            or $self->_croak("Failed to load session '$sess': $@");
+
+        $sess = $obj;
+    };
+
     my @missing = grep { !$sess->can($_) }
         qw(get_session_id session_id_regex session_ttl
             create_session load_session save_session delete_session );
     $self->_croak("engine object does not have methods: @missing")
         if @missing;
 
-    my $regex = $sess->session_id_regex || qr(^$);
+    my $regex = $sess->session_id_regex;
     my $ttl   = $opt{ttl} || $sess->session_ttl || 0;
 
     $self->{session_handler} = [ $sess, $cook, $regex, $ttl ];
@@ -1002,6 +1014,10 @@ sub neaf(@) { ## no critic # DSL
     if ($hook_phases{$action}) {
         unshift @args, $action;
         $action = 'hook';
+    };
+
+    if ($action eq 'session') {
+        unshift @args, 'engine';
     };
 
     my $method = $method_shortcut{$action};
@@ -1632,6 +1648,8 @@ sub _log_error {
 Run a PSGI request and return a list of
 C<($status, HTTP::Headers, $whole_content )>.
 
+Returns just the content in scalar context.
+
 Just as the name suggests, useful for testing only (it reduces boilerplate).
 
 Continuation responses are supported.
@@ -1643,6 +1661,8 @@ Continuation responses are supported.
 =item * method - set method (default is GET)
 
 =item * override = \%hash - force certain data in ENV
+
+=item * cookie = \%hash - force HTTP_COOKIE header
 
 =back
 
@@ -1666,6 +1686,13 @@ sub run_test {
     # TODO more civilized stuff like cookies, headers...
     $env->{REQUEST_METHOD} = $opt{method} if $opt{method};
     $env->{$_} = $opt{override}{$_} for keys %{ $opt{override} };
+
+    if (my $cook = $opt{cookie}) {
+        # TODO hash processing
+        $env->{HTTP_COOKIE} = $env->{HTTP_COOKIE}
+            ? "$env->{HTTP_COOKIE}, $cook"
+            : $cook;
+    };
 
     my $ret = $self->run->( $env );
     if (ref $ret eq 'CODE') {
