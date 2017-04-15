@@ -1,18 +1,17 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.02    0.20    DOC HOWTO add dumper to TT view (pre-render)
-0.15    0.20    DOC Make fun sugar main API, OO as backup
-0.16    0.20    TPL JS seems to break unicode, figure out
-0.16    0.20    TPL view default directory layout (./tpl or smth)
-0.16    0.20    MOD session can auto-load
+0.16    0.20    API req->my_url( override => ... );
+0.16    0.20    API make path_info_regex mandatory, 404 if not there
 
 -- backlog --
-0.16    0.20    API req->my_url( override => ... );
-0.10    0.20    DOC HOWTO SQL transactions via pre-logic/pre-content hooks
 0.12    0.20    MOD static file_regex, dir_regex, directory indexes if requested
 0.09    0.20    MOD Add form defaults populating BOTH raw and data
 0.14    0.20    API Add param regex to route defn
+0.16    0.20    TPL view default directory layout (./tpl or smth)
+0.02    0.20    DOC HOWTO add dumper to TT view (pre-render)
+0.10    0.30    DOC HOWTO SQL transactions via pre-logic/pre-content hooks
+0.15    0.30    DOC Make fun sugar main API, OO as backup
 0.16    0.30    MOD rewrite performance stats
 0.16    0.30    API Param strict mode - die 422 if bad params
 0.13    0.30    MOD static: X-Accel-Redirect (@cono)
