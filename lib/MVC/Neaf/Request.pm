@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1602;
+our $VERSION = 0.1603;
 
 =head1 NAME
 
@@ -212,6 +212,67 @@ sub script_name {
         unless exists $self->{script_name};
 
     return $self->{script_name};
+};
+
+=head2 get_url_base()
+
+Get scheme, server, and port of the application.
+
+B<EXPERIMENTAL> Name and meaning subject to change.
+
+=head2 get_url_rel( %override )
+
+Produce a relative link to the page being served,
+possibly overriding some parameters.
+
+Parameter order is NOT preserved. If parameter is empty or undef,
+it is skipped.
+
+B<CAUTION> Multi-values are ignored, this MAY change in the future.
+
+B<CAUTION> For a POST request, normal parameters are used instead of URL
+parameters (see C<url_param>). This MAY change in the future.
+
+B<EXPERIMENTAL> Name and meaning subject to change.
+
+=head2 get_url_full( %override )
+
+Same as above, but prefixed with schema, server name, and port.
+
+B<EXPERIMENTAL> Name and meaning subject to change.
+
+=cut
+
+sub get_url_rel {
+    my ($self, %override) = @_;
+
+    my %h = (%{ $self->_all_params }, %override );
+
+    return $self->path . '?' . join '&'
+        , map { uri_escape_utf8($_) . "=" .uri_escape_utf8($h{$_}) }
+        grep { defined $h{$_} && length $h{$_} }
+        sort keys %h;
+};
+
+my %port_scheme = (
+    http => 80,
+    https => 443,
+);
+
+sub get_url_base {
+    my $self = shift;
+
+    # skip well-known ports
+    my $port = ($self->port == ($port_scheme{ $self->scheme } || 0))
+        ? ''
+        : ':'.$self->port;
+
+    return join "", $self->scheme, "://", $self->hostname, $port;
+};
+
+sub get_url_full {
+    my $self = shift;
+    return $self->get_url_base . $self->get_url_rel(@_);
 };
 
 =head2 path_info()
@@ -1146,12 +1207,18 @@ sub _set_reply {
 
 =head2 stash()
 
+=head2 stash( "name" )
+
+=head2 stash( %save_data )
+
 A hashref that is guaranteed to persist throughout the request lifetime.
 
 This may be useful to maintain shared data accross hooks and callbacks.
 
 Use C<session> if you intend to share data between requests.
+
 Use C<reply> if you intend to render the data for the user.
+
 Use C<stash> as a last resort for temporary, private data.
 
 Stash is not killed by C<clear()> function so that cleanup isn't
@@ -1165,7 +1232,14 @@ too cumbersome.
 sub stash {
     my $self = shift;
     my $st = $self->{stash} ||= {};
-    return $st;
+    return $st unless @_;
+
+    return $st->{ $_[0] } unless @_>1;
+
+    $self->_croak("Odd number of elements in hash assignment") if @_ % 2;
+    my %new = @_;
+    $st->{$_} = $new{$_} for keys %new;
+    return $self;
 };
 
 =head2 postpone( CODEREF->(req) )
