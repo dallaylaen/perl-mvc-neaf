@@ -14,7 +14,7 @@ L<MVC::Neaf::Request> object.
 
 =cut
 
-our $VERSION = 0.16;
+our $VERSION = 0.1601;
 use Carp;
 
 =head2 new(%options)
@@ -25,7 +25,7 @@ use Carp;
 
 =item * id (required) - the form id by which upload is known.
 
-=item * tempfile - filfe where upload is stored.
+=item * tempfile - file where upload is stored.
 
 =item * handle - file handle opened for readin. One of these is required.
 

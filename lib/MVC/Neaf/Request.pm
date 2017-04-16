@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1601;
+our $VERSION = 0.1602;
 
 =head1 NAME
 
@@ -582,6 +582,29 @@ sub get_default {
 };
 
 =head2 upload( "name" )
+
+Returns an L<MVC::Neaf::Upload> object corresponding to an uploaded file,
+if such uploaded file is present.
+
+An upload object has at least C<handle> and C<content> methods to work with
+data:
+
+    my $upload = $req->upload("user_file");
+    if ($upload) {
+        my $untrusted_filename = $upload->filename;
+        my $fd = $upload->handle;
+        while (<$fd>) {
+            ...
+        };
+    }
+
+or just
+
+    if ($upload) {
+        while ($upload->content =~ /(...)/g) {
+            do_something($1);
+        };
+    };
 
 =cut
 
