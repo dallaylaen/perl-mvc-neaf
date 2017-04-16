@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1603;
+our $VERSION = 0.1604;
 
 =head1 NAME
 
@@ -730,6 +730,7 @@ B<DEPRECATED>. Same as above, but issues a warning.
 
 =cut
 
+# TODO kill in v.0.20
 sub error_template {
     my $self = shift;
 
