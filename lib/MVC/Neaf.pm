@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1607;
+our $VERSION = 0.1608;
 
 =head1 NAME
 
@@ -256,6 +256,10 @@ sub route {
     my (%args) = @_;
     $self = $Inst unless ref $self;
 
+    # check defaults to be a hash before accessing them
+    $self->_croak( "default must be unblessed hash" )
+        if $args{default} and ref $args{default} ne 'HASH';
+
     # minus-prefixed keys are typically defaults
     $_ =~ /^-/ and $args{default}{$_} = delete $args{$_}
         for keys %args;
@@ -294,14 +298,12 @@ sub route {
         # preload view so we can fail early
         $view = $self->get_view( $view );
 
-        $profile{view} = ref $args{view} ? $view : $args{view};
+        $args{default}{-view} = ref $args{view} ? $view : $args{view};
     };
 
-    if (my $def = $args{default}) {
-        $self->_croak( "default must be unblessed hash" )
-            unless ref $def eq 'HASH';
-        $profile{todo_default} = $args{default};
-    };
+    # todo_default because some path-based defs will be mixed in later
+    $profile{todo_default} = $args{default}
+        if $args{default};
 
     if ( $args{cache_ttl} ) {
         $self->_croak("cache_ttl must be a number")
