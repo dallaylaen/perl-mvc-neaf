@@ -26,6 +26,7 @@ WriteMakefile(
         'HTTP::Headers'  => 0,
         'JSON'           => 0,
         'MIME::Base64'   => 0,
+        'Module::Load'   => 0,
         'overload'       => 0,
         'parent'         => 0,
         'Plack::Request' => 0,

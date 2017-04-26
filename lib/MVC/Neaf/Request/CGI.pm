@@ -2,7 +2,7 @@ package MVC::Neaf::Request::CGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.1601;
+our $VERSION = 0.1602;
 
 =head1 NAME
 
@@ -25,24 +25,18 @@ use Encode;
 use HTTP::Headers;
 
 use parent qw(MVC::Neaf::Request);
-
-my $cgi;
-foreach (qw(CGI)) {
-    # TODO Make it work with CGI::Minimal
-    eval "require $_; 1" or next; ##no critic
-    $cgi = $_;
-    last;
-};
-$cgi or croak "No suitable CGI module found";
+use CGI;
 
 =head2 new()
+
+This will instantiate a CGI object and attach it to a Neaf request.
 
 =cut
 
 sub new {
     my ($class, %args) = @_;
 
-    $args{driver} ||= $cgi->new;
+    $args{driver} ||= CGI->new;
     $args{fd}     ||= \*STDOUT;
     $args{query_string} ||= $1
         if( ($args{driver}->request_uri || '') =~ m#.*?\?(.+)# );

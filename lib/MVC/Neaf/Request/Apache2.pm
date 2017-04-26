@@ -3,7 +3,7 @@ package MVC::Neaf::Request::Apache2;
 use strict;
 use warnings;
 
-our $VERSION = 0.16;
+our $VERSION = 0.1601;
 
 =head1 NAME
 
@@ -36,9 +36,10 @@ The following apache configuration should work with this module:
 
 =cut
 
+use Carp;
 use URI::Escape;
 use HTTP::Headers;
-use Carp;
+use Module::Load;
 
 my %fail_apache;
 BEGIN {
@@ -51,7 +52,7 @@ BEGIN {
         Apache2::Upload
         Apache2::Const
     )) {
-        eval "require $mod" and next; ## no critic
+        eval { load $mod; 1 } and next;
         # warn "Failed to load $mod: $@";
         $fail_apache{$mod} = $@;
     };

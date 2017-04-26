@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1608;
+our $VERSION = 0.1609;
 
 =head1 NAME
 
@@ -163,6 +163,7 @@ use Carp;
 use Scalar::Util qw(blessed looks_like_number);
 use Encode;
 use URI::Escape;
+use Module::Load;
 use parent qw(Exporter);
 
 our @EXPORT_OK = qw( neaf_err neaf get post head put );
@@ -501,12 +502,8 @@ sub load_view {
 
         # Try loading...
         if (!$obj->can("new")) {
-            my $module = $obj;
-            $module =~ s#::#/#g;
-            $module .= ".pm";
-            require $module;
-            $self->_croak( "Failed to load view $name=>$obj: $@" )
-                if $@;
+            eval { load $obj; 1 }
+                or $self->_croak( "Failed to load view $name=>$obj: $@" );
         };
         $obj = $obj->new( @param );
     };
@@ -634,9 +631,7 @@ sub set_session_handler {
     if (!ref $sess) {
         $opt{session_ttl} = delete $opt{ttl} || $opt{session_ttl};
 
-        my $mod = "$sess.pm";
-        $mod =~ s#::#/#g;
-        my $obj = eval { require $mod; $sess->new( %opt ); }
+        my $obj = eval { load $sess; $sess->new( %opt ); }
             or $self->_croak("Failed to load session '$sess': $@");
 
         $sess = $obj;
