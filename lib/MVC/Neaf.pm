@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1605;
+our $VERSION = 0.1606;
 
 =head1 NAME
 
@@ -1447,7 +1447,7 @@ sub handle_request {
     # produce headers later.
     my $content = \$data->{-content};
     if( !defined $$content) {
-        my $view = $self->load_view( $data->{-view} || $route->{view} );
+        my $view = $self->get_view( $data->{-view} || $route->{view} );
         eval {
             run_all( $route->{hooks}{pre_render}, $req )
                 if exists $route->{hooks}{pre_render};
@@ -1654,6 +1654,26 @@ sub _log_error {
     $msg =~ s/\n\s*/ /gs;
     $msg =~ s/\s*$/\n/;
     warn $msg;
+};
+
+=head2 get_view( "name" )
+
+Fetch view object by name.
+Uses C<load_view> w/o additional params if needed.
+This is for internal usage.
+
+=cut
+
+sub get_view {
+    my ($self, $view) = @_;
+
+    if (ref $view) {
+        return $self->load_view( $view );
+    }
+    else {
+        $view = $self->{-view} unless defined $view;
+        return $self->{seen_view}{$view} || $self->load_view( $view, $view );
+    };
 };
 
 =head2 run_test( \%PSGI_ENV, %options )
