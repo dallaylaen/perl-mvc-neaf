@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1606;
+our $VERSION = 0.1607;
 
 =head1 NAME
 
@@ -291,16 +291,10 @@ sub route {
     $profile{description} = $args{description};
 
     if (my $view = $args{view}) {
-        if (!ref $view) {
-            $view = $self->load_view( $view );
-        } elsif (ref $view eq 'CODE') {
-            $view = MVC::Neaf::View->new( on_render => $view );
-        };
+        # preload view so we can fail early
+        $view = $self->get_view( $view );
 
-        $self->_croak( "view must be a coderef or a MVC::Neaf::View object" )
-            unless blessed $view and $view->isa("MVC::Neaf::View");
-
-        $profile{view} = $view;
+        $profile{view} = ref $args{view} ? $view : $args{view};
     };
 
     if (my $def = $args{default}) {
@@ -460,13 +454,11 @@ sub pre_route {
     return $self;
 };
 
-=head2 load_view( $view_name, [ $object || $module_name, %options ] )
+=head2 load_view( $name, $object || coderef || ($module_name, %options) )
 
-Fetch existing, if any, or set up a new view object named C<$view_name>.
-
-This will be called whenever the app returns { -view => "foo" }.
-
-If no view was found, the following rules apply:
+Load a view object and cache it under name $name, if $name is true.
+The loaded view is returned.
+All subsequent calls to get_view( $name ) would return that object, too.
 
 =over
 
@@ -482,21 +474,6 @@ Those are prefixed with C<MVC::Neaf::View::>.
 
 If C<set_forced_view> was called, return its argument instead.
 
-So the intended usage is as follows:
-
-    # in the app initialisation section
-    # this can be omitted when using TT, JS, or Dumper as view.
-    MVC::Neaf->load_view( foo => 'TT', INCLUDE_PATH => "/foo/bar" );
-        # Short alias for MVC::Neaf::View::TT
-
-    # in the app itself
-    return {
-        ...
-        -view => "foo", # triggers a second call with 1 parameter "foo"
-    };
-
-B<NOTE> Some convoluted logic here, needs rework.
-
 =cut
 
 my %known_view = (
@@ -505,39 +482,41 @@ my %known_view = (
     Dumper => 'MVC::Neaf::View::Dumper',
 );
 sub load_view {
-    my ($self, $view, $module, @param) = @_;
+    my ($self, $name, $obj, @param) = @_;
     $self = $Inst unless ref $self;
 
+    $self->_croak("At least two arguments required")
+        unless defined $name and defined $obj;
+
+    # We've been overridden!
     return $self->{force_view}
         if exists $self->{force_view};
-    $view = $self->{-view}
-        unless defined $view;
 
-    # Already an object - just return it after the checks
-    return $view if ref $view;
-    # Agressive caching FTW!
-    return $self->{seen_view}{$view}
-        if exists $self->{seen_view}{$view};
-
-    # If we got to this point, we don't have $view cached just yet.
-    # Instantiate and save!
-
-    if (!ref $module) {
-        # If 1-arg call is used, try using view name as class name
-        $module ||= $view;
+    # Instantiate if needed
+    if (!ref $obj) {
         # in case an alias is used, apply alias
-        $module = $known_view{ $module } || $module;
+        $obj = $known_view{ $obj } || $obj;
 
         # Try loading...
-        eval "require $module"; ## no critic
-        $self->_croak( "Failed to load view $view: $@" )
-            if $@;
-        $module = $module->new( @param );
+        if (!$obj->can("new")) {
+            my $module = $obj;
+            $module =~ s#::#/#g;
+            $module .= ".pm";
+            require $module;
+            $self->_croak( "Failed to load view $name=>$obj: $@" )
+                if $@;
+        };
+        $obj = $obj->new( @param );
     };
 
-    $self->{seen_view}{$view} = $module;
+    $self->_croak( "view must be a coderef or a MVC::Neaf::View object" )
+        unless blessed $obj and $obj->can("render")
+            or ref $obj eq 'CODE';
 
-    return $module;
+    $self->{seen_view}{$name} = $obj
+        if $name;
+
+    return $obj;
 };
 
 =head2 set_default ( key => value, ... )
@@ -1284,7 +1263,7 @@ sub set_forced_view {
     delete $self->{force_view};
     return $self unless $view;
 
-    $self->{force_view} = $self->load_view( $view );
+    $self->{force_view} = $self->get_view( $view );
 
     return $self;
 };
@@ -1451,7 +1430,8 @@ sub handle_request {
         eval {
             run_all( $route->{hooks}{pre_render}, $req )
                 if exists $route->{hooks}{pre_render};
-            ($$content, my $type) = $view->render( $data );
+            ($$content, my $type) = blessed $view
+                ? $view->render( $data ) : $view->( $data );
             $data->{-type} ||= $type;
         };
         if (!defined $$content) {
@@ -1666,9 +1646,10 @@ This is for internal usage.
 
 sub get_view {
     my ($self, $view) = @_;
+    $self = $Inst unless ref $self;
 
     if (ref $view) {
-        return $self->load_view( $view );
+        return $self->load_view( '' => $view );
     }
     else {
         $view = $self->{-view} unless defined $view;

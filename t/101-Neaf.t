@@ -8,7 +8,7 @@ use MVC::Neaf;
 
 # Test view loading by alias
 MVC::Neaf->load_view( foo => TT => EVAL_PERL => 1 );
-my $v = MVC::Neaf->load_view("foo");
+my $v = MVC::Neaf->get_view("foo");
 is (ref $v, "MVC::Neaf::View::TT", "Good view created");
 is_deeply ([$v->render({ -template => \'[% PERL %]print 42;[% END %]' })],
     [42, "text/html"], "Template args round trip");
