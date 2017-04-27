@@ -16,16 +16,14 @@ local $SIG{__WARN__} = sub {
     push @warn, shift;
 };
 
-my $form_h = $req->get_form_as_hash( x => '\d+', y => '\d+' );
-is_deeply( $form_h, { x => 42 }, "Hash form validation" );
+my $form_h = eval {
+    $req->get_form_as_hash( x => '\d+', y => '\d+' );
+};
+is $form_h, undef, "No way";
+like $@, qr/use MVC::Neaf::X::Form/, 'Work around suggested';
+note $@;
 
-my @form_l = $req->get_form_as_list( '\d+', qw(x y z t) );
-is_deeply ( \@form_l, [ 42, undef, undef, undef ], "List form validation" );
-
-@form_l = $req->get_form_as_list( [ '\d+', -1 ], qw(x y z t) );
-is_deeply ( \@form_l, [ 42, -1, -1, -1 ], "List form validation w/default" );
-
-is scalar @warn, 3, "3 warns issued";
+is scalar @warn, 0, "no warns issued";
 note "WARN: $_" for @warn;
 
 done_testing;

@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1604;
+our $VERSION = 0.1605;
 
 =head1 NAME
 
@@ -519,42 +519,29 @@ sub form {
 
 =head2 get_form_as_hash ( name => qr/.../, name2 => qr/..../, ... )
 
-Return a group of form parameters as a hashref.
-Only values that pass corresponding validation are added.
-
-B<DEPRECATED>. Use L<MVC::Neaf::X::Form> instead.
+B<DEPRECATED> and dies. Use L<MVC::Neaf::X::Form> instead.
 
 =cut
 
 sub get_form_as_hash {
     my ($self, %spec) = @_;
 
-    carp "DEPRECATED. get_form_as_hash() will be removed soon.";
-
-    my %form;
-    foreach (keys %spec) {
-        my $value = $self->param( $_, $spec{$_}, undef );
-        $form{$_} = $value if defined $value;
-    };
-
-    return \%form;
+    $self->_croak( "DEPRECATED. use MVC::Neaf::X::Form and form() method" );
 };
 
 =head2 get_form_as_list ( qr/.../, qw(name1 name2 ...)  )
 
 =head2 get_form_as_list ( [ qr/.../, "default" ], qw(name1 name2 ...)  )
 
-Return a group of form parameters as a list, in that order.
+Return a group of uniform parameters as a list, in that order.
 Values that fail validation are returned as undef, unless default given.
 
-B<DEPRECATED>. Use L<MVC::Neaf::X::Form> instead.
+B<EXPERIMENTAL>. The name MAY be changed in the future.
 
 =cut
 
 sub get_form_as_list {
     my ($self, $spec, @list) = @_;
-
-    carp "DEPRECATED. get_form_as_list() will be removed soon.";
 
     $self->_croak( "Meaningless call in scalar context" )
         unless wantarray;
