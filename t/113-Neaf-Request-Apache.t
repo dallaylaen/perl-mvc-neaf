@@ -70,7 +70,7 @@ MVC::Neaf->route( '/foo' => sub  {
         foo => scalar $req->param( foo => '.*', 42 ),
         bar => scalar $req->get_cookie( bar => '\w+', 42 ),
     }
-} );
+}, path_info_regex => '.*' );
 my $code = MVC::Neaf->run; # PSGI mode to avoid CGI-ing
 
 eval {

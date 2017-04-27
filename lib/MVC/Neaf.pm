@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1609;
+our $VERSION = 0.1610;
 
 =head1 NAME
 
@@ -203,15 +203,11 @@ methods do not intersect.
 HEAD method is automatically handled if GET is present, however,
 one MAY define a separate HEAD handler explicitly.
 
-=item * path_info_regex => qr/.../ - allow URI subpaths matching
-the specified expression to be handled by this handler.
+=item * path_info_regex => qr/.../ - allow URI subpaths
+to be handled by this handler.
 
-If specified, 404 error will be returned unless PATH_INFO matches the regex
-(without the leading slash).
-
-Starting from v.0.16, this parameter is going to be REQUIRED for C<path_info()>
-method to be used in the handler.
-Until then, a DEPRECATED warning will be generated for a naked path_info call.
+A 404 error will be generated unless C<path_info_regex> is present
+and PATH_INFO matches the regex (without the leading slash).
 
 B<EXPERIMENTAL>. Name and semantics MAY change in the future.
 
@@ -285,9 +281,8 @@ sub route {
     $profile{caller}   = [caller(0)]; # file,line
     if ( !defined $args{path_info_regex} ) {
         # TODO replace def path_info_regex with '' in v.0.16 aka '404 if unspecified'
-        $args{path_info_regex}      = '.*';
-    } else {
-        $profile{has_path_info_regex} = 1;
+        $args{path_info_regex}      = '';
+        $profile{no_path_info_regex} = 1;
     };
     $profile{path_info_regex}  = qr#^/*($args{path_info_regex})$#;
 
@@ -1384,7 +1379,7 @@ sub handle_request {
         };
         $path_info =~ $route->{path_info_regex}
             or die "404\n";
-        $req->set_full_path( $path, $path_info, !$route->{has_path_info_regex} );
+        $req->set_full_path( $path, $path_info, $route->{no_path_info_regex} );
         $self->_post_setup( $route )
             unless exists $route->{lock};
 

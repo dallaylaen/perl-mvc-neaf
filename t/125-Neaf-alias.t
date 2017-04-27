@@ -11,7 +11,7 @@ MVC::Neaf->route( "/first/path", sub {
     my $req = shift;
     push @call, [ $req->script_name, "/first/path" ];
     return {};
-});
+}, path_info_regex => '.*');
 
 MVC::Neaf->alias( "/second/path", "/first/path" );
 

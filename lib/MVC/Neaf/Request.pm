@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1603;
+our $VERSION = 0.1604;
 
 =head1 NAME
 
@@ -283,27 +283,21 @@ Contrary to the
 L<CGI specification|https://tools.ietf.org/html/rfc3875#section-4.1.5>,
 the leading slash is REMOVED.
 
-The validation regexp for this value SHOULD be specified during application
+The validation regexp for this value MUST be specified during application
 setup as C<path_info_regex>. See C<route> in L<MVC::Neaf>.
-
-B<NOTE> Starting v.0.16 of this module, path_info() will die unless
-validation regexp was provided.
 
 B<NOTE> Experimental. This part of API is undergoing changes.
 
 =cut
 
 sub path_info {
-    my ($self, $regexp) = @_;
+    my ($self) = @_;
 
     if ($self->{no_path_info_regex}) {
         # TODO all instances of no_path_info_regex must be killed in v.0.16,
         # and undefined path_info die here
-        carp "DEPRECATED path_info() called, but path_info_regex validation was not set in route()";
-    } elsif (defined $regexp) {
-        carp "DEPRECATED path_info() called with regex, use path_info_regex parameter in route() instead";
+        $self->_croak( "path_info() called, but path_info_regex validation was not set in route()" );
     };
-
 
     return $self->{path_info};
 };

@@ -11,7 +11,7 @@ MVC::Neaf->route("/psgi" => sub {
     $capture_req = shift;
     return { -content =>
         $capture_req->param( "roundtrip" => '.*', "(empty)" ) };
-});
+}, path_info_regex => '.*');
 
 my $reply = MVC::Neaf->run->({ REQUEST_URI => '/psgi/foo/bar?roundtrip=42' });
 
