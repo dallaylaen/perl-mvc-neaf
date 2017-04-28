@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1610;
+our $VERSION = 0.1611;
 
 =head1 NAME
 
@@ -119,7 +119,7 @@ It will be executed AFTER the headers and pre-generated content
 are served to the client, and may use C<$req-E<gt>write( $data );>
 and C<$req-E<gt>close;> to output more data.
 
-=item * -head - Pass a hash or array of values for header generation.
+=item * -headers - Pass a hash or array of values for header generation.
 This is an alternative to L<MVC::Neaf::Request>'s C<push_header> method.
 
 =item * -jsonp - Used by JS view module as a callback name to produce a
@@ -1460,14 +1460,14 @@ sub handle_request {
 
     # Mangle headers - NOTE these modifications remain stored in req
     my $head = $req->header_out;
-    if (my $append = $data->{-head}) {
+    if (my $append = $data->{-headers}) {
         if (ref $append eq 'ARRAY') {
             for (my $i = 0; $i < @$append; $i+=2) {
                 $head->push_header($append->[$i], $append->[$i+1]);
             };
         }
         else {
-            carp("Neaf: -head must be ARRAY, not ".(ref $append));
+            carp("Neaf: -headers must be ARRAY, not ".(ref $append));
             # Would love to die, but it's impossible here
         };
     };

@@ -7,7 +7,7 @@ use Test::More;
 use MVC::Neaf qw(:sugar);
 
 get '/' => sub {
-    return { -content => '', -head => [ x_foo_bar => 42 ] };
+    return { -content => '', -headers => [ x_foo_bar => 42 ] };
 };
 
 my ($status, $head, $content) = neaf->run_test('/');

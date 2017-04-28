@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.1601;
+our $VERSION = 0.1602;
 
 =head1 NAME
 
@@ -70,7 +70,7 @@ The response is like follows:
 
     {
         -content => (file content),
-        -head => (length, name etc),
+        -headers => (length, name etc),
         -type => (content-type),
         -continue => (serve the rest of the file, if needed),
     };
@@ -116,7 +116,7 @@ sub serve_file {
             return {
                 -content => $data->{data},
                 -type => $data->{type},
-                -head=>\@header,
+                -headers=>\@header,
             };
         };
     };
@@ -165,7 +165,7 @@ sub serve_file {
             $content{disposition} = $disposition;
             $self->{cache_content}{$file} = \%content;
         };
-        return { -content => $buf, -type => $type, -head => \@header }
+        return { -content => $buf, -type => $type, -headers => \@header }
     };
 
     # If file is big, print header & first data chunk ASAP
@@ -181,7 +181,7 @@ sub serve_file {
         $req->close;
     };
 
-    return { -content => $buf, -type => $type, -continue => $continue, -head => \@header };
+    return { -content => $buf, -type => $type, -continue => $continue, -headers => \@header };
 };
 
 =head2 make_handler
