@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.1602;
+our $VERSION = 0.1603;
 
 =head1 NAME
 
@@ -30,6 +30,7 @@ So this module is here to fill the gap.
 =cut
 
 use MVC::Neaf::Util qw(http_date);
+use MVC::Neaf::View::TT;
 use parent qw(MVC::Neaf::X);
 
 =head2 new( %options )
@@ -50,6 +51,33 @@ B<EXPERIMENTAL>. Cache API is not yet established.
 
 =cut
 
+my $dir_template = <<"HTML";
+<html>
+<head>
+    <title>Directory index of [% path | html %]</title>
+</head>
+<body>
+<h1>Directory index of /[% path | html %]</h1>
+<h2>Generated on [% date | html %]</h2>
+[% IF updir.length %]
+    <a href="[% updir | html %]">Parent directory</a>
+[% END %]
+[% FOREACH item IN list %]
+    [% IF item.dir %]
+        <a href="[% item.name | html %]">[% item.name | html %]</a>
+        [DIR]
+        [% item.lastmod %]
+    [% ELSE %]
+        <a href="[% item.name | html %]">[% item.name | html %]</a>
+        [% item.size %]
+        [% item.lastmod %]
+    [% END %]
+    <br>
+[% END # FOREACH %]
+</body>
+</html>
+HTML
+
 sub new {
     my ($class, %options) = @_;
 
@@ -59,6 +87,11 @@ sub new {
     $options{buffer} ||= 4096;
     $options{buffer} =~ /^(\d+)$/
         or $class->my_croak( "option 'buffer' must be a positive integer" );
+
+    if ($options{dir_index}) {
+        $options{view} ||= MVC::Neaf::View::TT->new;
+        $options{dir_template} ||= \$dir_template;
+    };
 
     return $class->SUPER::new(%options);
 };
@@ -129,7 +162,11 @@ sub serve_file {
     # open file
     my $xfile = join "", $dir, $file;
 
-    die 404 if -d $xfile; # Sic! Don't reveal directory structure
+    if (-d $xfile) {
+        return $self->list_dir( $file )
+            if $self->{dir_index};
+        die 404; # Sic! Don't reveal directory structure
+    };
     my $ok = open (my $fd, "<", "$xfile");
     if (!$ok) {
         # TODO Warn
@@ -183,6 +220,48 @@ sub serve_file {
 
     return { -content => $buf, -type => $type, -continue => $continue, -headers => \@header };
 };
+
+=head2 list_dir
+
+=cut
+
+sub list_dir {
+    my ($self, $dir) = @_;
+
+    # TODO better error handling (404 or smth)
+    opendir( my $fd, "$self->{root}/$dir" )
+        or $self->my_croak( "Failed to locate directory at $dir: $!" );
+
+    my @ret;
+    while (my $entry = readdir($fd)) {
+        $entry =~ /^\./ and next
+            unless $self->{allow_dots};
+
+        my @stat = stat "$self->{root}/$dir/$entry";
+        my $isdir = -d "$self->{root}/$dir/$entry" ? 1 : 0;
+
+        push @ret, {
+            name => $entry,
+            dir => $isdir,
+            size => $stat[7],
+            lastmod => http_date( $stat[9] ),
+        };
+    };
+    closedir $fd;
+
+    @ret = sort { $b->{dir} <=> $a->{dir} || $a->{name} cmp $b->{name} } @ret;
+
+    return {
+        -view => $self->{view},
+        -template => $self->{dir_template},
+        list => \@ret,
+        date => http_date( time ),
+    };
+};
+
+=head2 load_file
+
+=cut
 
 =head2 make_handler
 
