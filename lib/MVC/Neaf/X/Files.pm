@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.1604;
+our $VERSION = 0.1605;
 
 =head1 NAME
 
@@ -29,7 +29,9 @@ So this module is here to fill the gap.
 
 =cut
 
-use MVC::Neaf::Util qw(http_date);
+use File::Basename;
+
+use MVC::Neaf::Util qw(http_date canonize_path);
 use MVC::Neaf::View::TT;
 use parent qw(MVC::Neaf::X);
 
@@ -66,7 +68,7 @@ my $dir_template = <<"HTML";
 [% FOREACH item IN list %]
     <tr>
         <td>[% IF item.dir %]DIR[% END %]</td>
-        <td><a href="[% item.name | html %]">[% item.name | html %]</a></td>
+        <td><a href="[% path _ '/' _ item.name | url %]">[% item.name | html %]</a></td>
         <td>[% IF !item.dir %][% item.size %][% END %]</td>
         <td>[% item.lastmod %]</td>
     </tr>
@@ -76,11 +78,20 @@ my $dir_template = <<"HTML";
 </html>
 HTML
 
+my %static_options;
+$static_options{$_}++ for qw(
+    root base_url
+    description buffer cache_ttl allow_dots dir_index dir_template view );
+
 sub new {
     my ($class, %options) = @_;
 
     defined $options{root}
         or $class->my_croak( "option 'root' is required" );
+
+    my @extra = grep { !$static_options{$_} } keys %options;
+    $class->_croak( "Unknown options @extra" )
+        if @extra;
 
     $options{buffer} ||= 4096;
     $options{buffer} =~ /^(\d+)$/
@@ -90,6 +101,11 @@ sub new {
         $options{view} ||= MVC::Neaf::View::TT->new;
         $options{dir_template} ||= \$dir_template;
     };
+
+    $options{base_url} = canonize_path(($options{base_url} || '/'), 1);
+
+    $options{description} = "Static content at $options{root}"
+        unless defined $options{description};
 
     return $class->SUPER::new(%options);
 };
@@ -249,11 +265,15 @@ sub list_dir {
 
     @ret = sort { $b->{dir} <=> $a->{dir} || $a->{name} cmp $b->{name} } @ret;
 
+    my $updir = dirname($dir);
+    $updir = '' if $updir eq '.';
     return {
-        -view => $self->{view},
-        -template => $self->{dir_template},
-        list => \@ret,
-        date => http_date( time ),
+        -view      => $self->{view},
+        -template  => $self->{dir_template},
+        list       => \@ret,
+        date       => http_date( time ),
+        path       => $self->{base_url} . $dir,
+        updir      => $self->{base_url} . $updir,
     };
 };
 
@@ -261,9 +281,39 @@ sub list_dir {
 
 =cut
 
+=head2 make_route()
+
+Returns list of arguments suitable for neaf->route(...);
+
+=cut
+
+sub make_route {
+    my $self = shift;
+
+    $self->my_croak("useless call in scalar/void context")
+        unless wantarray;
+
+    my $handler = sub {
+        my $req = shift;
+
+        my $file = $req->path_info();
+        return $self->serve_file( $file );
+    }; # end handler sub
+
+    return (
+        $self->{base_url} => $handler,
+        method => ['GET', 'HEAD'],
+        path_info_regex => '.*',
+        cache_ttl => $self->{cache_ttl},
+        description => $self->{description},
+    );
+};
+
 =head2 make_handler
 
 Returns a Neaf-compatible hander sub.
+
+B<DEPRECATED> Use make_route instead.
 
 =cut
 

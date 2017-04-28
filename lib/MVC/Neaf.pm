@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1611;
+our $VERSION = 0.1612;
 
 =head1 NAME
 
@@ -375,11 +375,6 @@ sub alias {
 
 Serve static content located under C<$file_path>.
 
-File type detection is based on extention.
-This MAY change in the future.
-Known file types are listed in C<%MVC::Neaf::X::Files::ExtType> hash.
-Patches welcome.
-
 %options may include:
 
 =over
@@ -395,11 +390,33 @@ B<EXPERIMENTAL>. Cache API is not yet established.
 =item * allow_dots => 1|0 - if true, serve files/directories
 starting with a dot (.git etc), otherwise give a 404.
 
-B<EXPERIMAENTAL>
+B<EXPERIMENTAL>
+
+=item * dir_index => 1|0 - if true, generate index for a directory;
+otherwise a 404 is returned, and deliberately so, for security reasons.
+
+B<EXPERIMENTAL>
+
+=item * dir_template - specify template for directory listing
+(with images etc). A sane default is provided.
+
+B<EXPERIMENTAL>
+
+=item * view - specify view object for rendering dir template.
+By default a localized TT instance is used.
+
+B<EXPERIMENTAL> Name MAY be changed (dir_view etc).
 
 =item * description - comment. The default is "Static content at $dir"
 
 =back
+
+The content is really handled by L<MVC::Neaf::X::Files>.
+
+File type detection is based on extention.
+This MAY change in the future.
+Known file types are listed in C<%MVC::Neaf::X::Files::ExtType> hash.
+Patches welcome.
 
 Generally it is probably a bad idea to serve files in production
 using a web application framework.
@@ -411,23 +428,14 @@ This is the intended usage.
 
 =cut
 
-my %static_options;
-$static_options{$_}++ for qw( description buffer cache_ttl allow_dots );
 sub static {
     my ($self, $path, $dir, %options) = @_;
     $self = $Inst unless ref $self;
 
-    my @extra = grep { !$static_options{$_} } keys %options;
-    $self->_croak( "Unknown options @extra" )
-        if @extra;
-
     require MVC::Neaf::X::Files;
-    my $xfiles = MVC::Neaf::X::Files->new( %options, root => $dir );
-    return $self->route($path => $xfiles->make_handler
-        , method => ['GET', 'HEAD']
-        , path_info_regex => '.*'
-        , cache_ttl => $options{cache_ttl}
-        , description => $options{description} || "Static content at $dir" );
+    my $xfiles = MVC::Neaf::X::Files->new(
+        %options, root => $dir, base_url => $path );
+    return $self->route( $xfiles->make_route );
 };
 
 =head2 pre_route( sub { ... } )
