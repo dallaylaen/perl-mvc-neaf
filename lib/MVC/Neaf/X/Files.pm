@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.1603;
+our $VERSION = 0.1604;
 
 =head1 NAME
 
@@ -57,23 +57,21 @@ my $dir_template = <<"HTML";
     <title>Directory index of [% path | html %]</title>
 </head>
 <body>
-<h1>Directory index of /[% path | html %]</h1>
+<h1>Directory index of [% path | html %]</h1>
 <h2>Generated on [% date | html %]</h2>
 [% IF updir.length %]
     <a href="[% updir | html %]">Parent directory</a>
 [% END %]
+<table width="100%" border="0">
 [% FOREACH item IN list %]
-    [% IF item.dir %]
-        <a href="[% item.name | html %]">[% item.name | html %]</a>
-        [DIR]
-        [% item.lastmod %]
-    [% ELSE %]
-        <a href="[% item.name | html %]">[% item.name | html %]</a>
-        [% item.size %]
-        [% item.lastmod %]
-    [% END %]
-    <br>
+    <tr>
+        <td>[% IF item.dir %]DIR[% END %]</td>
+        <td><a href="[% item.name | html %]">[% item.name | html %]</a></td>
+        <td>[% IF !item.dir %][% item.size %][% END %]</td>
+        <td>[% item.lastmod %]</td>
+    </tr>
 [% END # FOREACH %]
+</table>
 </body>
 </html>
 HTML
