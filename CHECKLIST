@@ -18,6 +18,8 @@
 % grep nocommit MANIFEST
 - must be empty
 
+# EXPERIMANTAL ReleaseVersion.PL may be used instead of the above
+
 # smoke-test
 % ./apache.cgi start
 - http://localhost:8001/request/parser

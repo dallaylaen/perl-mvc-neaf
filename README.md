@@ -34,9 +34,9 @@ on the `?name=` parameter.
 
     use strict;
     use warnings;
-    use MVC::Neaf;
+    use MVC::Neaf qw(:sugar);
 
-    MVC::Neaf->route( "/" => sub {
+    get + post "/" => sub {
 		my $req = shift;
 
 		return {
@@ -44,9 +44,9 @@ on the `?name=` parameter.
 			-type     => 'text/plain',
 			name      => $req->param( name => qr/\w+/, "Stranger" ),
 		},
-    });
+    };
 
-    MVC::Neaf->run;
+    neaf->run;
 
 # FEATURES
 
@@ -69,21 +69,19 @@ No need for separate web server to test your CSS/images.
 
 # NOT SO BORING FEATURES
 
-* CLI-based debugging via `perl <your_app.pl> --help|--list|--method GET`
-
-* Can gather performance statistics if needed;
+* Fine-grained hooks and path-based default values;
 
 * Delayed and/or unspecified length replies supported;
-
-* Sessions supported out of the box with cookie-based and SQL-based backends.
 
 * Form validation with resubmission ability.
 [Validator::LIVR](https://metacpan.org/pod/Validator::LIVR)
 supported, but not requires.
 
-* Fancy error templates supported.
+* CLI-based debugging via `perl <your_app.pl> --help|--list|--method GET`
 
-* Path-based defaults and execution hooks supported.
+* Sessions supported out of the box with cookie-based and SQL-based backends.
+
+* Fancy error templates supported.
 
 # MORE EXAMPLES
 

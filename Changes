@@ -1,5 +1,18 @@
 Revision history for MVC-Neaf
 
+0.17    Fri Apr 28 2017
+        - API Add postmodern sugar: get + post '/path' => sub { ... }.
+        - API Add put(), head() prototyped sugar.
+        - API Add -headers => [...] to handler return hash
+        - API BREAK Kill get_form_as_hash, undeprecate get_form_as_list for now
+        - API BREAK Finally removed path_info w/o path_info_regex
+        - API Add get_url_base, get_url_rel, and get_url_full with override capabilities
+        - API Added session engine auto-load to sugar api
+        - API Add deprecated warning for Req->set_default
+        - MOD Add directory listing to static aka X::Files
+        - MOD Add fine-grained serve_file method to X::Files (thx @akuklev)
+        - DOC Add hook flow diagram NOCODE
+
 0.16    Mon Mar 27 2017
         - API Add implicit HEAD handler whenever GET is defined
         - API MINOR Add dash-prefixed defaults to route()

@@ -2,7 +2,7 @@ package MVC::Neaf::Request::CGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.1602;
+our $VERSION = 0.17;
 
 =head1 NAME
 

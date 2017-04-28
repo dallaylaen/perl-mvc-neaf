@@ -84,7 +84,12 @@ t/128-Neaf-hooks.t
 t/129-Neaf-hook-content.t
 t/130-Neaf-sugar.t
 t/131-Neaf-path-info-utf.t
+t/132-Request-get-url.t
+t/133-Request-stash.t
+t/134-return-head.t
+t/135-Request-get_form_as_list.t
 t/201-Neaf-Util-date.t
+t/221-path-info-not-found.t
 t/801-cli.t
 t/802-X-Form.t
 t/803-X-Form-LIVR.t
@@ -96,7 +101,10 @@ t/812-X-Session-File.t
 t/813-X-Session-Base.t
 t/814-X-Session-Cookie.t
 t/815-X-Session-SQL.t
-t/901-0.16-path_info.t
+t/816-X-Session-sugar.t
+t/817-X-Files-serve.t
+t/818-X-Files-dir.t
+t/902-req-default-v.0.20.t
 t/903-Request-get-form-as.t
 t/README
 t/todo.t
