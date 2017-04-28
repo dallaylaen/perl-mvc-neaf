@@ -18,4 +18,5 @@ nytprof.*
 ^apache.cgi
 ^\.
 ^CHECKLIST$
+^Release
 MYMETA\..*
