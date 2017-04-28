@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.1605;
+our $VERSION = 0.1606;
 
 =head1 NAME
 
@@ -124,6 +124,10 @@ The response is like follows:
 
 Will C<die 404;> if file is not there.
 
+This MAY be used to create more fine-grained control over static files.
+
+B<EXPERIMENTAL>. New options MAY be added.
+
 =cut
 
 # Enumerate most common file types. Patches welcome.
@@ -235,7 +239,12 @@ sub serve_file {
     return { -content => $buf, -type => $type, -continue => $continue, -headers => \@header };
 };
 
-=head2 list_dir
+=head2 list_dir( $path )
+
+Create a directory index reply.
+Used by serve_file() if dir_index given.
+
+As of current, indices are not cached.
 
 =cut
 
@@ -276,10 +285,6 @@ sub list_dir {
         updir      => $self->{base_url} . $updir,
     };
 };
-
-=head2 load_file
-
-=cut
 
 =head2 make_route()
 
