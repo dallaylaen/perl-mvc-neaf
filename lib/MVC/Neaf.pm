@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.17;
+our $VERSION = 0.1701;
 
 =head1 NAME
 
@@ -127,7 +127,13 @@ L<jsonp|https://en.wikipedia.org/wiki/JSONP> response.
 Callback MUST be a set of identifiers separated by dots.
 Otherwise it's ignored for security reasons.
 
-=item * -location - HTTP Location: header.
+=item * -location - HTTP Location: header for 3xx statuses.
+This is set by C<$request-E<gt>redirect(...)>.
+
+=item * -serial - if present, the JS view will render this instead of
+the whole response hash.
+This can be used e.g. to return non-hash data in REST API.
+B<EXPERIMENTAL>. Name and meaning may change in the future.
 
 =item * -status - HTTP status (200, 404, 500 etc).
 Default is 200 if the app managed to live through, and 500 if it died.
