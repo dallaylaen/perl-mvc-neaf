@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1701;
+our $VERSION = 0.1702;
 
 =head1 NAME
 
@@ -166,10 +166,10 @@ They have nothing to do with serving the request.
 =cut
 
 use Carp;
-use Scalar::Util qw(blessed looks_like_number);
 use Encode;
-use URI::Escape;
 use Module::Load;
+use Scalar::Util qw(blessed looks_like_number);
+use URI::Escape;
 use parent qw(Exporter);
 
 our @EXPORT_OK = qw( neaf_err neaf get post head put );
@@ -1674,7 +1674,7 @@ Returns just the content in scalar context.
 
 Just as the name suggests, useful for testing only (it reduces boilerplate).
 
-Continuation responses are supported.
+Continuation responses are supported, but will be returned in one chunk.
 
 %options may include:
 
@@ -1685,6 +1685,10 @@ Continuation responses are supported.
 =item * override = \%hash - force certain data in ENV
 
 =item * cookie = \%hash - force HTTP_COOKIE header
+
+=item * body = 'DATA' - force body in request
+
+=item * secure = 0|1 - http vs https
 
 =back
 
@@ -1703,17 +1707,35 @@ sub run_test {
             SERVER_PORT => 80,
             SCRIPT_NAME => '',
             PATH_INFO => $1,
+            'psgi.version' => [1,1],
         }
     };
     # TODO more civilized stuff like cookies, headers...
     $env->{REQUEST_METHOD} = $opt{method} if $opt{method};
     $env->{$_} = $opt{override}{$_} for keys %{ $opt{override} };
 
+    if (exists $opt{secure}) {
+        $env->{'psgi.url_scheme'} = $opt{secure} ? 'https' : 'http';
+    };
     if (my $cook = $opt{cookie}) {
-        # TODO hash processing
+        if (ref $cook eq 'HASH') {
+            $cook = join '; ', map {
+                uri_escape_utf8($_).'='.uri_escape_utf8($cook->{$_})
+            } keys %$cook;
+        };
         $env->{HTTP_COOKIE} = $env->{HTTP_COOKIE}
-            ? "$env->{HTTP_COOKIE}, $cook"
+            ? "$env->{HTTP_COOKIE}; $cook"
             : $cook;
+    };
+    if (my $body = $opt{body} ) {
+        open my $dummy, "<", \$body
+            or die ("NEAF: FATAL: Redirect failed in run_test");
+        $env->{'psgi.input'} = $dummy;
+        $env->{CONTENT_LENGTH} = length $body;
+    };
+    if (my $type = $opt{type}) {
+        $type = 'application/x-www-form-urlencoded' if $type eq '?';
+        $env->{CONTENT_TYPE} = $opt{type} eq '?' ? '' : $opt{type}
     };
 
     my $ret = $self->run->( $env );
