@@ -1,8 +1,13 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
+0.17    0.20    API /root/:param
+0.17    0.20    API Chained exception handling
+0.17    0.20    MOD Add JSON body support w/form validation - pre-logic
 
 -- backlog --
+0.17    0.20    MOD Add well-known regexes from Regexp::Common
+0.17    0.20    MOD form->data_hash instead of %{ form->data }
 0.16    0.20    MOD Oauth2 example/helper
 0.16    0.20    MOD OpenAPI plugin: model+in-spec+out-spec => swagger.txt+routes
 0.09    0.20    MOD Add form defaults populating BOTH raw and data
