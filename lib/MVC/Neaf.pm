@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1702;
+our $VERSION = 0.1703;
 
 =head1 NAME
 
@@ -274,6 +274,18 @@ sub route {
 
     $path = canonize_path( $path );
 
+    if ($path =~ s#/([^:/]*:\w+.*)$##) {
+        my $extra = quotemeta $1;
+        my %seen;
+        my @names;
+        while ( $extra =~ s#\\?:(\w+)#(.*?)# ) {
+            $seen{$1}++ and $self->_croak( "Duplicate path_info param $1" );
+            push @names, $1;
+        };
+        $args{path_info_names} = \@names;
+        $args{path_info_regex} = $extra;
+    }
+
     _listify( \$args{method}, qw( GET POST ) );
 
     my @dupe = grep { exists $self->{route}{$path}{$_} } @{ $args{method} };
@@ -291,6 +303,7 @@ sub route {
         $profile{no_path_info_regex} = 1;
     };
     $profile{path_info_regex}  = qr#^/*($args{path_info_regex})$#;
+    $profile{path_info_names}  = $args{path_info_names};
 
     # Just for information
     $profile{path}        = $path;
@@ -1386,13 +1399,23 @@ sub handle_request {
             die "405\n";
         };
 
+        # Process path_info, split params if needed
         # TODO optimize this or do smth. Still MUST keep route_re a prefix tree
         my ($path, $path_info) = ($1, $2);
         if ($path_info =~ /%/) {
             $path_info = decode_utf8( uri_unescape( $path_info ) );
         };
-        $path_info =~ $route->{path_info_regex}
-            or die "404\n";
+        if (my $names = $route->{path_info_names}) {
+            my @match = $path_info =~ $route->{path_info_regex}
+                or die "404\n";
+            my %pi_param;
+            (undef, @pi_param{ @$names }) = @match;
+            $req->_all_params;
+            $req->set_param( %pi_param );
+        } else {
+            $path_info =~ $route->{path_info_regex}
+                or die "404\n";
+        };
         $req->set_full_path( $path, $path_info, $route->{no_path_info_regex} );
         $self->_post_setup( $route )
             unless exists $route->{lock};
