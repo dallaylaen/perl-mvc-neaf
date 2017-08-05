@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.17;
+our $VERSION = 0.1701;
 
 =head1 NAME
 
@@ -480,16 +480,16 @@ sub multi_param {
     return (grep { !/^(?:$regex)$/s } @$ret) ? () : @$ret;
 };
 
-=head2 set_param( name => $value )
+=head2 set_param( %values )
 
-Override form parameter. Returns self.
+Override form parameters. Returns self.
 
 =cut
 
 sub set_param {
-    my ($self, $name, $value) = @_;
+    my ($self, %data) = @_;
 
-    $self->{cached_params}{$name} = $value;
+    $self->{cached_params}{$_} = $data{$_} for keys %data;
     return $self;
 };
 
