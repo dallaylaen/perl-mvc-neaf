@@ -7,7 +7,7 @@ use Test::More;
 use MVC::Neaf qw(:sugar);
 
 my $capture;
-get '/from/:foo/to/:bar' => sub {
+get '/from/<foo=\d+>/to/<bar>' => sub {
     $capture = shift;
     +{}
 }, -content => '';
@@ -23,5 +23,14 @@ if ($capture) {
     ok 0, "Didn't route as expected";
 };
 undef $capture;
+
+($status, $head, $content) = neaf->run_test('/from/foo/to/137');
+is $status, 404, "Not allowed by path_info";
+
+($status, $head, $content) = neaf->run_test('/from//to/137');
+is $status, 404, "Not allowed by path_info";
+
+($status, $head, $content) = neaf->run_test('/from/42/to/');
+is $status, 404, "Not allowed by path_info";
 
 done_testing;

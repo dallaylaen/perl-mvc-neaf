@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1703;
+our $VERSION = 0.1704;
 
 =head1 NAME
 
@@ -272,20 +272,27 @@ sub route {
     $self->_croak( "Unexpected keys in route setup: @extra" )
         if @extra;
 
-    $path = canonize_path( $path );
-
-    if ($path =~ s#/([^:/]*:\w+.*)$##) {
-        my $extra = quotemeta $1;
+    if ($path =~ s#/([^/]*<\w+.*)$##) {
+        my $extra = $1;
         my %seen;
         my @names;
-        while ( $extra =~ s#\\?:(\w+)#(.*?)# ) {
-            $seen{$1}++ and $self->_croak( "Duplicate path_info param $1" );
-            push @names, $1;
+        my @subst;
+        while ( $extra =~ s#<(\w+)(?:=([^>]*))?>|([.<>])#%s# ) {
+            if ($3) {
+                push @subst, quotemeta $3;
+            } else {
+                my ($name, $rex) = ($1, $2);
+                $rex ||= '[^/]+?';
+                $seen{$name}++ and $self->_croak( "Duplicate path_info param $name" );
+                push @names, $name;
+                push @subst, "($rex)";
+            };
         };
         $args{path_info_names} = \@names;
-        $args{path_info_regex} = $extra;
+        $args{path_info_regex} = sprintf $extra, @subst;
     }
 
+    $path = canonize_path( $path );
     _listify( \$args{method}, qw( GET POST ) );
 
     my @dupe = grep { exists $self->{route}{$path}{$_} } @{ $args{method} };
@@ -298,7 +305,6 @@ sub route {
     $profile{code}     = $sub;
     $profile{caller}   = [caller(0)]; # file,line
     if ( !defined $args{path_info_regex} ) {
-        # TODO replace def path_info_regex with '' in v.0.16 aka '404 if unspecified'
         $args{path_info_regex}      = '';
         $profile{no_path_info_regex} = 1;
     };
@@ -1405,22 +1411,19 @@ sub handle_request {
         if ($path_info =~ /%/) {
             $path_info = decode_utf8( uri_unescape( $path_info ) );
         };
+        my @match = $path_info =~ $route->{path_info_regex}
+            or die "404\n";
         if (my $names = $route->{path_info_names}) {
-            my @match = $path_info =~ $route->{path_info_regex}
-                or die "404\n";
             my %pi_param;
             (undef, @pi_param{ @$names }) = @match;
-            $req->_all_params;
+            $req->_all_params; # fetch params to avoid cache pollution
             $req->set_param( %pi_param );
-        } else {
-            $path_info =~ $route->{path_info_regex}
-                or die "404\n";
         };
         $req->set_full_path( $path, $path_info, $route->{no_path_info_regex} );
-        $self->_post_setup( $route )
-            unless exists $route->{lock};
 
         # execute hooks
+        $self->_post_setup( $route )
+            unless exists $route->{lock};
         run_all( $route->{hooks}{pre_logic}, $req)
             if exists $route->{hooks}{pre_logic};
         # Run the controller!
