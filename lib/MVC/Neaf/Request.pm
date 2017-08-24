@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.17;
+our $VERSION = 0.1701;
 
 =head1 NAME
 
@@ -599,7 +599,7 @@ sub set_default {
     my ($self, %args) = @_;
 
     # TODO remove in v.0.20
-    carp "Neaf:set_default() DEPRECATED. Use path-based defaults or stash()";
+    carp "NEAF:set_default() DEPRECATED. Use path-based defaults or stash()";
     foreach (keys %args) {
         defined $args{$_}
             ? $self->{defaults}{$_} = $args{$_}
@@ -737,7 +737,7 @@ sub set_cookie {
     defined $opt{regex} and $cook !~ /^$opt{regex}$/
         and $self->_croak( "output value doesn't match regex" );
     if (exists $opt{expires}) {
-        carp( "set_cookie(): 'expires' parameter detected, use 'expire' instead" );
+        carp( "NEAF set_cookie(): 'expires' parameter detected, use 'expire' instead" );
         $opt{expire} = delete $opt{expires};
     };
 
@@ -1335,7 +1335,8 @@ sub execute_postponed {
 
     $self->{continue}++;
     run_all_nodie( delete $self->{response}{postponed}, sub {
-            carp "WARN ".(ref $self).": postponed action failed: $@"
+            # TODO prettier error handling
+            carp "NEAF WARN ".(ref $self).": postponed action failed: $@";
         }, $self );
 
     return $self;
@@ -1344,6 +1345,9 @@ sub execute_postponed {
 sub DESTROY {
     my $self = shift;
 
+    # TODO Check that request isn't destroyed because of an exception
+    # during sending headers
+    # In this case we're gonna fail silently with cryptic warnings. :(
     $self->execute_postponed
         if (exists $self->{response}{postponed});
 };

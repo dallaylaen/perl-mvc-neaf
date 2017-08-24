@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.17;
+our $VERSION = 0.1701;
 
 =head1 NAME
 
@@ -30,6 +30,7 @@ So this module is here to fill the gap.
 =cut
 
 use File::Basename;
+use Encode;
 
 use MVC::Neaf::Util qw(http_date canonize_path);
 use MVC::Neaf::View::TT;
@@ -173,7 +174,7 @@ sub serve_file {
     };
 
     # don't let unsafe paths through
-    $file =~ m#/../# and die 404;
+    $file =~ m#/\.\./# and die 404;
     $file =~ m#(^|/)\.# and die 404
         unless $self->{allow_dots};
 
@@ -257,6 +258,7 @@ sub list_dir {
 
     my @ret;
     while (my $entry = readdir($fd)) {
+        $entry = decode_utf8($entry);
         $entry =~ /^\./ and next
             unless $self->{allow_dots};
 
