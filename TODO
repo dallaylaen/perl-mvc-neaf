@@ -1,13 +1,9 @@
 SINCE VERSION | TBD VERSION | COMMENT
 
 -- next --
-0.17    0.20    API Chained exception handling
-0.17    0.20    MOD Add JSON body support w/form validation - pre-logic
-0.14    0.20    API Add param regex to route defn
-0.17    0.20    API BREAK make JS default view, deprecate TT
-0.17    0.20    REF rework unicode handling
 
 -- backlog --
+0.17    0.20    MOD Add JSON body support w/form validation - pre-logic
 0.17    0.20    API wildcard parameters qr/.../ => qr/.../ (node_6 => 42)
 0.17    0.20    CLI --listen foo:1337 to run server
 0.17    0.20    REF get rid of CGI & apache backends
@@ -19,6 +15,7 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.09    0.20    MOD Add form defaults populating BOTH raw and data
 0.16    0.20    TPL view default directory layout (./tpl or smth)
 0.02    0.20    DOC HOWTO add dumper to TT view (pre-render)
+0.17    0.20    API Better and more robust exception handling
 0.12    0.30    MOD static file_regex, dir_regex
 0.16    0.30    API Add -charset for content encoding, cleanup -type handling
 0.10    0.30    DOC HOWTO SQL transactions via pre-logic/pre-content hooks
