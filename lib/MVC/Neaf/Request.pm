@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1701;
+our $VERSION = 0.1702;
 
 =head1 NAME
 
@@ -63,6 +63,8 @@ Restrictions MAY BE added in the future though.
 
 sub new {
     my ($class, %args) = @_;
+
+    # TODO 0.20 restrict params
     return bless \%args, $class;
 };
 
@@ -381,7 +383,11 @@ Return param, if it passes regex check, default value or undef otherwise.
 
 The regular expression is applied to the WHOLE string,
 from beginning to end, not just the middle.
-Use '.*' if you really need none.
+Use '.*' if you really trust the data.
+
+B<EXPERIMENTAL> If C<param_regex> hash was given during route definition,
+C<$regex> MAY be omitted for params that were listed there.
+This feature is not stable yet, though. Use with care.
 
 If method other than GET/HEAD is being used, whatever is in the
 address line after ? is IGNORED.
@@ -398,15 +404,19 @@ interpreted as '', returns undef.
 sub param {
     my ($self, $name, $regex, $default) = @_;
 
-    $self->_croak( "validation regex is REQUIRED" )
+    $regex ||= $self->{param_regex}{$name};
+
+    $self->_croak( "NEAF: param(): a validation regex is REQUIRED" )
         unless defined $regex;
 
     # Some write-through caching
     my $value = $self->_all_params->{ $name };
 
-    return (defined $value and $value =~ /^(?:$regex)$/s)
-        ? $value
-        : $default;
+    return $default if !defined $value;
+    return $value   if  $value =~ /^(?:$regex)$/s;
+
+    # TODO die 422 if strict mode on
+    return $default;
 };
 
 =head2 url_param( name => qr/regex/ )
@@ -458,6 +468,10 @@ The name generally follows that of newer L<CGI> (4.08+).
 
 ALL values must match the regex, or an empty list is returned.
 
+B<EXPERIMENTAL> If C<param_regex> hash was given during route definition,
+C<$regex> MAY be omitted for params that were listed there.
+This feature is not stable yet, though. Use with care.
+
 B<EXPERIMENTAL> This method's behaviour MAY change in the future.
 Please be careful when upgrading.
 
@@ -469,6 +483,7 @@ Please be careful when upgrading.
 sub multi_param {
     my ($self, $name, $regex) = @_;
 
+    $regex ||= $self->{param_regex}{$name};
     $self->_croak( "validation regex is REQUIRED" )
         unless defined $regex;
 
@@ -1086,6 +1101,15 @@ sub _set_session_handler {
     $self->{session_cookie} = $data->[1];
     $self->{session_regex}  = $data->[2];
     $self->{session_ttl}    = $data->[3];
+};
+
+sub _import_route {
+    my ($self, $route) = @_;
+
+    $self->{$_} = $route->{$_}
+        for qw(param_regex);
+
+    return $self;
 };
 
 =head1 REPLY METHODS

@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1703;
+our $VERSION = 0.1704;
 
 =head1 NAME
 
@@ -217,10 +217,20 @@ and PATH_INFO matches the regex (without the leading slash).
 
 B<EXPERIMENTAL>. Name and semantics MAY change in the future.
 
+=item * param_regex => { name => qr/.../, name2 => '\d+' }
+
+Add predefined regular expression validation to certain request parameters,
+so that they can be queried by name only.
+See param() in L<MVC::Neaf::Request>.
+
+B<EXPERIMENTAL>. Name and semantics MAY change in the future.
+
 =item * view - default View object for this Controller.
 Must be an object with a C<render> method, or a CODEREF
 receiving hashref and returning a list of two scalars
 (content and content-type).
+
+B<DEPRECATED>. Use -view instead, semantics are the same.
 
 =item * cache_ttl - if set, set Expires: HTTP header accordingly.
 
@@ -242,7 +252,9 @@ This is totally the same as putting them into C<default> hash.
 
 my $year = 365 * 24 * 60 * 60;
 my %known_route_args;
-$known_route_args{$_}++ for qw(default method view cache_ttl path_info_regex description);
+$known_route_args{$_}++ for qw(default method view cache_ttl
+    path_info_regex param_regex
+    description);
 
 sub route {
     my $self = shift;
@@ -308,6 +320,16 @@ sub route {
     # todo_default because some path-based defs will be mixed in later
     $profile{todo_default} = $args{default}
         if $args{default};
+
+    # preprocess regular expression for params
+    if ( my $reg = $args{param_regex} ) {
+        my %real_reg;
+        $self->_croak("param_regex must be a hash of regular expressions")
+            if ref $reg ne 'HASH' or grep { !defined $reg->{$_} } keys %$reg;
+        $real_reg{$_} = qr(^$reg->{$_}$)s
+            for keys %$reg;
+        $profile{param_regex} = \%real_reg;
+    };
 
     if ( $args{cache_ttl} ) {
         $self->_croak("cache_ttl must be a number")
@@ -1401,6 +1423,7 @@ sub handle_request {
         $req->set_full_path( $path, $path_info, $route->{no_path_info_regex} );
         $self->_post_setup( $route )
             unless exists $route->{lock};
+        $req->_import_route( $route );
 
         # execute hooks
         run_all( $route->{hooks}{pre_logic}, $req)
