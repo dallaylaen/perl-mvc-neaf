@@ -66,6 +66,7 @@ MVC::Neaf->route( '/foo' => sub  {
     local $SIG{__DIE__} = \&Carp::cluck;
     ok (!$req->secure, "No ssl under fake apache!!");
     return {
+        -view => 'TT',
         -template => \'[% foo %] [% bar %]',
         foo => scalar $req->param( foo => '.*', 42 ),
         bar => scalar $req->get_cookie( bar => '\w+', 42 ),

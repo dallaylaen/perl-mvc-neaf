@@ -31,7 +31,7 @@ MVC::Neaf->route( "/" => sub {
         fail => $form->error,
         raw  => $form->raw,
     };
-}, view => 'JS' );
+}, -view => 'JS' );
 
 my $app = MVC::Neaf->run;
 

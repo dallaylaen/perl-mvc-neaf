@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1702;
+our $VERSION = 0.1703;
 
 =head1 NAME
 
@@ -180,7 +180,7 @@ our %EXPORT_TAGS = (
 use MVC::Neaf::Util qw(http_date canonize_path path_prefixes run_all run_all_nodie);
 use MVC::Neaf::Request;
 
-our $Inst = __PACKAGE__->new;
+our $Inst;
 
 =head2 route( path => CODEREF, %options )
 
@@ -297,11 +297,13 @@ sub route {
     $profile{description} = $args{description};
 
     if (my $view = $args{view}) {
-        # preload view so we can fail early
-        $view = $self->get_view( $view );
-
-        $args{default}{-view} = ref $args{view} ? $view : $args{view};
+        carp "NEAF: route(): view argument is deprecated, use -view instead";
+        $args{default}{-view} = $view;
     };
+
+    # preload view so that we can fail early
+    $args{default}{-view} = $self->get_view( $args{default}{-view} )
+        if $args{default}{-view};
 
     # todo_default because some path-based defs will be mixed in later
     $profile{todo_default} = $args{default}
@@ -461,16 +463,19 @@ sub pre_route {
     my ($self, $code) = @_;
     $self = $Inst unless ref $self;
 
-    carp ("DEPRECATED: pre_route(): use add_hook( pre_route => CODE ) instead");
+    # TODO 0.20 remove
+    carp ("NEAF: pre_route(): DEPRECATED until 0.20, use add_hook( pre_route => CODE )");
     $self->add_hook( pre_route => $code );
     return $self;
 };
 
 =head2 load_view( $name, $object || coderef || ($module_name, %options) )
 
-Load a view object and cache it under name $name, if $name is true.
-The loaded view is returned.
-All subsequent calls to get_view( $name ) would return that object, too.
+Setup view under name $name.
+Subsequent requests with C<-view = $name> wouldbe processed by that view
+object.
+
+Use C<get_view> to fetch the object itself.
 
 =over
 
@@ -479,8 +484,9 @@ All subsequent calls to get_view( $name ) would return that object, too.
 =item * if module name + parameters is given, try to load module
 and create new() instance.
 
-=item * as a last resort, load stock view: C<TT>, C<JS>, or C<Dumper>.
-Those are prefixed with C<MVC::Neaf::View::>.
+Short aliases JS, TT, and Dumper may be used for MVC::Neaf::View::*
+
+=item * if coderef is given, use it as a C<render> method.
 
 =back
 
@@ -488,7 +494,7 @@ If C<set_forced_view> was called, return its argument instead.
 
 =cut
 
-my %known_view = (
+my %view_alias = (
     TT     => 'MVC::Neaf::View::TT',
     JS     => 'MVC::Neaf::View::JS',
     Dumper => 'MVC::Neaf::View::Dumper',
@@ -500,14 +506,10 @@ sub load_view {
     $self->_croak("At least two arguments required")
         unless defined $name and defined $obj;
 
-    # We've been overridden!
-    return $self->{force_view}
-        if exists $self->{force_view};
-
     # Instantiate if needed
     if (!ref $obj) {
         # in case an alias is used, apply alias
-        $obj = $known_view{ $obj } || $obj;
+        $obj = $view_alias{ $obj } || $obj;
 
         # Try loading...
         if (!$obj->can("new")) {
@@ -521,8 +523,7 @@ sub load_view {
         unless blessed $obj and $obj->can("render")
             or ref $obj eq 'CODE';
 
-    $self->{seen_view}{$name} = $obj
-        if $name;
+    $self->{seen_view}{$name} = $obj;
 
     return $obj;
 };
@@ -543,7 +544,8 @@ sub set_default {
     my ($self, %data) = @_;
     $self = $Inst unless ref $self;
 
-    carp "DEPRECATED use set_path_defaults( '/', \%data ) instead of MVC::Neaf->set_default()";
+    # TODO 0.20 remove
+    carp "DEPRECATED use set_path_defaults( '/', \%data ) instead of set_default()";
 
     return $self->set_path_defaults( '/', \%data );
 };
@@ -1353,8 +1355,11 @@ sub new {
 
     $self->set_forced_view( $force )
         if $force;
-    # avoid an extra ||= in handle requ
-    $self->set_path_defaults( '/' => { -status => 200 } );
+
+    # preload TT view and make it the default.
+    # TODO 0.20 JS must be default instead
+    $self->load_view( default => 'TT', -transitional => 1 );
+    $self->set_path_defaults( '/' => { -status => 200, -view => 'default' } );
 
     return $self;
 };
@@ -1406,7 +1411,7 @@ sub handle_request {
 
     if ($data) {
         # post-process data - fill in request(RD) & global(GD) defaults.
-        # TODO kill request defaults in v.0.20
+        # TODO 0.20 kill request defaults
         my $RD = $req->get_default;
         my $GD = $route->{default};
         exists $data->{$_} or $data->{$_} = $RD->{$_} for keys %$RD;
@@ -1432,7 +1437,7 @@ sub handle_request {
     # produce headers later.
     my $content = \$data->{-content};
     if( !defined $$content) {
-        my $view = $self->get_view( $data->{-view} || $route->{view} );
+        my $view = $self->get_view( $data->{-view} );
         eval {
             run_all( $route->{hooks}{pre_render}, $req )
                 if exists $route->{hooks}{pre_render};
@@ -1612,8 +1617,14 @@ sub _error_to_reply {
                 error => $err,
             );
         };
-        return $ret
-            if (ref $ret eq 'HASH');
+        if (ref $ret eq 'HASH') {
+            # TODO 0.20 remove default, just return
+            if (!$ret->{-view} && !$ret->{-content}) {
+                carp "NEAF: deprecated: missing -view in error handler return";
+                $ret->{-view} = 'default';
+            };
+            return $ret;
+        };
         $self->_log_error( "status $status handler:", $@ );
     };
 
@@ -1654,13 +1665,20 @@ sub get_view {
     my ($self, $view) = @_;
     $self = $Inst unless ref $self;
 
-    if (ref $view) {
-        return $self->load_view( '' => $view );
-    }
-    else {
-        $view = $self->{-view} unless defined $view;
-        return $self->{seen_view}{$view} || $self->load_view( $view, $view );
-    };
+    # We've been overridden!
+    return $self->{force_view}
+        if exists $self->{force_view};
+
+    # An object/code means controller knows better
+    return $view
+        if ref $view;
+
+    # Try loading & caching if not present.
+    $self->load_view( $view, $view )
+        unless $self->{seen_view}{$view};
+
+    # Finally, return the thing.
+    return $self->{seen_view}{$view};
 };
 
 =head2 run_test( \%PSGI_ENV, %options )
@@ -1751,6 +1769,9 @@ sub run_test {
         join '', @{ $ret->[2] },
     );
 };
+
+# Setup default instance, no more code after this
+$Inst = __PACKAGE__->new;
 
 =head1 MORE EXAMPLES
 
