@@ -60,6 +60,7 @@ my $r = Apache2::Request->new (
 $r->{retval}{headers_out} = $r;
 $r->{retval}{headers_in}  = $r;
 
+MVC::Neaf->load_view( TT => 'TT' );
 MVC::Neaf->route( '/foo' => sub  {
     my $req = shift;
 

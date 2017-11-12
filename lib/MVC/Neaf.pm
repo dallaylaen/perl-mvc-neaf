@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1704;
+our $VERSION = 0.1705;
 
 =head1 NAME
 
@@ -1364,8 +1364,9 @@ that handles MVC::Neaf->... requests.
 sub new {
     my ($class, %opt) = @_;
 
+    # TODO implement via path_defaults, too - but not too fast
+    # as it breaks autodetection
     $opt{-type}     ||= "text/html";
-    $opt{-view}     ||= "TT";
     my $force = delete $opt{force_view};
 
     my $self = bless \%opt, $class;
@@ -1380,8 +1381,8 @@ sub new {
 
     # preload TT view and make it the default.
     # TODO 0.20 JS must be default instead
-    $self->load_view( default => 'TT', -transitional => 1 );
-    $self->set_path_defaults( '/' => { -status => 200, -view => 'default' } );
+    $self->load_view( TT => 'TT', -transitional => 1 );
+    $self->set_path_defaults( '/' => { -status => 200, -view => 'TT' } );
 
     return $self;
 };
