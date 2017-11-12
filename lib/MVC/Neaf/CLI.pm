@@ -2,7 +2,7 @@ package MVC::Neaf::CLI;
 
 use strict;
 use warnings;
-our $VERSION = 0.17;
+our $VERSION = 0.1701;
 
 =head1 NAME
 
@@ -186,16 +186,34 @@ sub list {
     foreach my $path( sort keys %$routes ) {
         my $batch = $routes->{$path};
 
+        # first, group methods by description
         my %descr_method;
-        foreach my $method ( keys %$batch ) {
-            my $descr = $batch->{$method}{description} || '';
-            $descr = " # $descr" if $descr;
+        foreach my $method ( sort keys %$batch ) {
+            my $route = $batch->{$method};
+            my @features;
+
+            if ( my $rex = $route->{path_info_regex} ) {
+                $rex = "$rex";
+                $rex =~ m#^\(.*?\((.*)\).*?\)$# and $rex = $1;
+                push @features, "/$rex"
+            };
+            my $param = join "&", map { "$_=$route->{param_regex}{$_}" }
+                sort keys %{ $route->{param_regex} };
+            push @features, "?$param" if $param;
+
+            push @features, " # $route->{description}"
+                if $route->{description};
+
+            my $descr = join "", @features;
+
             push @{ $descr_method{$descr} }, $method;
         };
-        foreach my $descr( keys %descr_method ) {
-            my $method = join ",", @{ $descr_method{$descr} };
-            $path ||= '/';
-            print "$path [$method]$descr\n";
+
+        # now process each group
+        foreach my $descr( sort keys %descr_method ) {
+            my $method = join ",", sort @{ $descr_method{$descr} };
+            $path ||= '/' unless $descr =~ /^\//;
+            print "[$method] $path$descr\n";
         };
     };
 };

@@ -21,7 +21,7 @@ my $data;
 
     $app->run;
 };
-like ($data, qr(^/bar.*GET.*\n/foo.*GET.*\n$)s, "--list works");
+like ($data, qr(^\[.*GET.*/bar.*\n\[.*GET.*/foo.*\n$)s, "--list works");
 unlike $data, qr(noexist), "No mentions of parallel reality routes";
 note $data;
 

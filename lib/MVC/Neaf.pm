@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1705;
+our $VERSION = 0.1706;
 
 =head1 NAME
 
@@ -1272,8 +1272,22 @@ sub get_routes {
     my $self = shift;
     $self = $Inst unless ref $self;
 
-    # shallow copy TODO need 2 layers!
-    return { %{ $self->{route} } };
+    # TODO must do deeper copying
+    # TODO need callback here
+    # TODO filter routes by path & method
+    my $all = $self->{route};
+    my %ret;
+    foreach my $path ( keys %$all ) {
+        my $batch = $all->{$path};
+        foreach my $method ( keys %$batch ) {
+            my $route = $batch->{$method};
+            $self->_post_setup( $route )
+                unless $route->{lock};
+            $ret{$path}{$method} = { %$route };
+        };
+    };
+
+    return \%ret;
 };
 
 =head2 set_forced_view( $view )
@@ -1555,6 +1569,10 @@ sub handle_request {
 sub _post_setup {
     my ($self, $route) = @_;
 
+    # LOCK PROFILE
+    $route->{lock}++
+        and die "MVC::Neaf broken, please file a bug";
+
     # CALCULATE DEFAULTS
     my %def;
     # merge data sources, longer paths first
@@ -1610,9 +1628,6 @@ sub _post_setup {
 
     $route->{hooks} = \%phases;
 
-    # LOCK PROFILE
-    $route->{lock}++
-        and die "MVC::Neaf broken, please file a bug";
     return;
 };
 
