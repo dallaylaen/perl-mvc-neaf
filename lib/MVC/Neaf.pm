@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1707;
+our $VERSION = 0.1708;
 
 =head1 NAME
 
@@ -41,12 +41,27 @@ as a CGI script, PSGI application, or Apache handler.
         my $name = $req->param( name => qr/[\w\s]+/, "Yet another perl hacker" );
 
         return {
+            -view     => 'TT',
             -template => \"Hello, [% name %]",
             -type     => "text/plain",
             name      => $name,
         };
     });
     MVC::Neaf->run;
+
+The same may be written in modernised syntax:
+
+    use MVC::Neaf qw(:sugar);
+
+    get+post '/app' => sub {
+        my $req = shift;
+
+        my $name = $req->param( name => qr/[\w\s]+/, "Yet another perl hacker" );
+        return {
+            -template => \"Hello, [% name %]",
+            name      => $name,
+        }
+    }, -view => 'TT', -type => "text/plain";
 
 =head1 CREATING AN APPLICATION
 
@@ -58,7 +73,8 @@ and outputs a C<\%hashref>.
 It may also die, which will be interpreted as an error 500,
 UNLESS error message starts with 3 digits and a whitespace,
 in which case this is considered the return status.
-E.g. C<die 404;> is a valid method to return "Not Found" right away.
+E.g. C<die 404;> is a valid method to return
+aconfigurable "Not Found" page right away.
 
 Handlers are set using the C<route( path =E<gt> CODEREF );>
 method discussed below.
@@ -86,7 +102,7 @@ or L<Plack::Request> with some minor differences:
 
 One I<major> difference is that there's no (easy) way to fetch
 query parameters or cookies without validation.
-Just use qr/.*/ if you know better.
+Just use C<qr/.*/> if you know better.
 
 Also there are some methods that affect the reply,
 mainly the headers, like C<set_cookie> or C<redirect>.
@@ -150,6 +166,10 @@ C<TT>, C<JS>, C<Full::Module::Name>, and C<$view_predefined_object>
 are currently supported.
 New short aliases may be created by
 C<MVC::Neaf-E<gt>load_view( "name" =E<gt> $your_view );> (see below).
+
+The default is the JS aka L<MVC::Neaf::View::JS> engine.
+Adding C<-template> key will cause switching to C<MVC::Neaf::View::TT>,
+but it is deprecated and will go away in v.0.20.
 
 =back
 
@@ -916,7 +936,7 @@ In order to minimize typing, a less cumbersome prototyped interface is provided:
 
     use MVC::Neaf qw(:sugar);
 
-    get '/foo/bar' => sub { ... }, view => 'TT';
+    get '/foo/bar' => sub { ... }, -view => 'TT';
     neaf error => 404 => \&my_error_template;
 
     neaf->run;
