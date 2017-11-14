@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1701;
+our $VERSION = 0.1702;
 
 =head1 NAME
 
@@ -79,17 +79,8 @@ sub render {
     my $template = $data->{-template} || $self->{template};
 
     if (!defined $template) {
-        # TODO 0.20 just die here
-        croak __PACKAGE__.": -template option is required"
-            unless $self->{-transitional};
-
-        require MVC::Neaf::View::JS;
-        $self->{js_engine} ||= MVC::Neaf::View::JS->new;
-        return $self->{js_engine}->render( $data );
+        croak __PACKAGE__.": -template option is required";
     };
-
-    carp "NEAF Default TT view is deprecated, use load_view() explicitly after v.0.20"
-        if $self->{-transitional} and !$self->{already_warned}++;
 
     my $out;
     $self->{engine}->process( $template, $data, \$out )

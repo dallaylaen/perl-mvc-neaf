@@ -13,11 +13,7 @@ use MVC::Neaf;
 
     warns_like {
         is $n->run_test('/'), "Foo=42", "content rendered";
-    } qr/deprecated/;
-
-    warns_like {
-        is $n->run_test('/'), "Foo=42", "content rendered the same";
-    }; # no second warning!
+    } qr/deprecated/i;
 };
 
 warns_like {

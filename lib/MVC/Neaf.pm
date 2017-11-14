@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1706;
+our $VERSION = 0.1707;
 
 =head1 NAME
 
@@ -1393,10 +1393,8 @@ sub new {
     $self->set_forced_view( $force )
         if $force;
 
-    # preload TT view and make it the default.
-    # TODO 0.20 JS must be default instead
-    $self->load_view( TT => 'TT', -transitional => 1 );
-    $self->set_path_defaults( '/' => { -status => 200, -view => 'TT' } );
+    # TODO 0.20 set default (-view => JS)
+    $self->set_path_defaults( '/' => { -status => 200 } );
 
     return $self;
 };
@@ -1475,10 +1473,21 @@ sub handle_request {
     # produce headers later.
     my $content = \$data->{-content};
     if( !defined $$content) {
+        # TODO 0.20 remove, set default( -view => JS ) instead
+        if (!$data->{-view}) {
+            if ($data->{-template}) {
+                $data->{-view} = 'TT';
+                carp "NEAF: default -view=TT is DEPRECATED, will switch to JS in 0.20";
+            } else {
+                $data->{-view} = 'JS';
+            };
+        };
+
         my $view = $self->get_view( $data->{-view} );
         eval {
             run_all( $route->{hooks}{pre_render}, $req )
                 if exists $route->{hooks}{pre_render};
+
             ($$content, my $type) = blessed $view
                 ? $view->render( $data ) : $view->( $data );
             $data->{-type} ||= $type;
