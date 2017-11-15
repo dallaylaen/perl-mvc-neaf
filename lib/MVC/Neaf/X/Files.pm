@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.1701;
+our $VERSION = 0.1702;
 
 =head1 NAME
 
@@ -91,7 +91,7 @@ sub new {
         or $class->my_croak( "option 'root' is required" );
 
     my @extra = grep { !$static_options{$_} } keys %options;
-    $class->_croak( "Unknown options @extra" )
+    $class->my_croak( "Unknown options @extra" )
         if @extra;
 
     $options{buffer} ||= 4096;
