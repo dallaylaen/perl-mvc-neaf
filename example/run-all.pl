@@ -14,7 +14,7 @@ my $dir = dirname(__FILE__);
 my @files = files_in_dir( $dir, qr/\d+-.*\.pl/ );
 
 foreach my $file (@files) {
-    do "$dir/$file";
+    scalar do "$dir/$file";
 };
 
 # TODO callback introspection!
@@ -54,8 +54,6 @@ Click on each to see what they do.
 </html>
 HTML
 
-neaf->run;
-
 sub files_in_dir {
     my ($dir, $regex) = @_;
 
@@ -64,3 +62,5 @@ sub files_in_dir {
 
     return grep { /^$regex$/ } readdir $fd;
 };
+
+neaf->run;

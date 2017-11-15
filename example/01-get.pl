@@ -1,10 +1,14 @@
 #!/usr/bin/env perl
 
+# This is a very stupid example demonstrating the simplicity
+# of Not Even A Framework
+
 use strict;
 use warnings;
 
 use MVC::Neaf qw(:sugar);
 
+# Some HTML boilerplate
 # This is going to be a separate file in a real world app
 my $tpl = <<'HTML';
 <html>
