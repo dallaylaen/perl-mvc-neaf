@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1708;
+our $VERSION = 0.1709;
 
 =head1 NAME
 
@@ -1686,11 +1686,6 @@ sub _error_to_reply {
             );
         };
         if (ref $ret eq 'HASH') {
-            # TODO 0.20 remove default, just return
-            if (!$ret->{-view} && !$ret->{-content}) {
-                carp "NEAF: deprecated: missing -view in error handler return";
-                $ret->{-view} = 'default';
-            };
             return $ret;
         };
         $self->_log_error( "status $status handler:", $@ );
