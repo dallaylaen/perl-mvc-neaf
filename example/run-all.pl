@@ -1,0 +1,66 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+# Want latest & greates Neaf, not the system's one!
+use File::Basename qw(dirname);
+use lib dirname(__FILE__)."/../lib";
+
+use MVC::Neaf qw(:sugar);
+
+my $dir = dirname(__FILE__);
+
+my @files = files_in_dir( $dir, qr/\d+-.*\.pl/ );
+
+foreach my $file (@files) {
+    do "$dir/$file";
+};
+
+# TODO callback introspection!
+my $all = neaf->get_routes;
+
+my @list;
+foreach my $path (sort keys %$all) {
+    my $descr = $all->{$path}{GET}{description} or next;
+
+    warn "Founf $path - $descr";
+    push @list, {
+        path  => $path,
+        descr => $descr,
+    };
+};
+
+get '/' => sub {
+    return {
+        list => \@list,
+        neaf => 'NEAF '.MVC::Neaf->VERSION,
+    };
+}, -view => 'TT', -template => \<<HTML;
+<html>
+<head>
+    <title>List of examples - [% neaf | html %]</title>
+</head>
+<h1>List of examples - [% neaf | html %]</h1>
+Click on each to see what they do.
+<ul>
+[% FOREACH item IN list %]
+    <li>
+        <a href="[% item.path | html %]">[% item.path | html %]</a>
+        - [% item.descr | html %]
+    </li>
+[% END %]
+</ul>
+</html>
+HTML
+
+neaf->run;
+
+sub files_in_dir {
+    my ($dir, $regex) = @_;
+
+    opendir my $fd, $dir
+        or die "Failed to read dir $dir: $!";
+
+    return grep { /^$regex$/ } readdir $fd;
+};
