@@ -17,8 +17,8 @@ my $port_attempts = 100;
 my $run_attempts  = 10;
 
 # use 09-request example which calls most getters
-my $example = "$root/example/03-request.pl";
-die "No example found in $root/example"
+my $example = "$root/oldexample/03-request.pl";
+die "Example app not found: $example"
     unless -f $example;
 
 my $cginame = basename($example);

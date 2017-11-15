@@ -5,7 +5,7 @@
 #  under the Apache2 web server.
 #  It creates a temp directory and puts a server
 #  config there, starting it if possible.
-#  It also symlinks the example/ directory content
+#  It also symlinks the oldexample/ directory content
 #  into apache's cgi dir, allowing to test
 #  CGI behaviour in real life.
 
@@ -187,14 +187,14 @@ foreach (qw(/ html forms)) {
         or die "Failed to mkdir $dir/$_: $!";
 };
 
-symlink "$Bin/example", "$dir/cgi";
+symlink "$Bin/oldexample", "$dir/cgi";
 my $err = $!;
--l "$dir/cgi" or die "Failed to symlink $dir/cgi -> $Bin/example: $err";
+-l "$dir/cgi" or die "Failed to symlink $dir/cgi -> $Bin/oldexample: $err";
 
-# Autogenerate example index
+# Autogenerate oldexample index
 MVC::Neaf->route( "/" => sub { "forbid / route in examples" });
 my $n;
-foreach my $file (glob "$Bin/example/*.pl") {
+foreach my $file (glob "$Bin/oldexample/*.pl") {
     $n++;
     # Create packages on the fly - need eval here :(
     eval "package My::Isolated::$n; require \$file;"; ## no critic

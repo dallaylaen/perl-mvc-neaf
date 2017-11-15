@@ -16,12 +16,14 @@ my $err_tpl = <<"TT";
 TT
 
 MVC::Neaf->set_error_handler( 404 => {
+    -view     => 'TT',
     -template => \$err_tpl,
-    message => "You are searching in the wrong place",
+    message   => "You are searching in the wrong place",
 } );
 MVC::Neaf->set_error_handler( 405 => {
+    -view     => 'TT',
     -template => \$err_tpl,
-    message => "Not the right method to access this page",
+    message   => "Not the right method to access this page",
 } );
 
 MVC::Neaf->route( cgi => basename(__FILE__) => sub {} => method => ['HEAD']
