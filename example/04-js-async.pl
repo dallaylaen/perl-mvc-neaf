@@ -24,7 +24,7 @@ neaf static => '/04/main.js' => __FILE__.'.data/main.js';
 neaf view   => TT => TT => INCLUDE_PATH => __FILE__.".data";
 
 # display static page - don't even need a $request here
-get '/04' => sub {
+get '/04/async' => sub {
     return {};
 }, default => {
     -view => 'TT',
@@ -63,10 +63,11 @@ post '/04/backend' => sub {
     my @res;
     foreach my $line (split /\n/, $sample) {
         my @parts;
-        while ($line =~ $regex) {
+        while (length $line && $line =~ $regex) {
             # This was taken from `perldoc perlvar` with minimal changes...
-            push @parts, substr( $line, 0, $-[0] ), substr( $line, $-[0], $+[0]-$-[0]);
-            $line = substr $line, $+[0];
+            my ($start, $end) = ($-[0], $+[0] || 1);
+            push @parts, substr( $line, 0, $start ), substr( $line, $start, $end -$start);
+            $line = substr $line, $end;
         };
         push @res, [ @parts, $line ];
     };

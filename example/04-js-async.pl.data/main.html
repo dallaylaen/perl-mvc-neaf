@@ -20,6 +20,9 @@
     <script lang="javascript">
         "use strict";
         function upd() {
+            document.getElementById("reply").innerHTML = 'Waiting...';
+            document.getElementById("raw_reply").innerHTML = 'Waiting...';
+
             var form = document.forms['request'];
             var data = {
                 regex:  form.regex.value,
@@ -29,12 +32,10 @@
             do_request("[% root | html %]/backend", data,
                 function(text) {
                     document.getElementById("raw_reply").innerHTML = text;
-                    document.getElementById("reply").innerHTML = 'TBD...';
                     document.getElementById("reply").innerHTML =
                         colorize_nested( JSON.parse( text ), 'plain', 'color' );
                 },
                 function(err) {
-                    document.getElementById("raw_reply").innerHTML = 'TBD...';
                     document.getElementById("reply").innerHTML =
                         '<span class="error">Error '+err+'</span>'
                 }
@@ -43,6 +44,7 @@
         };
     </script>
 <h1>[% title | html %]</h1>
+<h2>Enter a regular expression and several example strings below</h2>
 <form name="request" onSubmit="return upd()" onLoad="return upd()">
     Regex: <input name="regex" onChange="return upd()">
     <input type="submit" value="Run"><br>
@@ -50,11 +52,11 @@
 </form>
 <h2>Reply:</h2>
 <div id="reply">
-    TBD...
+    Waiting...
 </div>
 <h2>Raw reply</h2>
 <tt id="raw_reply">
-???
+Waiting...
 </tt>
 </body>
 </html>
