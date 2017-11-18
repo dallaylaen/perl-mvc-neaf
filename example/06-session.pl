@@ -1,5 +1,9 @@
 #!/usr/bin/env perl
 
+# This example demonstrates handling sessions & authorization
+#     in Not Even A Framework
+# It also shows how pre_logic hook and custom error handlers can be used.
+
 use strict;
 use warnings;
 
@@ -7,14 +11,15 @@ use MVC::Neaf qw(:sugar);
 use MVC::Neaf::X::Session::Cookie;
 
 # Instantiate session engine
-# One may want a server-side storageif you want more security
+# One may want a server-side storage if you want more security
 #    but the usage is generally the same
 my $sess = MVC::Neaf::X::Session::Cookie->new(
-    cookie => 'neaf.playground.session',
-    key    => 'not so sesret key', # TODO change if you copy-n-paste this ^_^
+    key    => 'not so secret key', # TODO change if you copy-n-paste this ^_^
     expire => 3600,
 );
-neaf session => $sess;
+# Note that the session engine knows *nothing* about cookies, requests and web.
+# It only stores and retreives data and generates unique ids.
+neaf session => $sess, cookie => 'neaf.playground.session';
 
 # Configure a custom template
 neaf view => TT6 => TT =>
@@ -46,7 +51,6 @@ neaf 403 => sub {
 
     # Defaults not getting in here - will need to provide -view
     return {
-        -status    => 403,
         -view     => 'TT6',
         -template => '403.html',
         title     => 'Permission denied',
@@ -55,6 +59,7 @@ neaf 403 => sub {
     };
 };
 
+# Just display the form.
 get '/06/login' => sub {
     my $req = shift;
 
@@ -65,6 +70,9 @@ get '/06/login' => sub {
     };
 };
 
+# User validation is hard (and we also must handle new registrations etc)
+# Plus, we must return user to login page, preserving already-entered data.
+# But this would make this example even bigger.
 post  '/06/login' => sub {
     my $req = shift;
 
@@ -87,12 +95,14 @@ post  '/06/login' => sub {
     $req->redirect( $req->param( back => '/.*' ) || '/06/my' );
 };
 
+# Yes, this simple
 post '/06/logout' => sub {
     my $req = shift;
     $req->delete_session;
     $req->redirect( $req->referer || '/06/my' );
 };
 
+# Finally, this is the precious information we pretend to care about
 get '/06/my' => sub {
     my $req = shift;
 
