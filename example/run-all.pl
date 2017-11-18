@@ -10,11 +10,13 @@ use lib dirname(__FILE__)."/../lib";
 use MVC::Neaf qw(:sugar);
 
 my $dir = dirname(__FILE__);
+$dir = "./$dir" unless $dir =~ m#^/#;
 
 my @files = files_in_dir( $dir, qr/\d+-.*\.pl/ );
 
 foreach my $file (@files) {
-    scalar do "$dir/$file";
+    scalar do "$dir/$file"
+        or die $@ || "Failed to load '$dir/$file':".( $! || "for no reason");
 };
 
 # TODO callback introspection!
