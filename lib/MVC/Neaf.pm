@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1709;
+our $VERSION = 0.1710;
 
 =head1 NAME
 
@@ -1686,6 +1686,7 @@ sub _error_to_reply {
             );
         };
         if (ref $ret eq 'HASH') {
+            $ret->{-status} ||= $status;
             return $ret;
         };
         $self->_log_error( "status $status handler:", $@ );
