@@ -17,10 +17,12 @@ use MVC::Neaf qw(:sugar);
 # The content path has to be specified.
 # Omission of dir_index will lead to a 404 error displayed for all directories
 #     (NOT 403 to avoid exposing directory structure)
-neaf static => '/03/static' => dirname( __FILE__ ), dir_index => 1;
+neaf static => '/03/static' => dirname( __FILE__ ), dir_index => 1,
+    description => 'Browse static content';
 
 # Serving a single file is also possible.
-neaf static => '/03/self'   => __FILE__;
+neaf static => '/03/self'   => __FILE__,
+    description => 'Single-file static content';
 
 # Text files are downloaded, not displayed.
 

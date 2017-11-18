@@ -23,8 +23,9 @@ my $all = neaf->get_routes;
 my @list;
 foreach my $path (sort keys %$all) {
     my $descr = $all->{$path}{GET}{description} or next;
+    $descr =~ /^Static/ and next;
 
-    warn "Founf $path - $descr";
+    warn "Found $path - $descr";
     push @list, {
         path  => $path,
         descr => $descr,
