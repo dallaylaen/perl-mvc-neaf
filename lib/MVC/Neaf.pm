@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1716;
+our $VERSION = 0.1717;
 
 =head1 NAME
 
@@ -371,7 +371,7 @@ sub route {
 }; # end sub route
 
 # This is for get+post sugar
-# TODO merge with alias, GET => implicit HEAD
+# TODO 0.90 merge with alias, GET => implicit HEAD
 sub _dup_route {
     my ($self, $method, $profile) = @_;
 
@@ -761,7 +761,7 @@ B<DEPRECATED>. Same as above, but issues a warning.
 
 =cut
 
-# TODO kill in v.0.20
+# TODO 0.20 remove
 sub error_template {
     my $self = shift;
 
@@ -830,7 +830,7 @@ sub run {
     };
 
     # initialize stuff if first run
-    # TODO don't allow modification after lock
+    # TODO 0.30 don't allow modification after lock
     # Please bear in mind that $_[0] in callbacks is ALWAYS the Request object
     if (!$self->{lock}) {
         if (my $engine = $self->{session_handler}) {
@@ -1266,7 +1266,7 @@ sub add_hook {
     return $self;
 };
 
-# TODO util?
+# TODO 0.90 util?
 # usage: listify ( \$var, default1, default2... )
 # converts scalar in-place to arrayref if needed
 sub _listify {
@@ -1293,9 +1293,9 @@ sub get_routes {
     my $self = shift;
     $self = $Inst unless ref $self;
 
-    # TODO must do deeper copying
-    # TODO need callback here
-    # TODO filter routes by path & method
+    # TODO 0.30 must do deeper copying
+    # TODO 0.30 need callback here
+    # TODO 0.30 filter routes by path & method
     my $all = $self->{route};
     my %ret;
     foreach my $path ( keys %$all ) {
@@ -1399,9 +1399,6 @@ that handles MVC::Neaf->... requests.
 sub new {
     my ($class, %opt) = @_;
 
-    # TODO implement via path_defaults, too - but not too fast
-    # as it breaks autodetection
-    $opt{-type}     ||= "text/html";
     my $force = delete $opt{force_view};
 
     my $self = bless \%opt, $class;
@@ -1449,7 +1446,7 @@ sub _route_request {
             die "405\n";
         };
 
-        # TODO optimize this or do smth. Still MUST keep route_re a prefix tree
+        # TODO 0.90 optimize this or do smth. Still MUST keep route_re a prefix tree
         if ($path_info =~ /%/) {
             $path_info = decode_utf8( uri_unescape( $path_info ) );
         };
@@ -1475,7 +1472,7 @@ sub _route_request {
         exists $data->{$_} or $data->{$_} = $GD->{$_} for keys %$GD;
     } else {
         # Fall back to error page
-        # TODO $req->clear; - but don't kill cleanup hooks
+        # TODO 0.90 $req->clear; - but don't kill cleanup hooks
         $data = $self->_error_to_reply( $req, $@, $route->{caller} );
     };
 
@@ -1514,14 +1511,14 @@ sub _render_content {
             $data->{-type} ||= $type;
         };
         if (!defined $content) {
-            # TODO $req->clear; - but don't kill cleanup hooks
+            # TODO 0.90 $req->clear; - but don't kill cleanup hooks
             # FIXME bug here - resetting data does NOT affect the inside of req
             $self->_log_error( view => $@ );
             $data = {
                 -status => 500,
                 -type   => "text/plain",
             };
-            $content = "Template error."; # TODO configurable
+            $content = "Template error."; # TODO 0.30 configurable
         };
 
     return $content;
@@ -1670,9 +1667,9 @@ sub _post_setup {
                 grep { $route->{path} =~ m#^\Q$_\E(?:/|$)# }
                     @{ $hook->{exclude} }
                         and next;
-                # TODO filter out repetition
+                # TODO 0.90 filter out repetition
                 push @{ $phases{$phase} }, $hook->{code};
-                # TODO also store hook info somewhere for better error logging
+                # TODO 0.30 also store hook info somewhere for better error logging
             };
         };
     };
@@ -1819,7 +1816,7 @@ sub run_test {
             'psgi.version' => [1,1],
         }
     };
-    # TODO more civilized stuff like cookies, headers...
+    # TODO 0.30 complete emulation of everything a sane person needs
     $env->{REQUEST_METHOD} = $opt{method} if $opt{method};
     $env->{$_} = $opt{override}{$_} for keys %{ $opt{override} };
 

@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1708;
+our $VERSION = 0.1709;
 
 =head1 NAME
 
@@ -68,7 +68,7 @@ sub new {
     return bless \%args, $class;
 };
 
-# TODO A lot of copypasted methods down here.
+# TODO 0.90 A lot of copypasted methods down here.
 # Should we join them all? Maybe...
 
 =head2 client_ip()
@@ -124,6 +124,7 @@ Returns true if https:// is used, false otherwise.
 
 =cut
 
+# TODO 0.90 secure should be a flag, scheme should depend on it
 sub secure {
     my $self = shift;
     return $self->scheme eq 'https';
@@ -169,7 +170,7 @@ sub hostname {
     my $self = shift;
 
     return $self->{hostname} ||= $self->do_get_hostname || "localhost";
-    # TODO what if http://0/?
+    # TODO 0.90 what if http://0/?
 };
 
 =head2 port()
@@ -443,7 +444,7 @@ sub param {
     return $default if !defined $value;
     return $value   if  $value =~ /^(?:$regex)$/s;
 
-    # TODO die 422 if strict mode on
+    # TODO 0.30 die 422 if strict mode on
     return $default;
 };
 
@@ -505,7 +506,7 @@ Please be careful when upgrading.
 
 =cut
 
-# TODO merge multi_param, param, and _all_params
+# TODO 0.90 merge multi_param, param, and _all_params
 # backend mechanism.
 
 sub multi_param {
@@ -641,7 +642,7 @@ This will be removed in v.0.20+.
 sub set_default {
     my ($self, %args) = @_;
 
-    # TODO remove in v.0.20
+    # TODO 0.20 remove
     carp "NEAF:set_default() DEPRECATED. Use path-based defaults or stash()";
     foreach (keys %args) {
         defined $args{$_}
@@ -794,7 +795,7 @@ sub set_cookie {
         $opt{domain}, $opt{path}, $opt{expire}, $opt{secure}, $opt{httponly}
     ];
 
-    # TODO also set cookie_in for great consistency, but don't
+    # TODO 0.90 also set cookie_in for great consistency, but don't
     # break reading cookies from backend by cache vivification!!!
     return $self;
 };
@@ -833,7 +834,7 @@ sub format_cookies {
     foreach my $name (keys %$cookies) {
         my ($cook, $regex, $domain, $path, $expire, $secure, $httponly)
             = @{ $cookies->{$name} };
-        next unless defined $cook; # TODO erase cookie if undef?
+        next unless defined $cook; # TODO 0.90 erase cookie if undef?
 
         $path = "/" unless defined $path;
         defined $expire and $expire = http_date( $expire );
@@ -1087,7 +1088,7 @@ sub save_session {
     return $self
         unless exists $self->{session_engine};
 
-    # TODO set "save session" flag, save later
+    # TODO 0.90 set "save session" flag, save later
     my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
     $id ||= $self->{session_engine}->get_session_id();
 
@@ -1123,8 +1124,8 @@ sub delete_session {
     return $self;
 };
 
-# TODO This is awkward, but... Maybe optimize later
-# TODO Replace with callback generator (managed by cb anyway)
+# TODO 0.90 This is awkward, but... Maybe optimize later
+# TODO 0.90 Replace with callback generator (managed by cb anyway)
 sub _set_session_handler {
     my ($self, $data) = @_;
     $self->{session_engine} = $data->[0];
@@ -1380,7 +1381,7 @@ sub execute_postponed {
 
     $self->{continue}++;
     run_all_nodie( delete $self->{response}{postponed}, sub {
-            # TODO prettier error handling
+            # TODO 0.30 prettier error handling
             carp "NEAF WARN ".(ref $self).": postponed action failed: $@";
         }, $self );
 
@@ -1390,7 +1391,7 @@ sub execute_postponed {
 sub DESTROY {
     my $self = shift;
 
-    # TODO Check that request isn't destroyed because of an exception
+    # TODO 0.90 Check that request isn't destroyed because of an exception
     # during sending headers
     # In this case we're gonna fail silently with cryptic warnings. :(
     $self->execute_postponed

@@ -14,7 +14,7 @@ L<MVC::Neaf::Request> object.
 
 =cut
 
-our $VERSION = 0.1701;
+our $VERSION = 0.1702;
 use Carp;
 
 =head2 new(%options)
@@ -157,7 +157,7 @@ sub rewind {
 };
 
 sub DESTROY {
-    # TODO kill the file
+    # TODO 0.30 kill the file
 };
 
 1;

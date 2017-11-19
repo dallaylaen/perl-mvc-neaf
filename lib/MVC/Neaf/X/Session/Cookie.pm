@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session::Cookie;
 
 use strict;
 use warnings;
-our $VERSION = 0.18;
+our $VERSION = 0.1701;
 
 =head1 NAME
 
@@ -61,7 +61,7 @@ Create a cookie from $data hash. Given $id is ignored.
 sub store {
     my ($self, $id, $data) = @_;
 
-    # TODO Make universal HMAC for ALL cookies
+    # TODO 0.90 Make universal HMAC mechanism for ALL cookies
     my $str = encode_base64($data);
     $str =~ s/\s//gs;
     $str .= "~".$self->get_expire;

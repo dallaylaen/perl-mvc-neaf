@@ -2,7 +2,7 @@ package MVC::Neaf::Request::PSGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.1701;
+our $VERSION = 0.1702;
 
 =head1 NAME
 
@@ -171,7 +171,7 @@ sub do_get_upload {
     my ($self, $id) = @_;
 
     $self->{driver_upload} ||= $self->{driver}->uploads;
-    my $up = $self->{driver_upload}{$id}; # TODO don't garble multivalues
+    my $up = $self->{driver_upload}{$id}; # TODO 0.90 don't garble multivalues
 
     return $up ? { tempfile => $up->path, filename => $up->filename } : ();
 };
@@ -225,7 +225,7 @@ sub do_reply {
         return sub {
             my $responder = shift;
 
-            # TODO should handle responder's failure somehow
+            # TODO 0.90 should handle responder's failure somehow
             $self->{writer} = $responder->( [ $status, \@header_array ] );
             $self->{writer}->write( $content ) if defined $content;
 

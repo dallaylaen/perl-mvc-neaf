@@ -2,7 +2,7 @@ package MVC::Neaf::CLI;
 
 use strict;
 use warnings;
-our $VERSION = 0.1702;
+our $VERSION = 0.1703;
 
 =head1 NAME
 
@@ -88,7 +88,7 @@ sub run {
         "cookie=s"  => \@cookie,
         "header=s"  => \@head,
         "view=s"    => \$view,
-        # TODO --session to reduce hassle
+        # TODO 0.30 --session to reduce hassle
     ) or croak "Unknown command line arguments given to MVC::Neaf::CLI";
 
     $opt{method} = uc $opt{method} if $opt{method};

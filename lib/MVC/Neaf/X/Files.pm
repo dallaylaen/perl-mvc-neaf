@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.1702;
+our $VERSION = 0.1703;
 
 =head1 NAME
 
@@ -188,7 +188,7 @@ sub serve_file {
     };
     my $ok = open (my $fd, "<", "$xfile");
     if (!$ok) {
-        # TODO Warn
+        # TODO 0.30 Warn
         die 404;
     };
     binmode $fd;
@@ -252,7 +252,7 @@ As of current, indices are not cached.
 sub list_dir {
     my ($self, $dir) = @_;
 
-    # TODO better error handling (404 or smth)
+    # TODO 0.30 better error handling (404 or smth)
     opendir( my $fd, "$self->{root}/$dir" )
         or $self->my_croak( "Failed to locate directory at $dir: $!" );
 
