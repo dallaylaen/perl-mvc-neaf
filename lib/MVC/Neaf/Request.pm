@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1707;
+our $VERSION = 0.1708;
 
 =head1 NAME
 
@@ -1395,6 +1395,23 @@ sub DESTROY {
     # In this case we're gonna fail silently with cryptic warnings. :(
     $self->execute_postponed
         if (exists $self->{response}{postponed});
+};
+
+=head1 DEVELOPER METHODS
+
+=head2 endpoint_origin
+
+Returns file:line where the route was created.
+
+B<EXPERIMENTAL>. Name and semantics subject to change.
+
+=cut
+
+sub endpoint_origin {
+    my $self = shift;
+
+    return '(unspecified file):0' unless $self->{route}{caller};
+    return join ":", @{ $self->{route}{caller} }[1,2];
 };
 
 =head1 DRIVER METHODS

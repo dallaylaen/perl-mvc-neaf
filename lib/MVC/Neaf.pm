@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1714;
+our $VERSION = 0.1715;
 
 =head1 NAME
 
@@ -274,7 +274,7 @@ my $year = 365 * 24 * 60 * 60;
 my %known_route_args;
 $known_route_args{$_}++ for qw(default method view cache_ttl
     path_info_regex param_regex
-    description);
+    description caller);
 
 sub route {
     my $self = shift;
@@ -316,7 +316,7 @@ sub route {
     # Do the work
     my %profile;
     $profile{code}     = $sub;
-    $profile{caller}   = [caller(0)]; # file,line
+    $profile{caller}   = $args{caller} || [caller(0)]; # file,line
 
     # Always have regex defined to simplify routing
     $profile{path_info_regex} = (defined $args{path_info_regex})
@@ -981,7 +981,8 @@ foreach (qw(get head post put)) {
         # normal operation
         my ($path, $handler, @args) = @_;
 
-        return $Inst->route( $path, $handler, @args, method => $method );
+        return $Inst->route(
+            $path, $handler, @args, method => $method, caller => [caller(0)] );
     };
 
     no strict 'refs'; ## no critic
