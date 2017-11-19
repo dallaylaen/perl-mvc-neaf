@@ -58,7 +58,7 @@ get+post '/07/upload' => sub {
     -view     => 'TT',
     -template => \$tpl,
     title     => "Count most common words in file",
-    file      => 'example 07 NEAF '.MVC::Neaf->VERSION,
+    file      => 'example/07 NEAF '.MVC::Neaf->VERSION,
 }, description => "Demonstrate file upload";
 
 neaf->run;

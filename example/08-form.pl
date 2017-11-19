@@ -19,7 +19,7 @@ use MVC::Neaf::X::Form;
 my $tpl = <<'TT';
 <html>
 <head>
-    <title>Form validation and resubmission</title>
+    <title>Form validation and resubmission - example/08 NEAF [% ver | html %]</title>
 </head>
 <body>
     <style>
@@ -80,6 +80,7 @@ get+post '/08/form' => sub {
     return {
         is_valid => $form->is_valid,
         form     => $form,
+        ver      => MVC::Neaf->VERSION,
     };
 }, -template => \$tpl, description => 'Form validation and resubmission';
 

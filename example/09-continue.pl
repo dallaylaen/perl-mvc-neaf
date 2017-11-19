@@ -39,7 +39,7 @@ get '/09/continue' => sub {
     # Return as usual, headers and first part of page rendered via template
     return {
         title => '3n+1 (Collatz conjecture) generator',
-        file  => 'example 09 NEAF '.MVC::Neaf->VERSION,
+        file  => 'example/09 NEAF '.MVC::Neaf->VERSION,
         start => $start,
     };
     # No headers can be sent beyond this point

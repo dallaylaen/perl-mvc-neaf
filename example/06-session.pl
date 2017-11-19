@@ -29,7 +29,7 @@ neaf view => TT6 => TT =>
 # As always, some default values
 neaf default => '/06' => {
     -view => 'TT6',
-    file  => 'example 06 NEAF '.MVC::Neaf->VERSION,
+    file  => 'example/06 NEAF '.MVC::Neaf->VERSION,
     root  => '/06',
 };
 

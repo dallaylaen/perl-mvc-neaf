@@ -29,7 +29,7 @@ get '/04/async' => sub {
 }, default => {
     -view => 'TT',
     -template => "main.html",
-    title => 'Javascript async request - example NEAF '.MVC::Neaf->VERSION,
+    title => 'Javascript async request - example/04 NEAF '.MVC::Neaf->VERSION,
     root  => '/04',
 }, description => "Async JSON-based request";
 
