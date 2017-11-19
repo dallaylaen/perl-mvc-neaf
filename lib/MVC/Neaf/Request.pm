@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1703;
+our $VERSION = 0.1704;
 
 =head1 NAME
 
@@ -193,10 +193,7 @@ Returns the path part of the uri. Path is guaranteed to start with a slash.
 sub path {
     my $self = shift;
 
-    $self->set_full_path
-        unless exists $self->{path};
-
-    return $self->{path};
+    return $self->{path} ||= $self->do_get_path;
 };
 
 =head2 script_name()
@@ -295,10 +292,6 @@ B<NOTE> Experimental. This part of API is undergoing changes.
 sub path_info {
     my ($self) = @_;
 
-    if (!defined $self->{path_info}) {
-        $self->_croak( "path_info() called, but path_info_regex validation was not set in route()" );
-    };
-
     return $self->{path_info};
 };
 
@@ -315,9 +308,6 @@ set_full_path(undef) resets script_name to whatever returned
 by the underlying driver.
 
 Returns self.
-
-B<NOTE> This is an internal method, don't call it
-unless you know what you're doing.
 
 =cut
 
@@ -345,6 +335,17 @@ sub set_full_path {
 
     $self->{path} = "$self->{script_name}"
         .(length $self->{path_info} ? "/$self->{path_info}" : '');
+    return $self;
+};
+
+sub _import_route {
+    my ($self, $route, $path, $path_info, $tail) = @_;
+
+    $self->{route}        = $route;
+    $self->{script_name}  = $path;
+    $self->{path_info}    = $path_info;
+    $self->{tail_split}   = $tail;
+
     return $self;
 };
 
@@ -400,7 +401,7 @@ interpreted as '', returns undef.
 sub param {
     my ($self, $name, $regex, $default) = @_;
 
-    $regex ||= $self->{param_regex}{$name};
+    $regex ||= $self->{route}{param_regex}{$name};
 
     $self->_croak( "NEAF: param(): a validation regex is REQUIRED" )
         unless defined $regex;
@@ -479,7 +480,7 @@ Please be careful when upgrading.
 sub multi_param {
     my ($self, $name, $regex) = @_;
 
-    $regex ||= $self->{param_regex}{$name};
+    $regex ||= $self->{route}{param_regex}{$name};
     $self->_croak( "validation regex is REQUIRED" )
         unless defined $regex;
 
@@ -1097,15 +1098,6 @@ sub _set_session_handler {
     $self->{session_cookie} = $data->[1];
     $self->{session_regex}  = $data->[2];
     $self->{session_ttl}    = $data->[3];
-};
-
-sub _import_route {
-    my ($self, $route) = @_;
-
-    $self->{$_} = $route->{$_}
-        for qw(param_regex);
-
-    return $self;
 };
 
 =head1 REPLY METHODS

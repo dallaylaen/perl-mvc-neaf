@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1712;
+our $VERSION = 0.1713;
 
 =head1 NAME
 
@@ -1453,10 +1453,9 @@ sub handle_request {
         };
         $path_info =~ $route->{path_info_regex}
             or die "404\n";
-        $req->set_full_path( $path, $path_info );
         $self->_post_setup( $route )
             unless exists $route->{lock};
-        $req->_import_route( $route );
+        $req->_import_route( $route, $path, $path_info );
 
         # execute hooks
         run_all( $route->{hooks}{pre_logic}, $req)
