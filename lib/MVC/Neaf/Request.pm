@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1702;
+our $VERSION = 0.1703;
 
 =head1 NAME
 
@@ -295,9 +295,7 @@ B<NOTE> Experimental. This part of API is undergoing changes.
 sub path_info {
     my ($self) = @_;
 
-    if ($self->{no_path_info_regex}) {
-        # TODO all instances of no_path_info_regex must be killed in v.0.16,
-        # and undefined path_info die here
+    if (!defined $self->{path_info}) {
         $self->_croak( "path_info() called, but path_info_regex validation was not set in route()" );
     };
 
@@ -306,7 +304,7 @@ sub path_info {
 
 =head2 set_full_path( $path )
 
-=head2 set_full_path( $script_name, $path_info, $no_path_info_regex=1|0 )
+=head2 set_full_path( $script_name, $path_info )
 
 Set new path elements which will be returned from this point onward.
 
@@ -324,7 +322,7 @@ unless you know what you're doing.
 =cut
 
 sub set_full_path {
-    my ($self, $script_name, $path_info, $no_path_info_regex) = @_;
+    my ($self, $script_name, $path_info) = @_;
 
     if (!defined $script_name) {
         $script_name = $self->do_get_path;
@@ -340,7 +338,6 @@ sub set_full_path {
         $self->{path_info} = Encode::is_utf8($path_info)
                 ? $path_info
                 : decode_utf8(uri_unescape($path_info));
-        $self->{no_path_info_regex} = $no_path_info_regex;
     } elsif (!defined $self->{path_info}) {
         $self->{path_info} = '';
     };
@@ -370,7 +367,6 @@ sub set_path_info {
     $path_info =~ s#^/+##;
 
     $self->{path_info} = $path_info;
-    delete $self->{no_path_info_regex};
     $self->{path} = "$self->{script_name}"
         .(length $self->{path_info} ? "/$self->{path_info}" : '');
 

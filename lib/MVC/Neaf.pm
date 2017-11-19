@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1710;
+our $VERSION = 0.1711;
 
 =head1 NAME
 
@@ -318,9 +318,7 @@ sub route {
     $profile{code}     = $sub;
     $profile{caller}   = [caller(0)]; # file,line
     if ( !defined $args{path_info_regex} ) {
-        # TODO replace def path_info_regex with '' in v.0.16 aka '404 if unspecified'
         $args{path_info_regex}      = '';
-        $profile{no_path_info_regex} = 1;
     };
     $profile{path_info_regex}  = qr#^/*($args{path_info_regex})$#;
 
@@ -1441,19 +1439,19 @@ sub handle_request {
         # Lookup the rules for the given path
         $req->path =~ $self->{route_re} and my $node = $self->{route}{$1}
             or die "404\n";
+        my ($path, $path_info) = ($1, $2);
         unless ($route = $node->{ $method }) {
             $req->set_header( Allow => join ", ", keys %$node );
             die "405\n";
         };
 
         # TODO optimize this or do smth. Still MUST keep route_re a prefix tree
-        my ($path, $path_info) = ($1, $2);
         if ($path_info =~ /%/) {
             $path_info = decode_utf8( uri_unescape( $path_info ) );
         };
         $path_info =~ $route->{path_info_regex}
             or die "404\n";
-        $req->set_full_path( $path, $path_info, $route->{no_path_info_regex} );
+        $req->set_full_path( $path, $path_info );
         $self->_post_setup( $route )
             unless exists $route->{lock};
         $req->_import_route( $route );
