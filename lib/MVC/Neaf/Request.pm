@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1705;
+our $VERSION = 0.1706;
 
 =head1 NAME
 
@@ -205,6 +205,8 @@ Path will be canonized.
 If no argument given, or it is C<undef>, resets path() value to
 what was given to system value (if any).
 
+Returns self.
+
 =cut
 
 sub set_path {
@@ -213,6 +215,8 @@ sub set_path {
     $self->{path} = defined $new_path
         ? canonize_path( $new_path, 1 )
         : $self->do_get_path;
+
+    $self;
 };
 
 =head2 script_name()
@@ -228,7 +232,7 @@ Unless C<set_path> was called, it is a prefix of C<path()>.
 sub script_name {
     my $self = shift;
 
-    return $self->{script_name} ||= $self->set_path;
+    return $self->{script_name} ||= $self->path;
 };
 
 =head2 get_url_base()
@@ -326,6 +330,8 @@ set_full_path(undef) resets script_name to whatever returned
 by the underlying driver.
 
 Returns self.
+
+B<DEPRECATED> Use set_path() and set_path_info() instead.
 
 =cut
 
