@@ -3,6 +3,9 @@ SINCE VERSION | TBD VERSION | COMMENT
 -- next --
 
 -- backlog --
+0.17    0.20    REF Rewrite $req post-setup in routing phase
+0.17    0.20    DEV Better error reporting with $req->where
+0.17    0.30    MOD Add DSL sugar for forms
 0.17    0.20    MOD Add JSON body support w/form validation - pre-logic
 0.17    0.20    API wildcard parameters qr/.../ => qr/.../ (node_6 => 42)
 0.17    0.20    CLI --listen foo:1337 to run server
