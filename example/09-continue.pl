@@ -30,21 +30,29 @@ my $tpl =<<'HTML';
 
 HTML
 
+# just adding a normal handler...
 get '/09/continue' => sub {
     my $req = shift;
 
     my $start = $req->param( start => '[1-9]\d*' );
+
+    # Return as usual, headers and first part of page rendered via template
     return {
         title => '3n+1 (Collatz conjecture) generator',
         file  => 'example 09 NEAF '.MVC::Neaf->VERSION,
         start => $start,
     };
+    # No headers can be sent beyond this point
 }, -continue => sub {
+    # The one and only parameter is still the request
     my $req = shift;
 
+    # 'reply' hash holds the original reply
     my $x = $req->reply->{start};
     return unless $x;
 
+    # These write & close only become available here.
+    # close can actually be omitted, no problem.
     my $n = 1;
     while ($x > 1) {
         $x = $x % 2 ? 3 * $x + 1 : $x / 2;
@@ -54,3 +62,6 @@ get '/09/continue' => sub {
     $req->write('</body></html>');
     $req->close;
 }, -view => 'TT', -template => \$tpl, description => "Unspecified length reply";
+# And all these usual params & control keys - we're still in route definition
+
+neaf->run;
