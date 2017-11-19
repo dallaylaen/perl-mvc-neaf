@@ -2,7 +2,7 @@ package MVC::Neaf::CLI;
 
 use strict;
 use warnings;
-our $VERSION = 0.1701;
+our $VERSION = 0.1702;
 
 =head1 NAME
 
@@ -128,9 +128,9 @@ sub run {
     # Create and mangle the request
     my $req = MVC::Neaf::Request::CGI->new(%opt);
     if ($ARGV[0] and $ARGV[0] =~ m#/(.*?)(?:\?|$)#) {
-        $req->set_full_path($1);
+        $req->set_path($1);
     } else {
-        $req->set_full_path("/");
+        $req->set_path("/");
     };
 
     # Run the application

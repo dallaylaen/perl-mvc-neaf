@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1706;
+our $VERSION = 0.1707;
 
 =head1 NAME
 
@@ -227,10 +227,15 @@ application being executed.
 Guaranteed to start with slash.
 Unless C<set_path> was called, it is a prefix of C<path()>.
 
+Not avilable before routing was applied to request.
+
 =cut
 
 sub script_name {
     my $self = shift;
+
+    carp "NEAF: script_name call before routing was applied is DEPRECATED"
+        unless $self->{route};
 
     return $self->{script_name} ||= $self->path;
 };
@@ -338,6 +343,8 @@ B<DEPRECATED> Use set_path() and set_path_info() instead.
 sub set_full_path {
     my ($self, $script_name, $path_info) = @_;
 
+    carp "NEAF: set_full_path() is DEPRECATED and will be removed in 0.20";
+
     if (!defined $script_name) {
         $script_name = $self->do_get_path;
     };
@@ -392,7 +399,7 @@ sub set_path_info {
     $path_info =~ s#^/+##;
 
     $self->{path_info} = $path_info;
-    $self->{path} = "$self->{script_name}"
+    $self->{path} = $self->script_name
         .(length $self->{path_info} ? "/$self->{path_info}" : '');
 
     return $self;
@@ -875,7 +882,7 @@ sub error {
 Redirect to a new location.
 
 This throws an MVC::Neaf::Exception object.
-See C<error()> dsicussion above.
+See C<error()> discussion above.
 
 =cut
 
@@ -883,8 +890,10 @@ sub redirect {
     my ($self, $location) = @_;
 
     die MVC::Neaf::Exception->new(
-        -status => 302,
+        -status   => 302,
         -location => $location,
+        -content  => 'See '.$location,
+        -type     => 'text/plain',
     );
 };
 

@@ -7,6 +7,9 @@ use Test::More;
 use MVC::Neaf;
 use MVC::Neaf::CLI;
 
+my $warn = 0;
+$SIG{__WARN__} = sub { $warn++; warn $_[0]; };
+
 my $app = MVC::Neaf->new;
 
 $app->route( foo => sub { +{}} );
@@ -35,4 +38,5 @@ note $data;
 like ($data, qr/\n\n\{\}$/s, "force view worked");
 note $data;
 
+ok !$warn, "$warn warnings issued";
 done_testing;
