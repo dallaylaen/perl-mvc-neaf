@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1713;
+our $VERSION = 0.1714;
 
 =head1 NAME
 
@@ -1155,7 +1155,7 @@ Instead, the corresponding error handler is executed right away.
 Options C<path> and C<exclude> are not available on this stage.
 
 May be useful for mangling path.
-Use C<$request-E<gt>set_full_path($new_path)> if you need to.
+Use C<$request-E<gt>set_path($new_path)> if you need to.
 
 =head3 pre_logic
 

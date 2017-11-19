@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1704;
+our $VERSION = 0.1705;
 
 =head1 NAME
 
@@ -47,7 +47,7 @@ use URI::Escape;
 use Encode;
 use HTTP::Headers;
 
-use MVC::Neaf::Util qw(http_date run_all_nodie);
+use MVC::Neaf::Util qw(http_date run_all_nodie canonize_path);
 use MVC::Neaf::Upload;
 use MVC::Neaf::Exception;
 
@@ -196,21 +196,39 @@ sub path {
     return $self->{path} ||= $self->do_get_path;
 };
 
+=head2 set_path( $new_path )
+
+Set path() to new value. This may be useful in C<pre_route> hook.
+
+Path will be canonized.
+
+If no argument given, or it is C<undef>, resets path() value to
+what was given to system value (if any).
+
+=cut
+
+sub set_path {
+    my ($self, $new_path) = @_;
+
+    $self->{path} = defined $new_path
+        ? canonize_path( $new_path, 1 )
+        : $self->do_get_path;
+};
+
 =head2 script_name()
 
-The part of the request that mathed the route to the
+The part of the request that matched the route to the
 application being executed.
-Guaranteed to start with slash and be a prefix of C<path()>.
+
+Guaranteed to start with slash.
+Unless C<set_path> was called, it is a prefix of C<path()>.
 
 =cut
 
 sub script_name {
     my $self = shift;
 
-    $self->set_full_path
-        unless exists $self->{script_name};
-
-    return $self->{script_name};
+    return $self->{script_name} ||= $self->set_path;
 };
 
 =head2 get_url_base()
