@@ -90,7 +90,7 @@ get+post '/02/request' => sub {
     return {
         title     => 'Taking apart the request object',
         header_in => $req->header_in->as_string,
-        -view     => $req->param(as_json => '1') ? 'JS' : undef,
+        -view     => $req->param(as_json => '1') ? 'JS' : 'TT',
         map { $_  => $req->$_ }
             qw( scheme hostname port method http_version
             path script_name path_info
