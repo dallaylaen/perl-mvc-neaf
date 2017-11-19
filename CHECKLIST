@@ -21,22 +21,13 @@
 # EXPERIMANTAL ReleaseVersion.PL may be used instead of the above
 
 # smoke-test
-% ./apache.cgi start
-- http://localhost:8001/request/parser
-- must redirect, no "unimplemented" (except referer)
-- http://localhost:8000/
-- Click on ALL cgis
 
-% plackup example/all-of-them.psgi
+% plackup example/run-all.pl
+OR
+% twiggy example/run-all.pl
 - http://localhost:5000/
-- click on examples
-- http://localhost:5000/cgi/01-request.pl
-- no "unimplemented" show up
-
-- http://localhost:5000/wiki
-- search
-- click
-- edit an article
+- click on ALL examples
+- check that no errors show up in log
 
 # got here - commit!
 
