@@ -14,10 +14,10 @@ have to remember URLs.
 
 # How examples are organized
 
-The examples are in form of nn-foo.pl, where nn is a 2-digit number
-and foo is a brief symbolic name.
+The examples are in form of `nn-foo.pl`, where *nn* is a 2-digit number
+and *foo* is a brief symbolic name.
 
-All paths inside each example shall start with /nn.
+All paths inside each example shall start with `/nn`.
 
 If a special-case view is needed, it should be named like `TTnn` or smth.
 Bear in mind other examples running in the same namespace.
