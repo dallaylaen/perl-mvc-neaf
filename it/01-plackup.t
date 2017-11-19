@@ -6,25 +6,25 @@ use Test::More;
 use IPC::Open3;
 use LWP::UserAgent;
 use IO::Socket::INET;
+use File::Basename qw(dirname);
 
-use FindBin qw($Bin);
-use File::Basename qw(dirname basename);
-use lib dirname($Bin)."/lib";
-
-my $root = dirname( $Bin );
+my $root = dirname( __FILE__ )."/../";
+$root = "./$root" unless $root =~ m#^/#;
 
 my $port_attempts = 100;
 my $run_attempts  = 10;
 
-# use 09-request example which calls most getters
-my $example = "$root/oldexample/03-request.pl";
+# use request example which calls most getters
+# file & uri hardcoded for now
+my $uri = '/02/request';
+my $example = "$root/example/02-request.pl";
 die "Example app not found: $example"
     unless -f $example;
 
-my $cginame = basename($example);
-
 # make sure example compiles at all
-my $sub = eval { do $example };
+my $sub = eval {
+    do $example;
+};
 
 is (ref $sub, 'CODE', "$example lives and returns coderef")
     or die "Example failed to load: ".($@ || $! || "unexpected return");
@@ -48,10 +48,11 @@ while ($port_attempts --> 0) {
 
     # start plack
     $pid = open3( \*SKIP, \*ALSO_SKIP, \*LOG,
-        "plackup", "--listen", ":$port", "-I$root/lib", $example );
+        "plackup", "--listen", "localhost:$port", "-I$root/lib", $example );
 
     last if $pid;
     last unless $run_attempts --> 0;
+    warn "Failed to load despite free port $port, but trying to continue";
 };
 
 if (!$pid) {
@@ -61,10 +62,12 @@ if (!$pid) {
 };
 
 # Keep in line with the server
+my $did_kill;
 END { kill 9, $pid if $pid }; # TODO check we're still Luke's father
 $SIG{CHLD} = sub {
     undef $pid;
-    die "plack server shut down unexpectedly ($?)";
+    die "plack server shut down unexpectedly ($?)"
+        unless $did_kill;
 };
 
 # don't let this test hang!
@@ -78,7 +81,7 @@ if (!defined $invite) {
     die "Failed to get any prompt from plackup: $!";
 };
 
-my $url = "http://localhost:$port/cgi/$cginame/some/foobar";
+my $url = "http://localhost:$port/$uri/some/foobar";
 
 my $agent = LWP::UserAgent->new;
 
@@ -91,12 +94,14 @@ close (SKIP);
 close (ALSO_SKIP);
 
 delete $SIG{CHLD};
-kill 'INT', $pid;
+kill 'INT', $pid and $did_kill++;
 
 while (<LOG>) {
     note "From server: $_";
 };
 close LOG;
+
+waitpid( $pid, 0 );
 
 done_testing; # plack will be killed anyway
 
