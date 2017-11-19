@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1711;
+our $VERSION = 0.1712;
 
 =head1 NAME
 
@@ -317,10 +317,11 @@ sub route {
     my %profile;
     $profile{code}     = $sub;
     $profile{caller}   = [caller(0)]; # file,line
-    if ( !defined $args{path_info_regex} ) {
-        $args{path_info_regex}      = '';
-    };
-    $profile{path_info_regex}  = qr#^/*($args{path_info_regex})$#;
+
+    # Always have regex defined to simplify routing
+    $profile{path_info_regex} = (defined $args{path_info_regex})
+        ? qr#^($args{path_info_regex})$#
+        : qr#^$#;
 
     # Just for information
     $profile{path}        = $path;
@@ -888,7 +889,8 @@ sub _make_route_re {
     my $re = join "|", map { quotemeta } reverse sort keys %$hash;
 
     # make $1, $2 always defined
-    return qr{^($re)((?:/[^?]*)?)(?:\?|$)};
+    # split into (/foo/bar)/(baz)?param=value
+    return qr{^($re)(?:/*([^?]*)?)(?:\?|$)};
 };
 
 =head1 EXPORTED FUNCTIONS
