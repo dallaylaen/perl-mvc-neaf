@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1715;
+our $VERSION = 0.1716;
 
 =head1 NAME
 
@@ -1427,11 +1427,12 @@ Should not be called directly - use C<run()> instead.
 
 =cut
 
-sub handle_request {
-    my ($self, $req) = @_;
-    $self = $Inst unless ref $self;
+# handle_request is now split into four separate "procedures",
+# but it is still a 200-line method by nature.
 
-    # ROUTE REQUEST
+sub _route_request {
+    my ($self, $req) = @_;
+
     my $route;
     my $data = eval {
         my $method = $req->method;
@@ -1478,8 +1479,6 @@ sub handle_request {
         $data = $self->_error_to_reply( $req, $@, $route->{caller} );
     };
 
-    # END ROUTE REQUEST
-
     $req->_set_reply( $data );
     if (exists $route->{hooks}{pre_content}) {
         run_all_nodie( $route->{hooks}{pre_content}, sub {
@@ -1487,12 +1486,14 @@ sub handle_request {
         }, $req );
     };
 
-    # PROCESS REPLY
+    return ($route, $data);
+}; # end _route_request
 
-    # Render content if needed. This may alter type, so
-    # produce headers later.
-    my $content = \$data->{-content};
-    if( !defined $$content) {
+sub _render_content {
+    my ($self, $route, $req) = @_;
+
+    my $data = $req->reply;
+    my $content;
         # TODO 0.20 remove, set default( -view => JS ) instead
         if (!$data->{-view}) {
             if ($data->{-template}) {
@@ -1508,11 +1509,11 @@ sub handle_request {
             run_all( $route->{hooks}{pre_render}, $req )
                 if exists $route->{hooks}{pre_render};
 
-            ($$content, my $type) = blessed $view
+            ($content, my $type) = blessed $view
                 ? $view->render( $data ) : $view->( $data );
             $data->{-type} ||= $type;
         };
-        if (!defined $$content) {
+        if (!defined $content) {
             # TODO $req->clear; - but don't kill cleanup hooks
             # FIXME bug here - resetting data does NOT affect the inside of req
             $self->_log_error( view => $@ );
@@ -1520,11 +1521,17 @@ sub handle_request {
                 -status => 500,
                 -type   => "text/plain",
             };
-            $$content = "Template error."; # TODO configurable
+            $content = "Template error."; # TODO configurable
         };
-    };
 
-    # TODO should this be a sub?
+    return $content;
+}; # end _render_content
+
+sub _fix_encoding {
+    my (undef, $data) = @_;
+
+    my $content = \$data->{-content};
+
     # Encode unicode content NOW so that we don't lie about its length
     # Then detect ascii/binary
     if (Encode::is_utf8( $$content )) {
@@ -1543,8 +1550,26 @@ sub handle_request {
         $data->{-type} .= "; charset=utf-8"
             unless $data->{-type} =~ /; charset=/;
     };
+}; # end _fix_encoding
 
-    # Mangle headers - NOTE these modifications remain stored in req
+sub handle_request {
+    my ($self, $req) = @_;
+    $self = $Inst unless ref $self;
+
+    # Route request, process logic, generate reply
+    my ($route, $data) = $self->_route_request( $req );
+    # $data == $req->reply at this point
+
+    # Render content if needed.
+    my $content = \$data->{-content};
+    $$content = $self->_render_content( $route, $req )
+        unless defined $$content;
+
+    # encode_utf8 if needed, define -type if none
+    $self->_fix_encoding( $data );
+
+    # MANGLE HEADERS
+    # NOTE these modifications remain stored in req
     my $head = $req->header_out;
     if (my $append = $data->{-headers}) {
         if (ref $append eq 'ARRAY') {
@@ -1557,7 +1582,9 @@ sub handle_request {
             # Would love to die, but it's impossible here
         };
     };
-    $head->init_header( content_type => $data->{-type} || $self->{-type} );
+
+    # The most standard ones...
+    $head->init_header( content_type => $data->{-type} );
     $head->init_header( location => $data->{-location} )
         if $data->{-location};
     $head->push_header( set_cookie => $req->format_cookies );
@@ -1565,9 +1592,8 @@ sub handle_request {
         unless $data->{-continue};
     $head->init_header( expires => http_date( time + $route->{cache_ttl} ) )
         if exists $route->{cache_ttl} and $data->{-status} == 200;
-    $$content = '' if $req->method eq 'HEAD';
 
-    # END PROCESS REPLY
+    # END MANGLE HEADERS
 
     if (exists $route->{hooks}{pre_cleanup}) {
         $req->postpone( $route->{hooks}{pre_cleanup} );
@@ -1580,6 +1606,7 @@ sub handle_request {
 
     # DISPATCH CONTENT
 
+    $$content = '' if $req->method eq 'HEAD';
     if ($data->{-continue} and $req->method ne 'HEAD') {
         $req->postpone( $data->{'-continue'}, 1 );
         $req->postpone( sub { $_[0]->write( $$content ); }, 1 );
