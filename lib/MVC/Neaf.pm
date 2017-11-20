@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1717;
+our $VERSION = 0.1718;
 
 =head1 NAME
 
@@ -1404,7 +1404,7 @@ sub new {
     my $self = bless \%opt, $class;
 
     $self->{on_error} ||= sub {
-        my ($req, $err, $where) = @_;
+        my ($req, $err) = @_;
         $self->_log_error( $req->script_name, $err );
     };
 
@@ -1424,9 +1424,12 @@ Should not be called directly - use C<run()> instead.
 
 =cut
 
-# handle_request is now split into four separate "procedures",
+# sub handle_request is now split into four separate "procedures",
 # but it is still a 200-line method by nature.
 
+# In:   request
+# Out:  $route + $data
+# Side: request modified
 sub _route_request {
     my ($self, $req) = @_;
 
@@ -1465,6 +1468,11 @@ sub _route_request {
 
     if ($data) {
         # post-process data - fill in request(RD) & global(GD) defaults.
+        unless( UNIVERSAL::isa($data, 'HASH') ) {
+            # prevent dying with criptic error message
+            $data = $self->_error_to_reply(
+                $req, $req->_message("returned value is not a hash") );
+        };
         # TODO 0.20 kill request defaults
         my $RD = $req->get_default;
         my $GD = $route->{default};
@@ -1473,7 +1481,20 @@ sub _route_request {
     } else {
         # Fall back to error page
         # TODO 0.90 $req->clear; - but don't kill cleanup hooks
-        $data = $self->_error_to_reply( $req, $@, $route->{caller} );
+        $data = $self->_error_to_reply( $req, $@ );
+    };
+
+    if (my $append = $data->{-headers}) {
+        if (ref $append eq 'ARRAY') {
+            my $head = $req->header_out;
+            for (my $i = 0; $i < @$append; $i+=2) {
+                $head->push_header($append->[$i], $append->[$i+1]);
+            };
+        }
+        else {
+            # Would love to die, but it's impossible here
+            warn $req->_message("-headers must be ARRAY, not ".(ref $append));
+        };
     };
 
     $req->_set_reply( $data );
@@ -1568,17 +1589,6 @@ sub handle_request {
     # MANGLE HEADERS
     # NOTE these modifications remain stored in req
     my $head = $req->header_out;
-    if (my $append = $data->{-headers}) {
-        if (ref $append eq 'ARRAY') {
-            for (my $i = 0; $i < @$append; $i+=2) {
-                $head->push_header($append->[$i], $append->[$i+1]);
-            };
-        }
-        else {
-            carp("Neaf: -headers must be ARRAY, not ".(ref $append));
-            # Would love to die, but it's impossible here
-        };
-    };
 
     # The most standard ones...
     $head->init_header( content_type => $data->{-type} );
@@ -1685,7 +1695,7 @@ sub _post_setup {
 };
 
 sub _error_to_reply {
-    my ($self, $req, $err, $where) = @_;
+    my ($self, $req, $err) = @_;
 
     if (blessed $err and $err->isa("MVC::Neaf::Exception")) {
         $err->{-status} ||= 500;
@@ -1696,7 +1706,8 @@ sub _error_to_reply {
 
     # Try exception handler
     if( !$1 and exists $self->{on_error}) {
-        eval { $self->{on_error}->($req, $err, $where); 1 }
+        # TODO 0.30 Make error processing more robust
+        eval { $self->{on_error}->($req, $err, $req->endpoint_origin); 1 }
             or $self->_log_error( "error handler", $@ );
     };
 
@@ -1705,7 +1716,7 @@ sub _error_to_reply {
         my $ret = eval {
             $self->{error_template}{$status}->( $req,
                 status => $status,
-                caller => $where,
+                caller => $req->endpoint_origin,
                 error => $err,
             );
         };

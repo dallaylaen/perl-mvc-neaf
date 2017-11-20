@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1709;
+our $VERSION = 0.1710;
 
 =head1 NAME
 
@@ -1358,10 +1358,32 @@ sub clear {
     return $self;
 }
 
-=head1 METHODS FOR DRIVER DEVELOPERS
+=head1 DEVELOPER METHODS
 
-The following methods are to be used/redefined by backend writers
-(e.g. if someone makes Request subclass for FastCGI or Microsoft IIS).
+=head2 endpoint_origin
+
+Returns file:line where the route was created.
+
+B<EXPERIMENTAL>. Name and semantics subject to change.
+
+=cut
+
+sub endpoint_origin {
+    my $self = shift;
+
+    return '(unspecified file):0' unless $self->{route}{caller};
+    return join ":", @{ $self->{route}{caller} }[1,2];
+};
+
+# If called outside user's code, carp() will point at http server
+#     which is misleading.
+# So make a warn/die message that actually blames user's code
+sub _message {
+    my ($self, $message) = @_;
+
+    return "NEAF: $message in handler ".$self->method." '".$self->script_name
+        ."' at ".$self->endpoint_origin."\n";
+};
 
 =head2 execute_postponed()
 
@@ -1396,23 +1418,6 @@ sub DESTROY {
     # In this case we're gonna fail silently with cryptic warnings. :(
     $self->execute_postponed
         if (exists $self->{response}{postponed});
-};
-
-=head1 DEVELOPER METHODS
-
-=head2 endpoint_origin
-
-Returns file:line where the route was created.
-
-B<EXPERIMENTAL>. Name and semantics subject to change.
-
-=cut
-
-sub endpoint_origin {
-    my $self = shift;
-
-    return '(unspecified file):0' unless $self->{route}{caller};
-    return join ":", @{ $self->{route}{caller} }[1,2];
 };
 
 =head1 DRIVER METHODS
