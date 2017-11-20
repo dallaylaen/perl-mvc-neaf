@@ -2,7 +2,7 @@ package MVC::Neaf::X::Form;
 
 use strict;
 use warnings;
-our $VERSION = 0.1701;
+our $VERSION = 0.18;
 
 =head1 NAME
 

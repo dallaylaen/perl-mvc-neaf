@@ -2,7 +2,7 @@ package MVC::Neaf::Request::PSGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.1702;
+our $VERSION = 0.18;
 
 =head1 NAME
 
