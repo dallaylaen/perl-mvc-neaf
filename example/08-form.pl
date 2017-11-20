@@ -82,7 +82,8 @@ get+post '/08/form' => sub {
         form     => $form,
         ver      => MVC::Neaf->VERSION,
     };
-}, -template => \$tpl, description => 'Form validation and resubmission';
+}, -view => 'TT', -template => \$tpl,
+    description => 'Form validation and resubmission';
 
 neaf->run;
 

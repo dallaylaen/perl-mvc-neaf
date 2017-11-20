@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1718;
+our $VERSION = 0.1719;
 
 =head1 NAME
 
@@ -1516,7 +1516,7 @@ sub _render_content {
         if (!$data->{-view}) {
             if ($data->{-template}) {
                 $data->{-view} = 'TT';
-                carp "NEAF: default -view=TT is DEPRECATED, will switch to JS in 0.20";
+                warn $req->_message( "default -view=TT is DEPRECATED, will switch to JS in 0.20" );
             } else {
                 $data->{-view} = 'JS';
             };

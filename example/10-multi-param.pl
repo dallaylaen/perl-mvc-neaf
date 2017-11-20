@@ -49,6 +49,7 @@ get+post '/10/multi' => sub {
         day_url    => $req->url_param( day => '.*' ),
     };
 }, default => {
+    -view      => 'TT',
     -template  => \$tpl,
     file       => 'example/10 NEAF '.MVC::Neaf->VERSION,
 }, description => "Multi-value parameters";
