@@ -5,8 +5,17 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.17    0.20    CLI --listen foo:1337 to run server
 0.17    0.20    API Add tail_split for path_info_regex captures
 0.17    0.20    REF get rid of CGI & apache backends
+0.18    0.20    DEV add req->iq, {errro:500, req_id:id}
 
 -- backlog --
+0.18    0.20    TST rename all tests according to README
+0.18    0.20    API neaf form => 'name' => { spec }; $req->from(name)
+0.18    0.20    API neaf under => '/path', $req->under to fetch, pop on run()
+0.18    0.20    API BREAK deprecate path='foo => bar => baz'
+0.18    0.20    DEV last source file, complain if no run() at EOF
+0.18    0.20    API body_content() or smth - decoded as Content-Type suggests (ned accept_body => [ ... ])
+0.18    0.20    TPL pre_content TT-helper - populate title, root, etc
+0.18    0.30    TPL variables -> js module for TT
 0.17    0.20    TPL Predefined header/footer to spare user of boilerplate
 0.17    0.20    TPL More robust options for TPL view
 0.17    0.20    API wildcard parameters qr/.../ => qr/.../ (node_6 => 42)
@@ -39,6 +48,7 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.01    0.99    DEV REPL - term::readline + neaf->run_test
 
 -- think --
+0.18    0.20    MOD api module: neaf crude => '/path' => $object; get /foo =>'method'
 0.14    0.30    API Add forms to route defn (how? named? array?)
 0.14    0.90    NET Generate schema from app conf (@cono)
 0.05    0.90    API Add ability to deploy existing app under unoccupied path
