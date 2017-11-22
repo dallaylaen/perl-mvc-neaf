@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1801;
+our $VERSION = 0.1802;
 
 =head1 NAME
 
@@ -1380,11 +1380,21 @@ sub id {
 
 Set the id above to a user-supplied value.
 
+If a false value given, just generate a new one next time id is requested.
+
+Symbols outside ascii, as well as shitespace and C<"> and C"\", are prohibited.
+
+Returns the request object.
+
 =cut
 
 sub set_id {
-    my $self = shift;
-    $self->{id} = shift;
+    my ($self, $id) = @_;
+
+    !$id or $id =~ /^[\x21-\x7E]+$/ && $id !~ /[\s\"\\]/
+        or $self->_croak( "Bad id format, should only contain printable" );
+
+    $self->{id} = $id;
     return $self;
 };
 

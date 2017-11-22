@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1801;
+our $VERSION = 0.1802;
 
 =head1 NAME
 
@@ -1529,12 +1529,18 @@ sub _render_content {
         if (!defined $content) {
             # TODO 0.90 $req->clear; - but don't kill cleanup hooks
             # FIXME bug here - resetting data does NOT affect the inside of req
-            $self->_log_error( view => $@ );
-            $data = {
+            # TODO copypaste from _error_to_reply
+            my $where = sprintf "%s at %s req_id=%s (%d)"
+                , $req->script_name || "pre_route"
+                , $req->endpoint_origin, $req->id, 500;
+            $self->_log_error( $where => $@ || "Unexpected render failure" );
+            %$data = (
                 -status => 500,
-                -type   => "text/plain",
-            };
-            $content = "Template error."; # TODO 0.30 configurable
+                -type   => "application/json",
+            );
+            # TODO 0.30 configurable
+            $content = '{"error":"500","reason":"rendering error","req_id":"'
+                . $req->id .'"}';
         };
 
     return $content;
