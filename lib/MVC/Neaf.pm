@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1803;
+our $VERSION = 0.1804;
 
 =head1 NAME
 
@@ -274,6 +274,13 @@ This will be displayed if application called with --list (see L<MVC::Neaf::CLI>)
 Also, any number of dash-prefixed keys MAY be present.
 This is totally the same as putting them into C<default> hash.
 
+B<NOTE> For some reason ability to add multicomponent paths
+like (foo => bar => \&code) was added in the past,
+resulting in "/foo/bar" => \&code.
+
+It was never documented, will issue a warning, and will be killed for good
+it v.0.25.
+
 =cut
 
 my $year = 365 * 24 * 60 * 60;
@@ -285,8 +292,12 @@ $known_route_args{$_}++ for qw(default method view cache_ttl
 sub route {
     my $self = shift;
 
+    # TODO 0.25 kill this for good, just
+    #     my ($path, $sub, %args) = @_;
     # HACK!! pack path components together, i.e.
     # foo => bar => \&handle eq "/foo/bar" => \&handle
+    carp "NEAF: using multi-component path in route() is DEPRECATED and is to be removed in v.0.25"
+        unless ref $_[1];
     my ( $path, $sub );
     while ($sub = shift) {
         last if ref $sub;
