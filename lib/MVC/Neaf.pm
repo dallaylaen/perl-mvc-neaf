@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.18;
+our $VERSION = 0.1801;
 
 =head1 NAME
 
@@ -1403,11 +1403,6 @@ sub new {
 
     my $self = bless \%opt, $class;
 
-    $self->{on_error} ||= sub {
-        my ($req, $err) = @_;
-        $self->_log_error( $req->script_name, $err );
-    };
-
     $self->set_forced_view( $force )
         if $force;
 
@@ -1694,6 +1689,10 @@ sub _post_setup {
     return;
 };
 
+# TODO 0.30 rework error handling altogether:
+#    - convert all errors (inc. blessed) to exceptions
+#    - stabilize error templates
+#    - configurable & robust on_error, log_error (join the 2???)
 sub _error_to_reply {
     my ($self, $req, $err) = @_;
 
@@ -1703,12 +1702,16 @@ sub _error_to_reply {
     };
 
     my $status = (!ref $err && $err =~ /^(\d\d\d)/) ? $1 : 500;
+    my $sudden = !$1;
 
     # Try exception handler
-    if( !$1 and exists $self->{on_error}) {
-        # TODO 0.30 Make error processing more robust
-        eval { $self->{on_error}->($req, $err, $req->endpoint_origin); 1 }
-            or $self->_log_error( "error handler", $@ );
+    if( $sudden and exists $self->{on_error}) {
+        eval {
+            $self->{on_error}->($req, $err, $req->endpoint_origin);
+            $sudden = 0;
+            1;
+        }
+            or $self->_log_error( "on_error callback failed", $@ );
     };
 
     # Try fancy error template
@@ -1724,14 +1727,21 @@ sub _error_to_reply {
             $ret->{-status} ||= $status;
             return $ret;
         };
-        $self->_log_error( "status $status handler:", $@ );
+        $self->_log_error( "error_template $status failed:", $@ );
     };
 
     # Options exhausted - return plain error message
+    my $req_id = $req->id;
+    if ($sudden) {
+        my $where = sprintf "%s at %s req_id=%s (%d)"
+            , $req->script_name || "pre_route"
+            , $req->endpoint_origin, $req->id, $status;
+        $self->_log_error($where, $err);
+    };
     return {
         -status     => $status,
-        -type       => 'text/plain',
-        -content    => "Error $status\n",
+        -type       => 'application/json',
+        -content    => qq({"error":"$status","req_id":"$req_id"}),
     };
 };
 
@@ -1743,6 +1753,7 @@ sub _croak {
     croak( (ref $self || $self)."->$where: $msg" );
 };
 
+# TODO 0.20 use req->id, req->origin etc
 sub _log_error {
     my ($self, $where, $err) = @_;
 
