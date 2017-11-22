@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1802;
+our $VERSION = 0.1803;
 
 =head1 NAME
 
@@ -323,6 +323,20 @@ sub path_info {
     return $self->{path_info};
 };
 
+=head2 path_info_split
+
+Return a list of matched capture groups found in path_info_regex, if any.
+
+B<EXPERIMENTAL> Name and meaning subject to change.
+
+=cut
+
+sub path_info_split {
+    my $self = shift;
+
+    return @{ $self->{path_info_split} || [] };
+};
+
 =head2 set_full_path( $path )
 
 =head2 set_full_path( $script_name, $path_info )
@@ -376,7 +390,7 @@ sub _import_route {
     $self->{route}        = $route;
     $self->{script_name}  = $path;
     $self->{path_info}    = $path_info;
-    $self->{tail_split}   = $tail;
+    $self->{path_info_split}   = $tail;
 
     return $self;
 };

@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1802;
+our $VERSION = 0.1803;
 
 =head1 NAME
 
@@ -233,7 +233,13 @@ one MAY define a separate HEAD handler explicitly.
 to be handled by this handler.
 
 A 404 error will be generated unless C<path_info_regex> is present
-and PATH_INFO matches the regex (without the leading slash).
+and PATH_INFO matches the regex (without the leading slashes).
+
+If path_info_regex matches, it will be available in the controller
+as C<$req-<gt>path_info>.
+
+If capture groups are present in said regular expression,
+their content will also be available as C<$req-<gt>path_info_split>.
 
 B<EXPERIMENTAL>. Name and semantics MAY change in the future.
 
@@ -320,7 +326,7 @@ sub route {
 
     # Always have regex defined to simplify routing
     $profile{path_info_regex} = (defined $args{path_info_regex})
-        ? qr#^($args{path_info_regex})$#
+        ? qr#^$args{path_info_regex}$#
         : qr#^$#;
 
     # Just for information
@@ -1443,16 +1449,16 @@ sub _route_request {
             $req->set_header( Allow => join ", ", keys %$node );
             die "405\n";
         };
+        $self->_post_setup( $route )
+            unless exists $route->{lock};
 
         # TODO 0.90 optimize this or do smth. Still MUST keep route_re a prefix tree
         if ($path_info =~ /%/) {
             $path_info = decode_utf8( uri_unescape( $path_info ) );
         };
-        $path_info =~ $route->{path_info_regex}
+        my @split = $path_info =~ $route->{path_info_regex}
             or die "404\n";
-        $self->_post_setup( $route )
-            unless exists $route->{lock};
-        $req->_import_route( $route, $path, $path_info );
+        $req->_import_route( $route, $path, $path_info, \@split );
 
         # execute hooks
         run_all( $route->{hooks}{pre_logic}, $req)
