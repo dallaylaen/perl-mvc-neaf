@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.18;
+our $VERSION = 0.1801;
 
 =head1 NAME
 
@@ -1359,6 +1359,34 @@ sub clear {
 }
 
 =head1 DEVELOPER METHODS
+
+=head2 id()
+
+Lazily fetch unique request id. These are guaranteed to be unique
+on a given machine within a reasonable timeframe.
+
+=cut
+
+my $lastid;
+sub id {
+    my $self = shift;
+
+    # Technically it is possible to repeat it by running a new process
+    # in the same second as the same pid... But who would?
+    return $self->{id} ||= unpack "H*", pack "N*", $$, CORE::time, ++$lastid;
+};
+
+=head2 set_id( $new_value )
+
+Set the id above to a user-supplied value.
+
+=cut
+
+sub set_id {
+    my $self = shift;
+    $self->{id} = shift;
+    return $self;
+};
 
 =head2 endpoint_origin
 
