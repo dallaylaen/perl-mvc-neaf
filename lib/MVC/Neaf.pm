@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1804;
+our $VERSION = 0.1805;
 
 =head1 NAME
 
@@ -838,6 +838,17 @@ sub run {
     my $self = shift;
     $self = $Inst unless ref $self;
 
+    if (!defined wantarray) {
+        # void context - we're being called as CGI
+        if (@ARGV) {
+            require MVC::Neaf::CLI;
+            MVC::Neaf::CLI->run($self);
+        } else {
+            require Plack::Handler::CGI;
+            Plack::Handler::CGI->new->run( $self->run );
+        };
+    };
+
     $self->{route_re} ||= $self->_make_route_re;
 
     # Add implicit HEAD for all GETs via shallow copy
@@ -873,28 +884,11 @@ sub run {
         };
     };
 
-    if (defined wantarray) {
-        # The run method is being called in non-void context
-        # This is the case for PSGI, but not CGI (where it's just
-        # the last statement in the script).
-
-        # PSGI
-        require MVC::Neaf::Request::PSGI;
-        return sub {
-            my $env = shift;
-            my $req = MVC::Neaf::Request::PSGI->new( env => $env );
-            return $self->handle_request( $req );
-        };
-    } else {
-        # void context - CGI called.
-        if (@ARGV) {
-            require MVC::Neaf::CLI;
-            MVC::Neaf::CLI->run($self);
-        } else {;
-            require MVC::Neaf::Request::CGI;
-            my $req = MVC::Neaf::Request::CGI->new;
-            $self->handle_request( $req );
-        };
+    require MVC::Neaf::Request::PSGI;
+    return sub {
+        my $env = shift;
+        my $req = MVC::Neaf::Request::PSGI->new( env => $env );
+        return $self->handle_request( $req );
     };
 };
 
