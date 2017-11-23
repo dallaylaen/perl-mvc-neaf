@@ -2,7 +2,7 @@ package MVC::Neaf::CLI;
 
 use strict;
 use warnings;
-our $VERSION = 0.1802;
+our $VERSION = 0.1803;
 
 =head1 NAME
 
@@ -94,6 +94,21 @@ sub run {
     return $self->list($app)
         if $todo eq 'list';
 
+    return $self->run_test($app, %test)
+        if $todo eq 'run';
+
+    die "Unimplemented";
+};
+
+=head2 run_test( $app, %override )
+
+Call L<MVC::Neaf>'s C<run_test>.
+
+=cut
+
+sub run_test {
+    my ($self, $app, %test) = @_;
+
     $test{method} = uc $test{method} if $test{method};
 
     croak "--upload requires --post"
@@ -109,7 +124,7 @@ sub run {
 
             # TODO 0.30 create temp file
             $test{uploads}{$key} = MVC::Neaf::Upload->new(
-                id => $key, handle => $fd );
+                id => $key, handle => $fd, filename => $file );
         };
     };
 
