@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1806;
+our $VERSION = 0.1807;
 
 =head1 NAME
 
@@ -846,6 +846,9 @@ sub run {
             MVC::Neaf::CLI->run($self);
         } else {
             require Plack::Handler::CGI;
+            # Somehow this caused uninitialized warning in Plack::Handler::CGI
+            $ENV{SCRIPT_NAME} = ''
+                unless defined $ENV{SCRIPT_NAME};
             Plack::Handler::CGI->new->run( $self->run );
         };
     };
