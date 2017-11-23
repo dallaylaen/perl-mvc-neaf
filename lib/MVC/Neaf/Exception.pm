@@ -2,7 +2,7 @@ package MVC::Neaf::Exception;
 
 use strict;
 use warnings;
-our $VERSION = 0.1801;
+our $VERSION = 0.19;
 
 =head1 NAME
 

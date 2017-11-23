@@ -1,7 +1,7 @@
 SINCE VERSION | TBD VERSION | COMMENT
     -- next --
-0.18    0.20    API neaf form => 'name' => { spec }; $req->from(name)
     -- backlog --
+0.18    0.20    API neaf form => 'name' => { spec }; $req->from(name)
 0.18    0.20    API neaf prefix => '/path', $req->prefix to fetch, pop on run()
 0.17    0.20    MOD Add JSON body support w/form validation - pre-logic
 0.18    0.20    TPL pre_content TT-helper - populate title, root, etc
@@ -13,7 +13,6 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.16    0.20    MOD OpenAPI plugin: model+in-spec+out-spec => swagger.txt+routes
 0.16    0.20    TPL view default directory layout (./tpl or smth)
 0.15    0.20    DOC Make fun sugar main API, OO as backup
-0.17    0.20    MOD wildcard forms qr/.../ => qr/.../ (node_6 => 42)
 0.18    0.30    API body_content() or smth - decoded as Content-Type suggests (ned accept_body => [ ... ])
 0.17    0.30    API Better and more robust exception handling
 0.18    0.30    NET deprecate apache backend
