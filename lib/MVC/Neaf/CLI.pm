@@ -2,7 +2,7 @@ package MVC::Neaf::CLI;
 
 use strict;
 use warnings;
-our $VERSION = 0.1801;
+our $VERSION = 0.1802;
 
 =head1 NAME
 
@@ -57,7 +57,6 @@ use File::Basename qw(basename);
 
 use MVC::Neaf;
 use MVC::Neaf::Upload;
-use MVC::Neaf::Request::CGI;
 
 =head2 run( $app )
 
