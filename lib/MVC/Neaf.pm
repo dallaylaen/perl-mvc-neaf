@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1805;
+our $VERSION = 0.1806;
 
 =head1 NAME
 
@@ -199,6 +199,7 @@ our %EXPORT_TAGS = (
 
 use MVC::Neaf::Util qw(http_date canonize_path path_prefixes run_all run_all_nodie);
 use MVC::Neaf::Request;
+use MVC::Neaf::Request::PSGI;
 
 our $Inst;
 
@@ -884,7 +885,6 @@ sub run {
         };
     };
 
-    require MVC::Neaf::Request::PSGI;
     return sub {
         my $env = shift;
         my $req = MVC::Neaf::Request::PSGI->new( env => $env );
@@ -1827,20 +1827,35 @@ Continuation responses are supported, but will be returned in one chunk.
 
 =item * method - set method (default is GET)
 
-=item * override = \%hash - force certain data in ENV
-
 =item * cookie = \%hash - force HTTP_COOKIE header
+
+=item * header = \%hash - override some headers
+This gets overridden by type, cookie etc. in case of conflict
 
 =item * body = 'DATA' - force body in request
 
+=item * type - content-type of body
+
+=item * uploads - a hash of L<MVC::Neaf::Upload> objects.
+
 =item * secure = 0|1 - http vs https
+
+=item * override = \%hash - force certain data in ENV
+Gets overridden by all of the above.
 
 =back
 
 =cut
 
+my %run_test_allow;
+$run_test_allow{$_}++
+    for qw( type method cookie body override secure uploads header );
 sub run_test {
     my ($self, $env, %opt) = @_;
+
+    my @extra = grep { !$run_test_allow{$_} } keys %opt;
+    $self->_croak( "Extra keys @extra" )
+        if @extra;
 
     if (!ref $env) {
         $env =~ /^(.*?)(?:\?(.*))?$/;
@@ -1859,6 +1874,13 @@ sub run_test {
     $env->{REQUEST_METHOD} = $opt{method} if $opt{method};
     $env->{$_} = $opt{override}{$_} for keys %{ $opt{override} };
 
+    if (my $head = $opt{header} ) {
+        foreach (keys %$head) {
+            my $name = uc $_;
+            $name =~ tr/-/_/;
+            $env->{"HTTP_$name"} = $head->{$_};
+        };
+    };
     if (exists $opt{secure}) {
         $env->{'psgi.url_scheme'} = $opt{secure} ? 'https' : 'http';
     };
@@ -1883,7 +1905,14 @@ sub run_test {
         $env->{CONTENT_TYPE} = $opt{type} eq '?' ? '' : $opt{type}
     };
 
-    my $ret = $self->run->( $env );
+    my %fake;
+    $fake{uploads} = delete $opt{uploads};
+
+    scalar $self->run; # warn up caches
+
+    my $req = MVC::Neaf::Request::PSGI->new( %fake, env => $env );
+
+    my $ret = $self->handle_request( $req );
     if (ref $ret eq 'CODE') {
         # PSGI functional interface used.
         require MVC::Neaf::Request::FakeWriter;

@@ -2,7 +2,7 @@ package MVC::Neaf::CLI;
 
 use strict;
 use warnings;
-our $VERSION = 0.18;
+our $VERSION = 0.1801;
 
 =head1 NAME
 
@@ -55,8 +55,9 @@ use Carp;
 use HTTP::Headers;
 use File::Basename qw(basename);
 
-use MVC::Neaf::Request::CGI;
+use MVC::Neaf;
 use MVC::Neaf::Upload;
+use MVC::Neaf::Request::CGI;
 
 =head2 run( $app )
 
@@ -73,70 +74,77 @@ sub run {
     my ($self, $app) = @_;
 
     my $todo = "run";
-    my %opt;
-    my @upload;
-    my @cookie;
-    my @head;
-    my $view;
+    my %test;
+    my %server;
 
     GetOptions(
-        "help"      => \&usage,
-        "list"      => sub { $todo = "list" },
-        "post"      => sub { $opt{method} = 'POST' },
-        "method=s"  => \$opt{method},
-        "upload=s"  => \@upload,
-        "cookie=s"  => \@cookie,
-        "header=s"  => \@head,
-        "view=s"    => \$view,
+        "help"       => \&usage,
+        "list"       => sub { $todo = "list" },
+        "post"       => sub { $test{method} = 'POST' },
+        "method=s"   => \$test{method},
+        "upload=s@"  => \$test{upload},
+        "cookie=s@"  => \$test{cookie},
+        "header=s@"  => \$test{head},
+        "view=s"     => \$test{view},
         # TODO 0.30 --session to reduce hassle
     ) or croak "Unknown command line arguments given to MVC::Neaf::CLI";
 
-    $opt{method} = uc $opt{method} if $opt{method};
+    %test and %server
+        and croak "NEAF CLI: server and test option groups are mutually exclusive";
+
+    return $self->list($app)
+        if $todo eq 'list';
+
+    $test{method} = uc $test{method} if $test{method};
 
     croak "--upload requires --post"
-        if @upload and $opt{method} ne 'POST';
+        if $test{upload} and $test{method} ne 'POST';
 
-    if ($todo eq 'list') {
-        return $self->list( $app );
+    if (my $up =  delete $test{upload}) {
+        foreach (@$up) {
+            /^(\w+)=(.+)$/ or croak "Usage: --upload key=/path/to/file";
+            my ($key, $file) = ($1, $2);
+
+            open my $fd, "<", $file
+                or die "Failed to open upload $key file $file: $!";
+
+            # TODO 0.30 create temp file
+            $test{uploads}{$key} = MVC::Neaf::Upload->new(
+                id => $key, handle => $fd );
+        };
     };
 
-    foreach (@upload) {
-        /^(\w+)=(.+)$/ or croak "Usage: --upload key=/path/to/file";
-        my ($key, $file) = ($1, $2);
-
-        open my $fd, "<", $file
-            or die "Failed to open upload $key file $file: $!";
-
-        $opt{uploads}{$key} = MVC::Neaf::Upload->new(
-            id => $key, handle => $fd );
+    if (my $cook = delete $test{cookie}) {
+        foreach (@$cook) {
+            /^(\w+)=(.*)$/
+                or croak "Usage: --cookie name=value";
+            $test{cookie}{$1} = $2;
+        };
     };
 
-    foreach (@cookie) {
-        /^(\w+)=(.*)$/
-            or croak "Usage: --cookie name=value";
-
-        $opt{neaf_cookie_in}{$1} = $2;
-    };
-
-    if (@head) {
-        $opt{header_in} = HTTP::Headers->new (
+    if (my @head = @{ delete $test{head} || [] }) {
+        $test{header_in} = HTTP::Headers->new (
             map { /^([^=]+)=(.*)$/ or croak "Bad header format"; $1=>$2 } @head
         );
     };
 
-
-    # Create and mangle the request
-    my $req = MVC::Neaf::Request::CGI->new(%opt);
-    if ($ARGV[0] and $ARGV[0] =~ m#/(.*?)(?:\?|$)#) {
-        $req->set_path($1);
-    } else {
-        $req->set_path("/");
+    my ($path, @rest) = @ARGV;
+    $path ||= '/';
+    if (@rest) {
+        my $sep = $path =~ /\?/ ? '&' : '?';
+        $path .= $sep . join '&', @rest;
     };
 
-    # Run the application
-    $app->set_forced_view( $view ) if $view;
-    my $unused = $app->run(); # warm up caches
-    $app->handle_request( $req );
+    if (my $view = delete $test{view}) {
+        $app->set_forced_view( $view );
+    };
+
+    my ($status, $head, $content) = $app->run_test( $path, %test );
+
+    print STDOUT "Status $status\n";
+    print STDOUT $head->as_string, "\n";
+    print STDOUT $content;
+    # exit?
 };
 
 =head2 usage()
