@@ -2,7 +2,7 @@ package MVC::Neaf::Util;
 
 use strict;
 use warnings;
-our $VERSION = 0.19;
+our $VERSION = 0.1901;
 
 =head1 NAME
 
@@ -19,15 +19,15 @@ This module optionally exports anything it has.
 =cut
 
 use parent qw(Exporter);
-our @EXPORT_OK = qw(http_date canonize_path path_prefixes run_all run_all_nodie);
-
+our @EXPORT_OK = qw(
+    canonize_path http_date path_prefixes rex run_all run_all_nodie);
 
 =head2 http_date
 
 Return a date in format required by HTTP standard for cookies
 and cache expiration.
 
-# Expires=Wed, 13 Jan 2021 22:23:01 GMT;
+    Expires=Wed, 13 Jan 2021 22:23:01 GMT;
 
 =cut
 
@@ -83,6 +83,18 @@ sub path_prefixes {
     return @ret;
 };
 
+=head2 rex( $string || qr/r.e.g.e.x/ )
+
+Convert string or regex to an I<anchored> regex.
+
+=cut
+
+sub rex ($) { ## no critic
+    my $in = shift;
+    $in = '' unless defined $in;
+    return qr/^$in$/;
+};
+
 =head2 run_all( [CODE, ...], @args )
 
 Run all subroutines in array. Exceptions not handled. Return nothing.
@@ -120,5 +132,19 @@ sub run_all_nodie {
 
     return $dead;
 };
+
+=head1 LICENSE AND COPYRIGHT
+
+This module is part of the L<MVC::Neaf> suite.
+
+Copyright 2016-2017 Konstantin S. Uvarin.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of either: the GNU General Public License as published
+by the Free Software Foundation; or the Artistic License.
+
+See http://dev.perl.org/licenses/ for more information.
+
+=cut
 
 1;
