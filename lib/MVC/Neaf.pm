@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1901;
+our $VERSION = 0.1902;
 
 =head1 NAME
 
@@ -190,6 +190,11 @@ use MVC::Neaf::Util qw(http_date canonize_path path_prefixes run_all run_all_nod
 use MVC::Neaf::Request::PSGI;
 
 our $Inst;
+
+my %FORM_ENGINE = (
+    neaf => 'MVC::Neaf::X::Form',
+    livr => 'MVC::Neaf::X::Form::LIRV',
+);
 
 =head2 get '/path' => sub { ... }, %options
 
@@ -808,6 +813,76 @@ sub set_session_handler {
     return $self;
 };
 
+=head2 neaf form => name => $validator
+
+=head2 neaf form => name => \%spec, engine => ...
+
+=head2 add_form( name => $validator )
+
+Create a named form for future data validation.
+
+Form is created once and applied to different sets of data,
+returning an object containing collected valid data, errors (if any),
+and an is_valid flag.
+
+Consider the following script:
+
+    use MVC::Neaf qw(:sugar);
+    neaf form => my => { foo => '\d+', bar => '[yn]' };
+    get '/check' => sub {
+        my $req = shift;
+        my $in = $req->form("my");
+        return $in->is_valid ? { ok => $in->data } : { error => $in->error };
+    };
+    neaf->run
+
+And by running this one gets
+
+    bash$ curl http://localhost:5000/check?bar=xxx
+    {"error":{"bar":"BAD_FORMAT"}}
+    bash$ curl http://localhost:5000/check?bar=y
+    {"ok":{"bar":"y"}}
+    bash$ curl http://localhost:5000/check?bar=yy
+    {"error":{"bar":"BAD_FORMAT"}}
+    bash$ curl http://localhost:5000/check?foo=137\&bar=n
+    {"ok":{"bar":"n","foo":"137"}}
+    bash$ curl http://localhost:5000/check?foo=leet
+    {"error":{"foo":"BAD_FORMAT"}}
+
+See more in L<MVC::Neaf::X::Form>.
+
+C<engine> parameter has predefined values 'Livr' and 'Neaf' (the deafult)
+that will point
+towards built-in validation class. You are encouraged to use LIVR
+(See L<Validator::LIVR> and L<LIVR grammar|https://github.com/koorchik/LIVR>)
+for anything except super-basic regexp checks.
+
+=cut
+
+sub add_form {
+    my ($self, $name, $spec, %opt) = @_;
+
+    $name and $spec
+        or $self->my_croak( "Form name and spec must be nonempty" );
+    exists $self->{forms}{$name}
+        and $self->my_croak( "Form $name redefined" );
+
+    if (!blessed $spec) {
+        my $eng = delete $opt{engine} || 'MVC::Neaf::X::Form';
+        $eng = $FORM_ENGINE{ lc $eng } || $eng;
+
+        if (!$eng->can("new")) {
+            eval { load $eng; 1 }
+                or $self->_croak( "Failed to load form engine $eng: $@" );
+        };
+
+        $spec = $eng->new( $spec, %opt );
+    };
+
+    $self->{forms}{$name} = $spec;
+    return $self;
+};
+
 =head2 neaf 403 => sub { ... }
 
 =head2 set_error_handler ( status => CODEREF( $req, %options ) )
@@ -970,9 +1045,8 @@ sub run {
     };
 
     return sub {
-        my $env = shift;
-        my $req = MVC::Neaf::Request::PSGI->new( env => $env );
-        return $self->handle_request( $req );
+        $self->handle_request(
+            MVC::Neaf::Request::PSGI->new( env => $_[0], _neaf => $self ));
     };
 };
 
@@ -1206,6 +1280,7 @@ my %method_shortcut = (
     default  => 'set_path_defaults',
     alias    => 'alias',
     static   => 'static',
+    form     => 'add_form',
 );
 
 sub neaf(@) { ## no critic # DSL
@@ -1230,7 +1305,7 @@ sub neaf(@) { ## no critic # DSL
     croak "neaf: don't know how to handle '$action'"
         unless $method and MVC::Neaf->can($method);
 
-    return MVC::Neaf->$method( @args );
+    return $MVC::Neaf::Inst->$method( @args );
 };
 
 =head2 get '/path' => sub { ... }, ...
@@ -1374,7 +1449,7 @@ sub run_test {
 
     scalar $self->run; # warn up caches
 
-    my $req = MVC::Neaf::Request::PSGI->new( %fake, env => $env );
+    my $req = MVC::Neaf::Request::PSGI->new( %fake, env => $env, _neaf => $self );
 
     my $ret = $self->handle_request( $req );
     if (ref $ret eq 'CODE') {
@@ -1907,6 +1982,17 @@ sub get_view {
 
     # Finally, return the thing.
     return $self->{seen_view}{$view};
+};
+
+=head2 get_form( "name" )
+
+Fetch form named "name". No magic here. See C<add_form>.
+
+=cut
+
+sub get_form {
+    my ($self, $name) = @_;
+    return $self->{forms}{$name};
 };
 
 # Setup default instance, no more code after this

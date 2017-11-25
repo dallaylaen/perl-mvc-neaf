@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.19;
+our $VERSION = 0.1901;
 
 =head1 NAME
 
@@ -555,18 +555,39 @@ sub set_param {
 
 Apply validator to raw params and return whatever it returns.
 
-Validator MUST either be a CODEREF,
-or be an object with validate() method accepting a hashref.
+A validator MUST be an object with C<validate> method, or a coderef,
+or a symbolic name registered earlier via C<neaf form ...>.
 
-See L<MVC::Neaf::X::Form> for details on Neaf's built in validator.
+Neaf's own validators, C<MVC::Neaf::X::Form> and C<MVC::Neaf::X::Form::LIVR>,
+will return a C<MVC::Neaf::X::Form::Data> object with the following methods:
+
+=over
+
+=item * is_valid - tells whether data passed validation
+
+=item * error - hash of errors, can also be modified if needed:
+
+    $result->error( myfield => "Correct, but not found in database" );
+
+=item * data - hash of valid, cleaned data
+
+=item * raw - hash of data entered initially, may be useful to display
+input form again.
+
+=back
+
+You are encouraged to use this return format from your own validation class
+or propose improvements.
 
 =cut
 
 sub form {
     my ($self, $validator) = @_;
 
-    $self->_croak("Validator must be a CODEREF or an object")
-        unless ref $validator;
+    if (!ref $validator) {
+        $validator = $self->{_neaf}->get_form( $validator )
+            || $self->_croak("Unknown form name $validator");
+    };
 
     if (ref $validator eq 'CODE') {
         return $validator->( $self->_all_params );
