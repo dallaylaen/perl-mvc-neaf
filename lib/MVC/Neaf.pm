@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1902;
+our $VERSION = 0.1904;
 
 =head1 NAME
 
@@ -192,8 +192,9 @@ use MVC::Neaf::Request::PSGI;
 our $Inst;
 
 my %FORM_ENGINE = (
-    neaf => 'MVC::Neaf::X::Form',
-    livr => 'MVC::Neaf::X::Form::LIRV',
+    neaf     => 'MVC::Neaf::X::Form',
+    livr     => 'MVC::Neaf::X::Form::LIRV',
+    wildcard => 'MVC::Neaf::X::Form::Wildcard',
 );
 
 =head2 get '/path' => sub { ... }, %options
@@ -863,9 +864,9 @@ sub add_form {
     my ($self, $name, $spec, %opt) = @_;
 
     $name and $spec
-        or $self->my_croak( "Form name and spec must be nonempty" );
+        or $self->_croak( "Form name and spec must be nonempty" );
     exists $self->{forms}{$name}
-        and $self->my_croak( "Form $name redefined" );
+        and $self->_croak( "Form $name redefined" );
 
     if (!blessed $spec) {
         my $eng = delete $opt{engine} || 'MVC::Neaf::X::Form';
@@ -1285,6 +1286,10 @@ my %method_shortcut = (
 
 sub neaf(@) { ## no critic # DSL
     return $MVC::Neaf::Inst unless @_;
+
+    # If something dies here, it's probably the calling code to blame
+    #    and not us
+    local $Carp::Internal{+__PACKAGE__} = 1;
 
     my ($action, @args) = @_;
 
