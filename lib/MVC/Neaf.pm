@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1904;
+our $VERSION = 0.1905;
 
 =head1 NAME
 
@@ -46,6 +46,8 @@ as a CGI script, PSGI application, or Apache handler.
             name      => $name,
         }
     }, -view => 'TT', -type => "text/plain";
+
+    neaf->run;
 
 =head1 CREATING AN APPLICATION
 
@@ -162,15 +164,15 @@ and will be passed to the View module as of current,
 they are not guaranteed to work in the future.
 Please either avoid them, or send patches.
 
-=head1 APPLICATION API
+=head1 MAIN API
 
 These methods are generally called during the setup phase of the application.
 
 Although L<MVC::Neaf> can be instantiated more than once,
 having many of them inside one Perl interpreter is of little use yet.
 
-A prototyped C<neaf()> function invokes all kind of methods on
-a default instance, or just returns it if called without arguments.
+For brevity, a prototyped C<neaf()> function invokes all kind of methods on
+the default instance, or just returns it if called without arguments.
 
 =cut
 
@@ -204,6 +206,8 @@ my %FORM_ENGINE = (
 =head2 get+post '/path' => sub { ... }, %options
 
 =head2 neaf route => '/path' => sub { ... }, %options
+
+This needs a C<method =<gt> [ ... ]> or it's just a 'GET + POST' by default.
 
 =head2 $neaf->route( '/path' => CODEREF, %options )
 
@@ -852,9 +856,10 @@ And by running this one gets
 
 See more in L<MVC::Neaf::X::Form>.
 
-C<engine> parameter has predefined values 'Livr' and 'Neaf' (the deafult)
+C<engine> parameter has predefined values C<Neaf> (the default),
+C<LIVR>, and C<Wildcard> (all case-insensitive)
 that will point
-towards built-in validation class. You are encouraged to use LIVR
+towards built-in validation classes. You are encouraged to use LIVR
 (See L<Validator::LIVR> and L<LIVR grammar|https://github.com/koorchik/LIVR>)
 for anything except super-basic regexp checks.
 
@@ -977,9 +982,9 @@ sub on_error {
 Run the applicaton.
 This should be the last statement in your appication main file.
 
-If called in void context, assumes CGI is being used and instantiates
-L<MVC::Neaf::Request::CGI>.
-If command line options are present at the time,
+If called in void context, assumes execution as CGI
+and prints results to C<STDOUT>.
+If command line options are present at the moment,
 enters debug mode via L<MVC::Neaf::CLI>.
 
 Otherwise returns a PSGI-compliant coderef.
@@ -2015,48 +2020,33 @@ All of them are supposed to start and end with:
 
     use strict;
     use warnings;
-    use MVC::Neaf;
+    use MVC::Neaf qw(:sugar);
 
     # ... snippet here
 
-    MVC::Neaf->run;
+    neaf->run;
 
 =head2 Static content
 
-    MVC::Neaf->static( '/images' => "/local/images" );
-    MVC::Neaf->static( '/favicon.ico' => "/local/images/icon_32x32.png" );
-
-=head2 RESTful web-service returning JSON
-
-    MVC::Neaf->route( '/restful' => sub {
-        # ...
-    }, method => 'GET', view => 'JS' );
-
-    MVC::Neaf->route( '/restful' => sub {
-        # ...
-    }, method => 'POST', view => 'JS' );
-
-    MVC::Neaf->route( '/restful' => sub {
-        # ...
-    }, method => 'PUT', view => 'JS' );
+    neaf->static( '/images' => "/local/images" );
+    neaf->static( '/favicon.ico' => "/local/images/icon_32x32.png" );
 
 =head2 Form submission
 
-    use MVC::Neaf::X::Form;
-
+    # You're still encouraged to use LIVR for more detailed validation
     my %profile = (
         name => [ required => '\w+' ],
         age  => '\d+',
     );
-    my $validator = MVC::Neaf::X::Form->new( \%profile );
+    neaf form my_form => \%profile;
 
-    MVC::Neaf->route( '/submit' => sub {
+    get+post '/submit' => sub {
         my $req = shift;
 
-        my $form = $req->form( $validator );
+        my $form = $req->form( "my_form" );
         if ($req->is_post and $form->is_valid) {
-            do_somethong( $form->data );
-            $req->redirect( "/result" );
+            my $id = do_something( $form->data );
+            $req->redirect( "/result/$id" );
         };
 
         return {
@@ -2064,16 +2054,60 @@ All of them are supposed to start and end with:
             errors      => $form->error,
             fill_values => $form->raw,
         };
-    } );
+    };
+
+=head2 Adding JSONP callbacks
+
+    neaf pre_render => sub {
+        my $req = shift;
+        $req->reply->{-jsonp} = $req->param("callback" => '.*');
+        # Even if you put no restriction here, no XSS comes through
+        #    as JS View has its own default filter
+    }, path => '/js/api';
 
 More examples to follow as usage (hopefuly) accumulates.
 
+=head1 THE NEAF PRINCIPLES
+
+=over
+
+=item * Data in, data out.
+
+A I<function> should receive an I<argument> and return a I<value> or I<die>.
+Everything else should be confined within the function.
+This applies to both Neaf's own methods and the user code.
+
+A notable exception is the session mechanism which is naturally stateful
+and thus hard to implement in functional style.
+
+=item * Sane defaults.
+
+Everything can be configured, nothing needs to be.
+TT view needs work in this respect.
+
+=item * It's not software unless you can run it.
+
+Don't rely on a specific server environment.
+Be ready to run as a standalone program or inside a test script.
+
+=item * Trust nobody.
+
+Validate incoming data.
+This is not yet enforced for HTTP headers and body.
+
+=item * Unicode inside the perimeter.
+
+This is not yet implemented (but planned) for body and file uploads
+which may well be binary data.
+
+=back
+
 =head1 DEPRECATED METHODS
 
-Some method become obsolete during Neaf development.
-Anything that is considered deprecated will continue to be supported for at
-least three minor versions after official deprecation and a corresponding
-warning being added.
+Some methods become obsolete during Neaf development.
+Anything that is considered deprecated will continue to be supported
+I<for at least three minor versions> after official deprecation
+and a corresponding warning being added.
 
 Please keep an eye on C<Changes> though.
 
@@ -2139,22 +2173,23 @@ sub set_default {
 
 =head1 BUGS
 
-Lots of them, this software is still under heavy development.
+This software is still under heavy development.
+See the C<TODO> file in this distribution for a list of bugs
+and missing features.
 
-* Apache2 handler is a joke and will be replaced with plain PSGI.
-It can still serve requests though.
+Test coverage is maintained at >80% currently,
+but who knows what lurks in the other 20%.
 
 Please report any bugs or feature requests to
 L<https://github.com/dallaylaen/perl-mvc-neaf/issues>.
 
 Alternatively, email them to C<bug-mvc-neaf at rt.cpan.org>, or report through
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=MVC-Neaf>.
-I will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
+
+Feedback and/or critique welcome.
 
 =head1 SUPPORT
 
-This is BETA software.
 Feel free to email the author to get instant help!
 Or you can comment the L<announce|http://perlmonks.org/?node_id=1174241>
 at the Perlmonks forum.
@@ -2166,7 +2201,7 @@ You can find documentation for this module with the perldoc command.
 
 You can also look for information at:
 
-=over 4
+=over
 
 =item * Github: https://github.com/dallaylaen/perl-mvc-neaf
 
@@ -2194,16 +2229,35 @@ L<http://search.cpan.org/dist/MVC-Neaf/>
 
 The L<Kelp> framework has very similar concept.
 
+Neaf has a lot of similarities to L<Mojolicious::Lite>,
+all of them unintentional.
+
 =head1 ACKNOWLEDGEMENTS
 
-Ideas were shamelessly stolen from L<Catalyst>, L<Dancer>, and L<PSGI>.
+Ideas were shamelessly stolen from L<Catalyst>, L<Dancer>, L<PSGI>,
+and L<sinatra.rb|http://sinatrarb.com/>.
 
-Thanks to Eugene Ponizovsky aka L<IPH|https://metacpan.org/author/IPH>
+The L<CGI>.pm was used heavily in the beginning of development,
+though Neaf was PSGI-ready from the start.
+
+Thanks to L<Eugene Ponizovsky|https://metacpan.org/author/IPH>
 for introducing me to the MVC concept.
+
+Thanks to L<Alexander Kuklev|https://github.com/akukvel>
+for early feedback and great insights about pure functions and side effects.
+
+Thanks to L<Akzhan Abdullin|https://github.com/akzhan>
+for driving me towards proper hooks model.
+
+Thanks to L<Cono|https://github.com/cono>
+for early feedback and feature proposals.
+
+Thanks to Alexey Kuznetsov
+for requesting multiple methods.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2016-2017 Konstantin S. Uvarin.
+Copyright 2016-2017 Konstantin S. Uvarin L<khedin@cpan.org>.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
