@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1905;
+our $VERSION = 0.1906;
 
 =head1 NAME
 
@@ -1661,10 +1661,7 @@ sub _route_request {
             $data = $self->_error_to_reply(
                 $req, $req->_message("returned value is not a hash") );
         };
-        # TODO 0.20 kill request defaults
-        my $RD = $req->get_default;
         my $GD = $route->{default};
-        exists $data->{$_} or $data->{$_} = $RD->{$_} for keys %$RD;
         exists $data->{$_} or $data->{$_} = $GD->{$_} for keys %$GD;
     } else {
         # Fall back to error page

@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1901;
+our $VERSION = 0.1902;
 
 =head1 NAME
 
@@ -660,46 +660,6 @@ sub body {
     $self->{body} = $self->do_get_body
         unless exists $self->{body};
     return $self->{body};
-};
-
-=head2 set_default( key => $value, ... )
-
-Set default values for your return hash.
-May be useful inside C<pre_route> and C<pre_logic> hooks.
-
-Returns self.
-
-B<DEPRECATED>. Use path-based defaults and/or $request->stash instead.
-This will be removed in v.0.20+.
-
-=cut
-
-sub set_default {
-    my ($self, %args) = @_;
-
-    # TODO 0.20 remove
-    carp "NEAF:set_default() DEPRECATED. Use path-based defaults or stash()";
-    foreach (keys %args) {
-        defined $args{$_}
-            ? $self->{defaults}{$_} = $args{$_}
-            : delete $self->{defaults}{$_};
-    };
-
-    return $self;
-};
-
-=head2 get_default()
-
-Returns a hash of previously set default values.
-
-B<EXPERIMANTAL>. API and naming subject to change.
-
-=cut
-
-sub get_default {
-    my $self = shift;
-
-    return $self->{defaults} || {};
 };
 
 =head2 upload( "name" )
@@ -1561,5 +1521,56 @@ sub _croak {
     $where =~ s/.*:://;
     croak( (ref $self || $self)."->$where: $msg" );
 };
+
+=head1 DEPRECATED METHODS
+
+Some methods become obsolete during Neaf development.
+Anything that is considered deprecated will continue to be supported
+I<for at least three minor versions> after official deprecation
+and a corresponding warning being added.
+
+Please keep an eye on C<Changes> though.
+
+=head2 set_default( key => $value, ... )
+
+As of v.0.20 this dies.
+
+USe path-based defaults, or stash().
+
+=cut
+
+sub set_default {
+    my ($self, %args) = @_;
+
+    # TODO 0.30 remove completely
+    $self->_croak( "DEPRECATED. Use path-based defaults or stash()" );
+};
+
+=head2 get_default()
+
+As of v.0.20 this dies.
+
+USe path-based defaults, or stash().
+
+=cut
+
+sub get_default {
+    my $self = shift;
+
+    # TODO 0.30 remove completely
+    $self->_croak( "DEPRECATED. Use path-based defaults or stash()" );
+};
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright 2016-2017 Konstantin S. Uvarin L<khedin@cpan.org>.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of either: the GNU General Public License as published
+by the Free Software Foundation; or the Artistic License.
+
+See http://dev.perl.org/licenses/ for more information.
+
+=cut
 
 1;
