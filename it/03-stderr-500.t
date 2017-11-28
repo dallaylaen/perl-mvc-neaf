@@ -34,6 +34,8 @@ close CGI_ERR;
 
 my ($head, $body) = split /\n\s*\n/s, $result, 2;
 
+note "STDERR = \n".$log;
+
 my $data = eval {
     decode_json($body);
 };
@@ -41,10 +43,7 @@ ok $data, "Got valid JSON, error=$@";
 is $data->{error}, 500, "Error 500 inside";
 ok $data->{req_id}, "req_id present";
 
-TODO: {
-    $TODO = "fix until 0.20";
-    like $log, qr/req_id=$data->{req_id}/, "Req id round trip";
-    like $log, qr/Foobared at/, "Exception as expected";
-}
+like $log, qr/req_id=$data->{req_id}/, "Req id round trip";
+like $log, qr/Foobared at/, "Exception as expected";
 
 done_testing;
