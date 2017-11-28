@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1902;
+our $VERSION = 0.1903;
 
 =head1 NAME
 
@@ -585,7 +585,7 @@ sub form {
     my ($self, $validator) = @_;
 
     if (!ref $validator) {
-        $validator = $self->{_neaf}->get_form( $validator )
+        $validator = $self->{_neaf} && $self->{_neaf}->get_form( $validator )
             || $self->_croak("Unknown form name $validator");
     };
 
@@ -1393,11 +1393,25 @@ sub set_id {
     return $self;
 };
 
+sub _where {
+    my $self = shift;
+
+    return $self->{script_name} || "pre_route";
+};
+
+sub _log_mark {
+    my $self = shift;
+
+    return "req_id=".$self->id." in ".$self->_where;
+};
+
+# See do_log_error below
+
 =head2 endpoint_origin
 
-Returns file:line where the route was created.
+Returns file:line where controller was defined.
 
-B<EXPERIMENTAL>. Name and semantics subject to change.
+B<DEPRECATED>. Do not use.
 
 =cut
 
@@ -1488,9 +1502,13 @@ They shall not generally be called directly inside the app.
 
 =item * do_reply( $status, $content ) - write reply to client
 
-=item * do_write
+=item * do_reply( $status ) - only send headers to client
 
-=item * do_close
+=item * do_write( $data )
+
+=item * do_close()
+
+=item * do_log_error()
 
 =back
 
@@ -1513,6 +1531,15 @@ foreach (qw(
 
 # by default, just skip - the handle will auto-close anyway at some point
 sub do_close { return 1 };
+
+# by default, write to STDERR - ugly but at least it will get noticed
+sub do_log_error {
+    my ($self, $msg) = @_;
+
+    $msg =~ s/\s+$//s;
+    $msg ||= Carp::shortmess( "Something bad happened" );
+    warn "ERROR ".$self->_log_mark." $msg\n";
+};
 
 sub _croak {
     my ($self, $msg) = @_;

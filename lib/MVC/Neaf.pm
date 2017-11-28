@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1906;
+our $VERSION = 0.1907;
 
 =head1 NAME
 
@@ -1417,6 +1417,7 @@ sub run_test {
             SCRIPT_NAME => '',
             PATH_INFO => $1,
             'psgi.version' => [1,1],
+            'psgi.errors' => \*STDERR,
         }
     };
     # TODO 0.30 complete emulation of everything a sane person needs
@@ -1892,12 +1893,13 @@ sub _post_setup {
 sub _error_to_reply {
     my ($self, $req, $err) = @_;
 
+    # TODO 0.30 Neaf::Exception === die 404
     if (blessed $err and $err->isa("MVC::Neaf::Exception")) {
         $err->{-status} ||= 500;
         return $err;
     };
 
-    my $status = (!ref $err && $err =~ /^(\d\d\d)/) ? $1 : 500;
+    my $status = (!ref $err && $err =~ /^(\d\d\d)\s/) ? $1 : 500;
     my $sudden = !$1;
 
     # Try exception handler
@@ -1927,13 +1929,9 @@ sub _error_to_reply {
     };
 
     # Options exhausted - return plain error message
+    $req->do_log_error( $err )
+        if $sudden;
     my $req_id = $req->id;
-    if ($sudden) {
-        my $where = sprintf "%s at %s req_id=%s (%d)"
-            , $req->script_name || "pre_route"
-            , $req->endpoint_origin, $req->id, $status;
-        $self->_log_error($where, $err);
-    };
     return {
         -status     => $status,
         -type       => 'application/json',
