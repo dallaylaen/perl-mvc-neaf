@@ -16,6 +16,7 @@ my $tpl = <<"HTML";
 var post_to = "/11/js";
 
 function upd() {
+    document.getElementById("content").innerHTML = "Waiting for response...";
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
         if (xhr.readyState != XMLHttpRequest.DONE)
