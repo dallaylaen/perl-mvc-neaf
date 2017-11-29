@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1907;
+our $VERSION = 0.1908;
 
 =head1 NAME
 
@@ -2168,12 +2168,13 @@ sub set_default {
 
 =head1 BUGS
 
-This software is still under heavy development.
-See the C<TODO> file in this distribution for a list of bugs
-and missing features.
+This software is still in BETA stage.
 
 Test coverage is maintained at >80% currently,
 but who knows what lurks in the other 20%.
+
+See the C<TODO> file in this distribution for a list of bugs
+and missing features.
 
 Please report any bugs or feature requests to
 L<https://github.com/dallaylaen/perl-mvc-neaf/issues>.
@@ -2181,7 +2182,7 @@ L<https://github.com/dallaylaen/perl-mvc-neaf/issues>.
 Alternatively, email them to C<bug-mvc-neaf at rt.cpan.org>, or report through
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=MVC-Neaf>.
 
-Feedback and/or critique welcome.
+Feedback and/or critique are welcome.
 
 =head1 SUPPORT
 
