@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1909;
+our $VERSION = 0.1910;
 
 =head1 NAME
 
@@ -1655,19 +1655,21 @@ sub _route_request {
         return $route->{code}->($req);
     };
 
-    if ($data) {
+    if ($data and UNIVERSAL::isa($data, 'HASH')) {
         # post-process data - fill in request(RD) & global(GD) defaults.
-        unless( UNIVERSAL::isa($data, 'HASH') ) {
-            # prevent dying with criptic error message
-            $data = $self->_error_to_reply(
-                $req, $req->_message("returned value is not a hash") );
-        };
         my $GD = $route->{default};
         exists $data->{$_} or $data->{$_} = $GD->{$_} for keys %$GD;
-    } else {
+    } elsif( $@ ) {
         # Fall back to error page
         # TODO 0.90 $req->clear; - but don't kill cleanup hooks
         $data = $self->_error_to_reply( $req, $@ );
+    } else {
+        # controller returned garbage
+        # so prevent dying with criptic error message
+        $data = $self->_error_to_reply(
+            $req, "Returned value is a ".(ref $data || 'SCALAR').
+            ", not a HASH at ". $req->endpoint_origin
+        );
     };
 
     if (my $append = $data->{-headers}) {

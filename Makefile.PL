@@ -19,6 +19,7 @@ WriteMakefile(
         'Digest::MD5'    => 0,
         'Digest::SHA'    => 0,
         'Encode'         => 0,
+        'ExtUtil::MakeMaker' => 6.64, # for TEST_REQUIRES
         'Fcntl'          => 0,
         'File::Basename' => 0,
         'Getopt::Long'   => 0,
@@ -37,6 +38,7 @@ WriteMakefile(
     },
     TEST_REQUIRES => {
         'Test::More'     => 0.87, # done_testing
+        'Test::Warn'     => 0,
         'IO::Handle'     => 0,
         'File::Temp'     => 0,
     },
