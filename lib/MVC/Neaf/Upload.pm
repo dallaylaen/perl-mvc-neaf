@@ -14,8 +14,10 @@ L<MVC::Neaf::Request> object.
 
 =cut
 
-our $VERSION = 0.19;
+our $VERSION = 0.1901;
 use Carp;
+use Encode;
+use PerlIO::encoding;
 
 =head2 new(%options)
 
@@ -31,20 +33,30 @@ use Carp;
 
 =item * filename - user-supplied filename. Don't trust this.
 
+=item * utf8 - if set, all data read from the file will be utf8-decoded.
+
 =back
 
 =cut
 
+my %new_opt;
+$new_opt{$_}++ for qw(id tempfile handle filename utf8);
 sub new {
     my ($class, %args) = @_;
 
     # TODO 0.19 add "unicode" flag to open & slurp in utf8 mode
 
+    my @extra = grep { !$new_opt{$_} } keys %args;
+    croak( "$class->new(): unknown options @extra" )
+        if @extra;
     defined $args{id}
         or croak( "$class->new(): id option is required" );
     defined $args{tempfile} || defined $args{handle}
         or croak( "$class->new(): Either tempfile or handle option required" );
 
+    $PerlIO::encoding::fallback = Encode::FB_CROAK;
+    binmode $args{handle}, ":encoding(UTF-8)"
+        if $args{handle} and $args{utf8};
     my $self = bless \%args, $class;
     return $self;
 };
@@ -105,6 +117,7 @@ sub handle {
         # need write?
         open my $fd, "<", $self->{tempfile}
             or die "Upload $self->{id}: Failed to open(r) $self->{tempfile}: $!";
+        binmode $fd, ":encoding(UTF-8)" if $self->{utf8};
         $fd;
     };
 };
@@ -122,6 +135,7 @@ B<NOTE> This breaks file current position, resetting it to the beginning.
 sub content {
     my $self = shift;
 
+    # TODO 0.30 remember where the  file was 1st time
     if (!defined $self->{content}) {
         $self->rewind;
         my $fd = $self->handle;
