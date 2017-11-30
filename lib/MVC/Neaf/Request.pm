@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1904;
+our $VERSION = 0.1905;
 
 =head1 NAME
 
@@ -1422,6 +1422,24 @@ sub set_id {
     return $self;
 };
 
+=head2 log_error( $message )
+
+Log an error message, annotated with request id and the route being processed.
+
+Currently works via warn, but this may change in the future.
+
+B<EXPERIMENTAL.> This feature is still under development.
+
+One can count on C<log_error> to be available in the future and do
+some king of logging.
+
+=cut
+
+sub log_error {
+    my ($self, $msg) = @_;
+    $self->do_log_error( $self->_log_mark($msg) );
+};
+
 sub _where {
     my $self = shift;
 
@@ -1429,9 +1447,12 @@ sub _where {
 };
 
 sub _log_mark {
-    my $self = shift;
+    my ($self, $msg) = @_;
 
-    return "req_id=".$self->id." in ".$self->_where;
+    $msg ||= Carp::shortmess( "Something bad happened" );
+    $msg =~ s/\s*$//s;
+
+    return "req_id=".$self->id." in ".$self->_where.": $msg";
 };
 
 # See do_log_error below
@@ -1565,9 +1586,7 @@ sub do_close { return 1 };
 sub do_log_error {
     my ($self, $msg) = @_;
 
-    $msg =~ s/\s+$//s;
-    $msg ||= Carp::shortmess( "Something bad happened" );
-    warn "ERROR ".$self->_log_mark." $msg\n";
+    warn "ERROR $msg\n";
 };
 
 sub _croak {

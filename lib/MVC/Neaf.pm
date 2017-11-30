@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1908;
+our $VERSION = 0.1909;
 
 =head1 NAME
 
@@ -1929,7 +1929,7 @@ sub _error_to_reply {
     };
 
     # Options exhausted - return plain error message
-    $req->do_log_error( $err )
+    $req->log_error( $err )
         if $sudden;
     my $req_id = $req->id;
     return {
