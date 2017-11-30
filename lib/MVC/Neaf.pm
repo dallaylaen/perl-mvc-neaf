@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1911;
+our $VERSION = 0.1912;
 
 =head1 NAME
 
@@ -42,12 +42,30 @@ as a CGI script, PSGI application, or Apache handler.
 
         my $name = $req->param( name => qr/[-'\w\s]+/ ) || "Mystical stranger";
         return {
-            -template => \"Hello, [% name %]",
-            name      => $name,
-        }
-    }, -view => 'TT', -type => "text/plain";
+            name  => $name,
+        };
+    }, default => {
+        -view     => 'TT',
+        -type     => "text/plain",
+        -template => \"Hello, [% name %]",
+    };
 
     neaf->run;
+
+A neaf app has some command-line interface built in:
+
+    perl myapp.pl --list
+
+Will give a summary of available routes.
+
+    perl myapp.pl --listen :31415
+
+Will start a default plackup server (C<plackup myapp.pl> works as well)
+
+    perl myapp.pl --post --upload foo=/path/to/file /bar?life=42 --view Dumper
+
+Will run just one request and stop right before template processing,
+dumping stash instead.
 
 =head1 CREATING AN APPLICATION
 
