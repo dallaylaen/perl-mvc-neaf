@@ -38,7 +38,7 @@ ok $body->{req_id}, "req_id present";
 is $body->{reason}, undef, "no reason in reply";
 
 is scalar @warn, 1, "1 warning reported";
-like $warn[0], qr/ERROR.*$body->{req_id}.*foobared/
+like $warn[0], qr/ERROR.*\Q$body->{req_id}\E.*foobared/
     , "req_id and original error retained";
 
 note "WARN: $_" for @warn;
@@ -56,7 +56,7 @@ ok $body->{req_id}, "req_id present";
 like $body->{reason}, qr/render/, "reason present";
 
 is scalar @warn, 1, "1 warning reported";
-like $warn[0], qr/ERROR.*$body->{req_id}/, "req_id retained";
+like $warn[0], qr/ERROR.*\Q$body->{req_id}\E/, "req_id retained";
 
 note "WARN: $_" for @warn;
 undef $body;

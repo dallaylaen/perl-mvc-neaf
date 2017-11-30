@@ -43,16 +43,16 @@ get '/foo/bar' => sub {
     my $file = __FILE__;
 
     is scalar @warn, 6, "6 warnings issued";
-    like $warn[0], qr/req.*$id.*pre_route.*mark 1\n$/, "pre_route, msg";
-    like $warn[1], qr/req.*$id.*pre_route.*$file line \d+\.?\n$/
+    like $warn[0], qr/req.*\Q$id\E.*pre_route.*mark 1\n$/, "pre_route, msg";
+    like $warn[1], qr/req.*\Q$id\E.*pre_route.*$file line \d+\.?\n$/
         , "pre_route, unknown msg = attributed to caller";
-    like $warn[2], qr/req.*$id.*\/foo\/bar.*mark 2\n$/
+    like $warn[2], qr/req.*\Q$id\E.*\/foo\/bar.*mark 2\n$/
         , "pre_logic: path defined";
-    like $warn[3], qr/req.*$id.*\/foo\/bar.*mark 3\n$/
+    like $warn[3], qr/req.*\Q$id\E.*\/foo\/bar.*mark 3\n$/
         , "controller itself";
-    like $warn[4], qr/req.*$id.*\/foo\/bar.*$file line \d+\.?\n$/
+    like $warn[4], qr/req.*\Q$id\E.*\/foo\/bar.*$file line \d+\.?\n$/
         , "controller itself, attributed to caller";
-    like $warn[5], qr/req.*$id.*\/foo\/bar.*Foobared.*$file line \d+\.?\n$/
+    like $warn[5], qr/req.*\Q$id\E.*\/foo\/bar.*Foobared.*$file line \d+\.?\n$/
         , "Error message itself";
 
     note "WARN: $_" for @warn;

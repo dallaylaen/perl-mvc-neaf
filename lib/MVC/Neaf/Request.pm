@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1905;
+our $VERSION = 0.1906;
 
 =head1 NAME
 
@@ -46,6 +46,9 @@ use Carp;
 use URI::Escape;
 use Encode;
 use HTTP::Headers;
+use Time::HiRes ();
+use Sys::Hostname ();
+use Digest::MD5 qw(md5_base64);
 
 use MVC::Neaf::Util qw(http_date run_all_nodie canonize_path);
 use MVC::Neaf::Upload;
@@ -1389,15 +1392,29 @@ sub clear {
 Lazily fetch unique request id. These are guaranteed to be unique
 on a given machine within a reasonable timeframe.
 
+Current id-generation mechanism involves url-safe md5_base64 C<[-_]>,
+but this MAY change in the future.
+
+B<CAUTION> Don't use this id for anything secure.
+Use L<MVC::Neaf::X::Session>'s ids instead.
+This one is just for information.
+
 =cut
 
-my $lastid;
+# TODO 0.30 provide a configurable mechanism to generate ids
+my $host = Sys::Hostname::hostname();
+my $lastid = 0;
 sub id {
     my $self = shift;
 
-    # Technically it is possible to repeat it by running a new process
-    # in the same second as the same pid... But who would?
-    return $self->{id} ||= unpack "H*", pack "N*", $$, CORE::time, ++$lastid;
+    # We don't really need to protect anything here
+    # Just avoid accidental matches for which md5 seems good enough
+    return $self->{id} ||= do {
+        my $str = md5_base64( join ".", $host, $$, Time::HiRes::time, ++$lastid );
+        $lastid = 0 unless $lastid < 4_000_000_000;
+        $str =~ tr/+\//-_/;
+        $str;
+    };
 };
 
 =head2 set_id( $new_value )
