@@ -14,7 +14,7 @@ L<MVC::Neaf::Request> object.
 
 =cut
 
-our $VERSION = 0.1901;
+our $VERSION = 0.1902;
 use Carp;
 use Encode;
 use PerlIO::encoding;
@@ -39,8 +39,19 @@ use PerlIO::encoding;
 
 =cut
 
+# NOTE HACK
+# This file uses inside-out objects to allow for diamond operator:
+#     1) An object is represented by a blessed file handle;
+#     2) All other fields are stored in a global hash;
+#     3) DESTROY deletes entry from said hash.
+# This is wrong, and shouldn't be done this way.
+# This is experimental and may be removed in the future.
+# See also t/*diamond*.t
+
 my %new_opt;
-$new_opt{$_}++ for qw(id tempfile handle filename utf8);
+my @copy_fields = qw(id tempfile filename utf8);
+$new_opt{$_}++ for @copy_fields, "handle";
+my %inside_out;
 sub new {
     my ($class, %args) = @_;
 
@@ -51,13 +62,27 @@ sub new {
         if @extra;
     defined $args{id}
         or croak( "$class->new(): id option is required" );
-    defined $args{tempfile} || defined $args{handle}
-        or croak( "$class->new(): Either tempfile or handle option required" );
 
-    $PerlIO::encoding::fallback = Encode::FB_CROAK;
-    binmode $args{handle}, ":encoding(UTF-8)"
-        if $args{handle} and $args{utf8};
-    my $self = bless \%args, $class;
+    my $self;
+    if ($args{tempfile}) {
+        open $self, "<", $args{tempfile}
+            or croak "$class->new(): Failed to open $args{tempfile}: $!";
+    } elsif ($args{handle}) {
+        open $self, "<&", $args{handle}
+            or croak "$class->new(): Failed to dup handle $args{handle}: $!";
+    } else {
+        croak( "$class->new(): Either tempfile or handle option required" );
+    };
+
+    if ($args{utf8}) {
+        local $PerlIO::encoding::fallback = Encode::FB_CROAK;
+        binmode $self, ":encoding(UTF-8)"
+    };
+    bless $self, $class;
+
+    delete $args{handle};
+    $inside_out{$self} = \%args;
+
     return $self;
 };
 
@@ -69,7 +94,7 @@ Return upload id.
 
 sub id {
     my $self = shift;
-    return $self->{id};
+    return $inside_out{$self}{id};
 };
 
 =head2 filename()
@@ -81,8 +106,8 @@ Get user-supplied file name. Don't trust this value.
 sub filename {
     my $self = shift;
 
-    $self->{filename} = '/dev/null' unless defined $self->{filename};
-    return $self->{filename};
+    $inside_out{$self}{filename} = '/dev/null' unless defined $inside_out{$self}{filename};
+    return $inside_out{$self}{filename};
 };
 
 =head2 size()
@@ -96,7 +121,7 @@ B<CAVEAT> May return 0 if file is a pipe.
 sub size {
     my $self = shift;
 
-    return $self->{size} ||= do {
+    return $inside_out{$self}{size} ||= do {
         # calc size
         my $fd = $self->handle;
         my @stat = stat $fd;
@@ -113,13 +138,7 @@ Return file handle, opening temp file if needed.
 sub handle {
     my $self = shift;
 
-    return $self->{handle} ||= do {
-        # need write?
-        open my $fd, "<", $self->{tempfile}
-            or die "Upload $self->{id}: Failed to open(r) $self->{tempfile}: $!";
-        binmode $fd, ":encoding(UTF-8)" if $self->{utf8};
-        $fd;
-    };
+    return $self;
 };
 
 =head2 content()
@@ -136,22 +155,22 @@ sub content {
     my $self = shift;
 
     # TODO 0.30 remember where the  file was 1st time
-    if (!defined $self->{content}) {
+    if (!defined $inside_out{$self}{content}) {
         $self->rewind;
         my $fd = $self->handle;
 
         local $/;
         my $content = <$fd>;
         if (!defined $content) {
-            my $fname = $self->{tempfile} || $fd;
-            croak( "Upload $self->{id}: failed to read file $fname: $!");
+            my $fname = $inside_out{$self}{tempfile} || $fd;
+            croak( "Upload $inside_out{$self}{id}: failed to read file $fname: $!");
         };
 
         $self->rewind;
-        $self->{content} = $content;
+        $inside_out{$self}{content} = $content;
     };
 
-    return $self->{content};
+    return $inside_out{$self}{content};
 };
 
 =head2 rewind()
@@ -171,7 +190,10 @@ sub rewind {
 };
 
 sub DESTROY {
-    # TODO 0.30 kill the file
+    my $self = shift;
+
+    # TODO 0.30 kill the tempfile, if any?
+    delete $inside_out{$self};
 };
 
 1;
