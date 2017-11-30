@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.1910;
+our $VERSION = 0.1911;
 
 =head1 NAME
 
@@ -1458,7 +1458,7 @@ sub run_test {
     my %fake;
     $fake{uploads} = delete $opt{uploads};
 
-    scalar $self->run; # warn up caches
+    scalar $self->run; # warm up caches
 
     my $req = MVC::Neaf::Request::PSGI->new( %fake, env => $env, _neaf => $self );
 
@@ -1681,14 +1681,15 @@ sub _route_request {
         }
         else {
             # Would love to die, but it's impossible here
-            warn $req->_message("-headers must be ARRAY, not ".(ref $append));
+            $req->log_error("-headers must be ARRAY, not ".(ref $append)
+                ." at ".$req->endpoint_origin);
         };
     };
 
     $req->_set_reply( $data );
     if (exists $route->{hooks}{pre_content}) {
         run_all_nodie( $route->{hooks}{pre_content}, sub {
-                $self->_log_error( "pre_content hook", $@ )
+                $req->log_error( "pre_content hook failed: $@" )
         }, $req );
     };
 
@@ -1722,11 +1723,7 @@ sub _render_content {
         if (!defined $content) {
             # TODO 0.90 $req->clear; - but don't kill cleanup hooks
             # FIXME bug here - resetting data does NOT affect the inside of req
-            # TODO copypaste from _error_to_reply
-            my $where = sprintf "%s at %s req_id=%s (%d)"
-                , $req->script_name || "pre_route"
-                , $req->endpoint_origin, $req->id, 500;
-            $self->_log_error( $where => $@ || "Unexpected render failure" );
+            $req->log_error( "Request processed, but rendering failed: ". ($@ || "unknown error") );
             %$data = (
                 -status => 500,
                 -type   => "application/json",
@@ -1801,7 +1798,7 @@ sub handle_request {
     };
     if (exists $route->{hooks}{pre_reply}) {
         run_all_nodie( $route->{hooks}{pre_reply}, sub {
-                $self->_log_error( "pre_reply hook", $@ )
+                $req->log_error( "pre_reply hook failed: $@" )
         }, $req );
     };
 
@@ -1911,7 +1908,7 @@ sub _error_to_reply {
             $sudden = 0;
             1;
         }
-            or $self->_log_error( "on_error callback failed", $@ );
+            or $req->log_error( "on_error callback failed: ".($@ || "unknown reason") );
     };
 
     # Try fancy error template
@@ -1927,7 +1924,8 @@ sub _error_to_reply {
             $ret->{-status} ||= $status;
             return $ret;
         };
-        $self->_log_error( "error_template $status failed:", $@ );
+        $req->log_error( "error_template for $status failed:"
+            .( $@ || "unknown reason") );
     };
 
     # Options exhausted - return plain error message
@@ -1947,16 +1945,6 @@ sub _croak {
     my $where = [caller(1)]->[3];
     $where =~ s/.*:://;
     croak( (ref $self || $self)."->$where: $msg" );
-};
-
-# TODO 0.20 use req->id, req->origin etc
-sub _log_error {
-    my ($self, $where, $err) = @_;
-
-    my $msg = "ERROR: in $where: $err";
-    $msg =~ s/\n\s*/ /gs;
-    $msg =~ s/\s*$/\n/;
-    warn $msg;
 };
 
 =head2 get_view( "name" )
