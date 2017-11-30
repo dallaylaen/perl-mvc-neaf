@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1903;
+our $VERSION = 0.1904;
 
 =head1 NAME
 
@@ -662,10 +662,13 @@ sub body {
     return $self->{body};
 };
 
-=head2 upload( "name" )
+=head2 upload_utf8( "name" )
 
 Returns an L<MVC::Neaf::Upload> object corresponding to an uploaded file,
 if such uploaded file is present.
+
+All data read from such upload will be converted to unicode,
+raising an exception if decoding ever fails.
 
 An upload object has at least C<handle> and C<content> methods to work with
 data:
@@ -687,20 +690,46 @@ or just
         };
     };
 
+=head2 upload_raw( "name" )
+
+Like above, but no decoding whatsoever is performed.
+
+=head2 upload( "name" )
+
+B<DEPRECATED>. Same as upload_raw.
+
 =cut
 
-sub upload {
-    my ($self, $id) = @_;
+sub upload_utf8 {
+    my ($self, $name) = @_;
+    return $self->_upload( id => $name, utf8 => 1 );
+};
 
+sub upload_raw {
+    my ($self, $name) = @_;
+    return $self->_upload( id => $name, utf8 => 0 );
+};
+
+sub upload {
+    my ($self, $name) = @_;
+
+    carp "NEAF: req->upload() is DEPRECATED, use upload_utf8 or upload_raw instead";
+    return $self->_upload( id => $name, utf8 => 0 );
+};
+
+# TODO 0.30 do something about upload's content type
+# TODO 0.30 and btw, restrict content types!
+sub _upload {
+    my ($self, %args) = @_;
+
+    my $id = $args{id}
+        or $self->_croak( "upload name is required for upload" );
     # caching undef as well, so exists()
     if (!exists $self->{uploads}{$id}) {
         my $raw = $self->do_get_upload( $id );
-        # This would create NO upload objects for objects
-        # And also will return undef as undef - just as we want
-        #    even though that's side effect
         $self->{uploads}{$id} = (ref $raw eq 'HASH')
-            ? MVC::Neaf::Upload->new( %$raw, id => $id )
-            : $raw;
+            ? MVC::Neaf::Upload->new( %$raw, %args )
+            : undef;
     };
 
     return $self->{uploads}{$id};
