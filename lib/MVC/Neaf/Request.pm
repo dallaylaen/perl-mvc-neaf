@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.1906;
+our $VERSION = 0.1907;
 
 =head1 NAME
 
@@ -442,8 +442,18 @@ Use url_param() (see below) if you intend to mix GET/POST parameters.
 B<NOTE> param() ALWAYS returns a single value, even in list context.
 Use multi_param() (see below) if you really want a list.
 
-B<NOTE> Behaviour changed since 0.11 - missing default value no more
-interpreted as '', returns undef.
+B<NOTE> param() has I<nothing to do> with getting parameter list from request.
+Instead, use form with wildcards:
+
+    neaf form => "my_form" => [ [ 'guest\d+' => '.*'], [ 'arrival\d+' => '.*' ] ],
+        engine => 'Wildcard';
+
+    # later in controller
+    my $guests = $req->form("my_form");
+    $guests->fields; # has guest1 & arrival1, guest2 & arrival2 etc
+    $guests->error;  # hash with values that didn't match regexp
+
+See L<MVC::Neaf::X::Form::Wildcard>.
 
 =cut
 
