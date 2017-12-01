@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Warn;
-use JSON;
+use JSON::MaybeXS;
 
 use MVC::Neaf qw(:sugar);
 

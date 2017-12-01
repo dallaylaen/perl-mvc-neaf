@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Test::More;
 use File::Basename qw(dirname);
-use JSON;
+use JSON::MaybeXS;
 
 my $perl = $^X;
 

@@ -17,7 +17,7 @@ WriteMakefile(
         'Digest::SHA'    => 0, # not present in 5.8 TODO use SHA3
         'ExtUtils::MakeMaker' => 6.64, # for TEST_REQUIRES
         'HTTP::Headers'  => 0,
-        'JSON'           => 0,
+        'JSON::MaybeXS'  => 0, # Plack uses it anyway via HTTP::Entity::Parser
         'overload'       => 0,
         'parent'         => 0, # not present in 5.8
         'Plack::Request' => 0,

@@ -5,7 +5,7 @@ use warnings;
 use Test::More;
 use File::Basename qw(dirname);
 use IPC::Open3;
-use JSON;
+use JSON::MaybeXS;
 
 my $lib = dirname(__FILE__)."/../lib";
 

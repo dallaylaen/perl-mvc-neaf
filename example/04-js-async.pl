@@ -12,7 +12,7 @@
 
 use strict;
 use warnings;
-use JSON;
+use JSON::MaybeXS;
 use MVC::Neaf qw(:sugar);
 
 # Finally an example where not everything is in one file.

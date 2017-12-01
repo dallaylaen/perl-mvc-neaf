@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session::Base;
 
 use strict;
 use warnings;
-our $VERSION = 0.19;
+our $VERSION = 0.1901;
 
 =head1 DESCRIPTION
 
@@ -24,7 +24,7 @@ Not Even A Framework.
 =cut
 
 use parent qw(MVC::Neaf::X::Session);
-use JSON;
+use JSON::MaybeXS;
 use Carp;
 
 
