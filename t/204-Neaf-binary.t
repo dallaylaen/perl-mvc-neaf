@@ -29,6 +29,8 @@ is ($head->{'Content-Type'},   'text/foobared; charset=utf-8'
 
 done_testing;
 
+# This is begging to use run_test instead, but MAYBE it'd be wise
+#     to keep some plain old PSGI just in case
 sub do_run {
     my $raw = MVC::Neaf->run->( {} );
     my ($status, $head, $content) = @$raw;
