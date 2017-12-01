@@ -2,7 +2,7 @@ package MVC::Neaf::Request::PSGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.2002;
+our $VERSION = 0.2003;
 
 =head1 NAME
 
@@ -12,20 +12,22 @@ MVC::Neaf::Request::PSGI - Not Even A Framework: PSGI driver.
 
 =cut
 
+BEGIN {
+    # NOTE HACK prevent 'Can't locate object method seek via package IO::Handle'
+    # try preloading it by hand (errors ignored)
+    eval { require FileHandle }
+        if $] < 5.014;
+    # NOTE HACK - prevent load-time warnings from Cookie::Baker
+    #     which we aren't even using
+    eval {
+        local $SIG{__WARN__} = sub {};
+        require Cookie::Baker;
+    };
+};
+
 use URI::Escape qw(uri_unescape);
 use Encode;
 use Plack::Request;
-
-# NOTE HACK - prevent 'Can't locate object method seek via package IO::Handle'
-# try preloading it by hand (errors ignored)
-eval { require FileHandle }
-    if $] < 5.014;
-# NOTE HACK - prevent load-time warnings from Cookie::Baker
-#     which we aren't even using
-eval {
-    local $SIG{__WARN__} = sub {};
-    require Cookie::Baker;
-};
 
 use parent qw(MVC::Neaf::Request);
 
