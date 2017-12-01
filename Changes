@@ -1,5 +1,8 @@
 Revision history for MVC-Neaf
 
+0.2002  Fri Dec 1 2017
+        - BUG Fixed escapes in POD
+
 0.2001  Fri Dec 1 2017
         - Version bump NOCODE
 
