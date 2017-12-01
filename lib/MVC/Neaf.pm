@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2001;
+our $VERSION = 0.2002;
 
 =head1 NAME
 
@@ -225,7 +225,7 @@ my %FORM_ENGINE = (
 
 =head2 neaf route => '/path' => sub { ... }, %options
 
-This needs a C<method =<gt> [ ... ]> or it's just a 'GET + POST' by default.
+This needs a C<method =E<gt> [ ... ]> or it's just a 'GET + POST' by default.
 
 =head2 $neaf->route( '/path' => CODEREF, %options )
 
@@ -264,10 +264,10 @@ A 404 error will be generated unless C<path_info_regex> is present
 and PATH_INFO matches the regex (without the leading slashes).
 
 If path_info_regex matches, it will be available in the controller
-as C<$req-<gt>path_info>.
+as C<$req-E<gt>path_info>.
 
 If capture groups are present in said regular expression,
-their content will also be available as C<$req-<gt>path_info_split>.
+their content will also be available as C<$req-E<gt>path_info_split>.
 
 B<EXPERIMENTAL>. Name and semantics MAY change in the future.
 
@@ -924,7 +924,7 @@ The following options will be passed to coderef:
 
 =item * caller - file:line where the route was set up;
 This is DEPRECATED and will silently disappear around version 0.25
-Use C<$request-<gt>endpoint_origin> instead.
+Use C<$request-E<gt>endpoint_origin> instead.
 
 =item * error - exception, if there was one.
 
