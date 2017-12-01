@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2002;
+our $VERSION = 0.2003;
 
 =head1 NAME
 
@@ -196,6 +196,7 @@ the default instance, or just returns it if called without arguments.
 
 use Carp;
 use Encode;
+use HTTP::Headers::Fast;
 use Module::Load;
 use Scalar::Util qw(blessed looks_like_number);
 use URI::Escape;
@@ -1380,7 +1381,7 @@ foreach (qw(get head post put)) {
 =head2 run_test( "/path?param=value", %options )
 
 Run a PSGI request and return a list of
-C<($status, HTTP::Headers, $whole_content )>.
+C<($status, HTTP::Headers::Fast, $whole_content )>.
 
 Returns just the content in scalar context.
 
@@ -1489,7 +1490,7 @@ sub run_test {
 
     return (
         $ret->[0],
-        HTTP::Headers->new( @{ $ret->[1] } ),
+        HTTP::Headers::Fast->new( @{ $ret->[1] } ),
         join '', @{ $ret->[2] },
     );
 };

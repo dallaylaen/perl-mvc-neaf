@@ -2,7 +2,7 @@ package MVC::Neaf::CLI;
 
 use strict;
 use warnings;
-our $VERSION = 0.2002;
+our $VERSION = 0.2003;
 
 =head1 NAME
 
@@ -66,7 +66,7 @@ But just for the sake of completeness...
 
 use Getopt::Long;
 use Carp;
-use HTTP::Headers;
+use HTTP::Headers::Fast;
 use File::Basename qw(basename);
 
 use MVC::Neaf;
@@ -166,7 +166,7 @@ sub run_test {
     };
 
     if (my @head = @{ delete $test{head} || [] }) {
-        $test{header_in} = HTTP::Headers->new (
+        $test{header_in} = HTTP::Headers::Fast->new (
             map { /^([^=]+)=(.*)$/ or croak "Bad header format"; $1=>$2 } @head
         );
     };

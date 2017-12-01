@@ -5,6 +5,7 @@ use warnings;
 use Test::More;
 use URI::Escape;
 use Encode;
+use HTTP::Headers::Fast;
 
 use MVC::Neaf::Request;
 
@@ -16,7 +17,7 @@ $copy = decode_utf8($copy);
 
 my $req = MVC::Neaf::Request->new(
     cached_params => { x => 42 },
-    header_in => HTTP::Headers->new(
+    header_in => HTTP::Headers::Fast->new(
         Cookie => 'cook=%C2%A9; guy=bad',
         Referer => 'http://google.com',
         User_Agent => 'test bot',

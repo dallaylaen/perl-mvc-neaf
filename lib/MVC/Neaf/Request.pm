@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.2003;
+our $VERSION = 0.2004;
 
 =head1 NAME
 
@@ -45,7 +45,7 @@ Thus it is expected to have the following methods.
 use Carp;
 use URI::Escape;
 use Encode;
-use HTTP::Headers;
+use HTTP::Headers::Fast;
 use Time::HiRes ();
 use Sys::Hostname ();
 use Digest::MD5 qw(md5_base64);
@@ -879,11 +879,11 @@ Fetch HTTP header sent by client.
 Header names are lowercased, dashes converted to underscores.
 So "Http-Header", "HTTP_HEADER" and "http_header" are all the same.
 
-Without argument, returns a L<HTTP::Headers> object.
+Without argument, returns a L<HTTP::Headers::Fast> object.
 
 With a name, returns all values for that header in list context,
 or ", " - joined value as one scalar in scalar context -
-this is actually a frontend to HTTP::Headers header() method.
+this is actually a frontend to HTTP::Headers::Fast header() method.
 
 B<EXPERIMENTAL> The return value format MAY change in the near future.
 
@@ -1122,12 +1122,12 @@ sending confirmation e-mail) may be postponed until the request is served.
 
 =head2 header_out( [$param] )
 
-Without parameters returns a L<HTTP::Headers> object containing all headers
-to be returned to client.
+Without parameters returns a L<HTTP::Headers::Fast>-compatible object
+containing all headers to be returned to client.
 
 With one parameter returns this header.
 
-Returned values are just proxied L<HTTP::Headers> returns.
+Returned values are just proxied L<HTTP::Headers::Fast> returns.
 It is generally advised to use them in list context as multiple
 headers may return trash in scalar context.
 
@@ -1146,7 +1146,7 @@ B<NOTE> This format may change in the future.
 sub header_out {
     my $self = shift;
 
-    my $head = $self->{response}{header} ||= HTTP::Headers->new;
+    my $head = $self->{response}{header} ||= HTTP::Headers::Fast->new;
     return $head unless @_;
 
     my $name = shift;
@@ -1160,7 +1160,7 @@ sub header_out {
 =head2 remove_header( $name )
 
 Set, append, and delete values in the header_out object.
-See L<HTTP::Headers>.
+See L<HTTP::Headers::Fast>.
 
 Arrayrefs are ok and will set multiple values for a given header.
 
@@ -1506,7 +1506,7 @@ They shall not generally be called directly inside the app.
 
 =item * do_get_body()
 
-=item * do_get_header_in() - returns a HTTP::Headers object.
+=item * do_get_header_in() - returns a HTTP::Headers::Fast object.
 
 =item * do_reply( $status, $content ) - write reply to client
 
