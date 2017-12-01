@@ -14,7 +14,7 @@ L<MVC::Neaf::Request> object.
 
 =cut
 
-our $VERSION = 0.1902;
+our $VERSION = 0.1903;
 use Carp;
 use Encode;
 use PerlIO::encoding;
@@ -39,19 +39,14 @@ use PerlIO::encoding;
 
 =cut
 
-# NOTE HACK
-# This file uses inside-out objects to allow for diamond operator:
-#     1) An object is represented by a blessed file handle;
-#     2) All other fields are stored in a global hash;
-#     3) DESTROY deletes entry from said hash.
-# This is wrong, and shouldn't be done this way.
-# This is experimental and may be removed in the future.
+# TODO 0.25 figure out if GLOBs are worth the hassle
+# We use GLOB objects so that <$upload> works as expected.
+# This may turn out to be not worth it, so it's not even in the docs yet.
 # See also t/*diamond*.t
 
 my %new_opt;
 my @copy_fields = qw(id tempfile filename utf8);
 $new_opt{$_}++ for @copy_fields, "handle";
-my %inside_out;
 sub new {
     my ($class, %args) = @_;
 
@@ -80,8 +75,8 @@ sub new {
     };
     bless $self, $class;
 
-    delete $args{handle};
-    $inside_out{$self} = \%args;
+    *$self->{$_} = $args{$_}
+        for @copy_fields;
 
     return $self;
 };
@@ -94,7 +89,7 @@ Return upload id.
 
 sub id {
     my $self = shift;
-    return $inside_out{$self}{id};
+    return *$self->{id};
 };
 
 =head2 filename()
@@ -106,8 +101,8 @@ Get user-supplied file name. Don't trust this value.
 sub filename {
     my $self = shift;
 
-    $inside_out{$self}{filename} = '/dev/null' unless defined $inside_out{$self}{filename};
-    return $inside_out{$self}{filename};
+    *$self->{filename} = '/dev/null' unless defined *$self->{filename};
+    return *$self->{filename};
 };
 
 =head2 size()
@@ -121,7 +116,7 @@ B<CAVEAT> May return 0 if file is a pipe.
 sub size {
     my $self = shift;
 
-    return $inside_out{$self}{size} ||= do {
+    return *$self->{size} ||= do {
         # calc size
         my $fd = $self->handle;
         my @stat = stat $fd;
@@ -155,22 +150,22 @@ sub content {
     my $self = shift;
 
     # TODO 0.30 remember where the  file was 1st time
-    if (!defined $inside_out{$self}{content}) {
+    if (!defined *$self->{content}) {
         $self->rewind;
         my $fd = $self->handle;
 
         local $/;
         my $content = <$fd>;
         if (!defined $content) {
-            my $fname = $inside_out{$self}{tempfile} || $fd;
-            croak( "Upload $inside_out{$self}{id}: failed to read file $fname: $!");
+            my $fname = *$self->{tempfile} || $fd;
+            croak( "Upload *$self->{id}: failed to read file $fname: $!");
         };
 
         $self->rewind;
-        $inside_out{$self}{content} = $content;
+        *$self->{content} = $content;
     };
 
-    return $inside_out{$self}{content};
+    return *$self->{content};
 };
 
 =head2 rewind()
@@ -189,11 +184,7 @@ sub rewind {
     return $self;
 };
 
-sub DESTROY {
-    my $self = shift;
-
-    # TODO 0.30 kill the tempfile, if any?
-    delete $inside_out{$self};
-};
+# TODO 0.30 kill the tempfile, if any?
+# sub DESTROY { };
 
 1;
