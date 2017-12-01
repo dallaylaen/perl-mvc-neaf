@@ -14,7 +14,7 @@ L<MVC::Neaf::Request> object.
 
 =cut
 
-our $VERSION = 0.20;
+our $VERSION = 0.2001;
 use Carp;
 use Encode;
 use PerlIO::encoding;
