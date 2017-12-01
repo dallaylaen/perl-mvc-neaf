@@ -1,5 +1,19 @@
 Revision history for MVC-Neaf
 
+0.20    Fri Dec 1 2017
+        - API Add 'neaf form => name => {...}' for kosher input validation
+        - MOD Add X::Form::Wildcard module to handle unforeknown request params
+        - API Add public log_error() method to Request, use it for all errors
+        - API BREAK Split upload() into upload_utf8() and upload_raw()
+        - API BREAK Remove req->set,get_default for good
+        - REF Replace JSON dependency with JSON::MaybeXS
+        - REF Replace concatenation with md5 in req->id generator (todo SHA3)
+        - DOC Improve Neaf documentation NOCODE
+        - BUG Multiple bugs fixed, new ones added
+
+0.1901  Tue Nov 28 2017
+        - BUG Fix local $SIG{__WARN__} in BEGIN section
+
 0.19    Fri Nov 24 2017
         - CLI Add --listen option to CLI interface
         - API Add exp. path_info_split method to fetch regex capture groups

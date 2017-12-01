@@ -17,10 +17,13 @@ example/07-upload.pl
 example/08-form.pl
 example/09-continue.pl
 example/10-multi-param.pl
+example/11-auto-error.pl
+example/12-wildcard.pl
 example/README.md
 example/run-all.pl
 it/01-plackup.t
 it/02-cgi.t
+it/03-stderr-500.t
 it/README
 lib/MVC/Neaf.pm
 lib/MVC/Neaf/CLI.pm
@@ -40,6 +43,7 @@ lib/MVC/Neaf/X/Files.pm
 lib/MVC/Neaf/X/Form.pm
 lib/MVC/Neaf/X/Form/Data.pm
 lib/MVC/Neaf/X/Form/LIVR.pm
+lib/MVC/Neaf/X/Form/Wildcard.pm
 lib/MVC/Neaf/X/ServerStat.pm
 lib/MVC/Neaf/X/Session.pm
 lib/MVC/Neaf/X/Session/Base.pm
@@ -87,6 +91,8 @@ t/134-return-head.t
 t/135-Request-get_form_as_list.t
 t/136-View-JS-nonhash.t
 t/137-Request-id.t
+t/138-Upload-utf8.t
+t/139-upload-diamond.t
 t/201-Neaf-Util-date.t
 t/221-path-info-not-found.t
 t/222-Neaf-run_test-usage.t
@@ -94,8 +100,14 @@ t/223-predefined-regex.t
 t/224-dev-endpoint.t
 t/225-Error-with-id.t
 t/226-path-info-split.t
+t/227-predefined-form.t
+t/228-wildcard-form.t
+t/229-Request-log-error.t
 t/301-default-view.t
 t/401-pre-logic-403-tpl.t
+t/402-error-logged.t
+t/403-non-hash-return.t
+t/404-exception-in-hook.t
 t/801-cli.t
 t/802-X-Form.t
 t/803-X-Form-LIVR.t
@@ -110,7 +122,7 @@ t/815-X-Session-SQL.t
 t/816-X-Session-sugar.t
 t/817-X-Files-serve.t
 t/818-X-Files-dir.t
-t/902-req-default-v.0.20.t
+t/819-X-Form-Wildcard.t
 t/903-Request-get-form-as.t
 t/904-switch-tt-to-js-v.0.20.t
 t/905-set_full_path.0.20.t
