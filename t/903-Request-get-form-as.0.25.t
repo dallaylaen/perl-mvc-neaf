@@ -20,7 +20,7 @@ my $form_h = eval {
     $req->get_form_as_hash( x => '\d+', y => '\d+' );
 };
 is $form_h, undef, "No way";
-like $@, qr/use MVC::Neaf::X::Form/, 'Work around suggested';
+like $@, qr/use [Nn]eaf.*[Ff]orm/, 'Work around suggested';
 note $@;
 
 is scalar @warn, 0, "no warns issued";

@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.2002;
+our $VERSION = 0.2003;
 
 =head1 NAME
 
@@ -340,52 +340,6 @@ sub path_info_split {
     return @{ $self->{path_info_split} || [] };
 };
 
-=head2 set_full_path( $path )
-
-=head2 set_full_path( $script_name, $path_info )
-
-Set new path elements which will be returned from this point onward.
-
-Also updates path() value so that path = script_name + path_info
-still holds.
-
-set_full_path(undef) resets script_name to whatever returned
-by the underlying driver.
-
-Returns self.
-
-B<DEPRECATED> Use set_path() and set_path_info() instead.
-
-=cut
-
-sub set_full_path {
-    my ($self, $script_name, $path_info) = @_;
-
-    carp "NEAF: set_full_path() is DEPRECATED and will be removed in 0.20";
-
-    if (!defined $script_name) {
-        $script_name = $self->do_get_path;
-    };
-
-    # CANONIZE
-    $script_name =~ s#^/*#/#;
-    $self->{script_name} = $script_name;
-
-    if (defined $path_info) {
-        # Make sure path_info always has a slash if nonempty
-        $path_info =~ s#^/+##;
-        $self->{path_info} = Encode::is_utf8($path_info)
-                ? $path_info
-                : decode_utf8(uri_unescape($path_info));
-    } elsif (!defined $self->{path_info}) {
-        $self->{path_info} = '';
-    };
-    # assert $self->{path_info} is defined by now
-
-    $self->{path} = "$self->{script_name}"
-        .(length $self->{path_info} ? "/$self->{path_info}" : '');
-    return $self;
-};
 
 sub _import_route {
     my ($self, $route, $path, $path_info, $tail) = @_;
@@ -609,18 +563,6 @@ sub form {
     };
 };
 
-=head2 get_form_as_hash ( name => qr/.../, name2 => qr/..../, ... )
-
-B<DEPRECATED> and dies. Use L<MVC::Neaf::X::Form> instead.
-
-=cut
-
-sub get_form_as_hash {
-    my ($self, %spec) = @_;
-
-    $self->_croak( "DEPRECATED. use MVC::Neaf::X::Form and form() method" );
-};
-
 =head2 get_form_as_list ( qr/.../, qw(name1 name2 ...)  )
 
 =head2 get_form_as_list ( [ qr/.../, "default" ], qw(name1 name2 ...)  )
@@ -709,7 +651,7 @@ Like above, but no decoding whatsoever is performed.
 
 =head2 upload( "name" )
 
-B<DEPRECATED>. Same as upload_raw.
+B<DEPRECATED>. Same as upload_raw, but issues a warning.
 
 =cut
 
@@ -720,13 +662,6 @@ sub upload_utf8 {
 
 sub upload_raw {
     my ($self, $name) = @_;
-    return $self->_upload( id => $name, utf8 => 0 );
-};
-
-sub upload {
-    my ($self, $name) = @_;
-
-    carp "NEAF: req->upload() is DEPRECATED, use upload_utf8 or upload_raw instead";
     return $self->_upload( id => $name, utf8 => 0 );
 };
 
@@ -818,7 +753,8 @@ sub set_cookie {
     defined $opt{regex} and $cook !~ /^$opt{regex}$/
         and $self->_croak( "output value doesn't match regex" );
     if (exists $opt{expires}) {
-        carp( "NEAF set_cookie(): 'expires' parameter detected, use 'expire' instead" );
+        # TODO 0.30 kill it and croak
+        carp( "NEAF set_cookie(): 'expires' parameter DEPRECATED, use 'expire' instead" );
         $opt{expire} = delete $opt{expires};
     };
 
@@ -1253,8 +1189,6 @@ This may be useful in postponed actions or hooks.
 
 This is killed by a C<clear()> call.
 
-B<EXPERIMENTAL>. This function MAY be removed or changed in the future.
-
 =cut
 
 sub reply {
@@ -1287,9 +1221,6 @@ Use C<stash> as a last resort for temporary, private data.
 
 Stash is not killed by C<clear()> function so that cleanup isn't
 botched accidentally.
-
-B<EXPERIMENTAL>. This function MAY be removed if hooks turn out to be
-too cumbersome.
 
 =cut
 
@@ -1632,6 +1563,76 @@ I<for at least three minor versions> after official deprecation
 and a corresponding warning being added.
 
 Please keep an eye on C<Changes> though.
+
+Here are these methods, for the sake of completeness.
+
+=head2 set_full_path( $path )
+
+=head2 set_full_path( $script_name, $path_info )
+
+Set new path elements which will be returned from this point onward.
+
+Also updates path() value so that path = script_name + path_info
+still holds.
+
+set_full_path(undef) resets script_name to whatever returned
+by the underlying driver.
+
+Returns self.
+
+B<DEPRECATED> Use set_path() and set_path_info() instead.
+
+=cut
+
+# TODO 0.25 kill it
+sub set_full_path {
+    my ($self, $script_name, $path_info) = @_;
+
+    carp "NEAF: set_full_path() is DEPRECATED and will be removed in 0.25";
+
+    if (!defined $script_name) {
+        $script_name = $self->do_get_path;
+    };
+
+    # CANONIZE
+    $script_name =~ s#^/*#/#;
+    $self->{script_name} = $script_name;
+
+    if (defined $path_info) {
+        # Make sure path_info always has a slash if nonempty
+        $path_info =~ s#^/+##;
+        $self->{path_info} = Encode::is_utf8($path_info)
+                ? $path_info
+                : decode_utf8(uri_unescape($path_info));
+    } elsif (!defined $self->{path_info}) {
+        $self->{path_info} = '';
+    };
+    # assert $self->{path_info} is defined by now
+
+    $self->{path} = "$self->{script_name}"
+        .(length $self->{path_info} ? "/$self->{path_info}" : '');
+    return $self;
+};
+
+# TODO 0.25 kill
+sub upload {
+    my ($self, $name) = @_;
+
+    carp "NEAF: req->upload() is DEPRECATED, use upload_utf8 or upload_raw instead";
+    return $self->_upload( id => $name, utf8 => 0 );
+};
+
+=head2 get_form_as_hash ( name => qr/.../, name2 => qr/..../, ... )
+
+B<DEPRECATED> and dies. Use L<MVC::Neaf::X::Form> instead.
+
+=cut
+
+sub get_form_as_hash {
+    my ($self, %spec) = @_;
+
+    $self->_croak( "DEPRECATED. use neaf form 'foo' => { ... }" );
+};
 
 =head2 set_default( key => $value, ... )
 
