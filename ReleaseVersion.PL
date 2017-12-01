@@ -5,6 +5,7 @@ use warnings;
 use IPC::Open3 qw(open3);
 sub fatal($);
 
+my $module = 'lib/MVC/Neaf.pm';
 my $cover_wanted = 80;
 
 # This is an automated release helper.
@@ -23,6 +24,18 @@ push @extra, map { /(\S+)\s*$/ and $1 } `git ls-files --other --directory --excl
 @extra = grep { $_ !~ /^[A-Z]+$/ } @extra;
 !@extra
     or fatal "Extra/modified files:\n  @extra";
+
+open my $fd, '<', $module
+        or die "Failed to open $module: $!";
+my $version;
+while (<$fd>) {
+    /our +\$VERSION *= *(\d+\.\d+);/ or next;
+    $version = $1;
+    last;
+};
+close $fd;
+fatal("Version not found in $module")
+    unless $version;
 
 unlink "MANIFEST";
 run_cmd( "perl Makefile.PL" )
@@ -80,10 +93,14 @@ sub run_cmd {
         , "RESULT";
 };
 
+if ($version) {
+    my $newver = int ($version * 100 + 1)/100;
+    print "VERSION=$newver\n";
+};
 
 my $bad;
 stop_here() if $bad;
-print "# release recommended\n";
+print "# release of $module version recommended\n";
 exit;
 
 
