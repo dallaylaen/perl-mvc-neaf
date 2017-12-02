@@ -15,7 +15,7 @@ my $tpl = <<"HTML";
 "use strict";
 var post_to = "/11/js";
 
-function upd() {
+function upd(arg) {
     document.getElementById("content").innerHTML = "Waiting for response...";
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
@@ -24,13 +24,16 @@ function upd() {
         // pretend we forgot to check for http status
         document.getElementById("content").innerHTML = xhr.responseText;
     };
-    xhr.open( "get", post_to, true );
+    xhr.open( "get", post_to+arg, true );
     xhr.send();
     return false;
 };
 </script>
 <div id="content">Not ready yet...</div>
-<input type="submit" value="Get data!" onClick="return upd()">
+<input type="submit" value="Route error" onClick="return upd('?die=pre_route')">
+<input type="submit" value="Controller error" onClick="return upd('')">
+<input type="submit" value="Bad return error" onClick="return upd('?ret=1')">
+<input type="submit" value="Render error" onClick="return upd('?tpl=1')">
 
 <div>Don't forget to look at the server logs if you see anything unusual.</div>
 </body>
@@ -45,7 +48,24 @@ get '/11/oops' => sub {
     };
 }, -template => \$tpl, -view => 'TT', description => "Unexpected error demo";
 
+# This would affect other examples as well! C'est la vie
+neaf pre_route => sub {
+    my $req = shift;
+    $req->param( die => "pre_route" )
+        and die "Pre-route failed upon request";
+};
+
+# This never returns anything useful
 get + post '/11/js' => sub {
+    my $req = shift;
+    return "Text"
+        if $req->param( ret => 1 );
+    return {
+        -view     => 'TT',
+        -template => \'[% END %]',
+    }
+        if $req->param( tpl => 1 );
+
     die "Foobared";
 };
 
