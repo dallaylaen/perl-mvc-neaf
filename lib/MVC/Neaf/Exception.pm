@@ -2,7 +2,7 @@ package MVC::Neaf::Exception;
 
 use strict;
 use warnings;
-our $VERSION = 0.2003;
+our $VERSION = 0.2004;
 
 =head1 NAME
 
@@ -153,7 +153,7 @@ sub make_reply {
         -status   => $self->{-status},
         -content  => "See $self->{-location}\n",
         -type     => 'text/plain; charset=utf8',
-        -head     => [ location => $self->{-location} ],
+        -headers  => [ location => $self->{-location} ],
     } if ($self->{-location});
 
     my $req_id = $req->id;
