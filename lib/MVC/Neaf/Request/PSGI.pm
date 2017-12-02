@@ -2,7 +2,7 @@ package MVC::Neaf::Request::PSGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.2003;
+our $VERSION = 0.2004;
 
 =head1 NAME
 
@@ -223,10 +223,7 @@ rather relying on PSGI calling conventions.
 sub do_reply {
     my ($self, $status, $content) = @_;
 
-    my @header_array;
-    $self->header_out->scan( sub {
-            push @header_array, encode_utf8($_[0]), encode_utf8($_[1]);
-    });
+    my $header_array = $self->header_out->psgi_flatten_without_sort;
 
     # HACK - we're being returned by handler in MVC::Neaf itself in case of
     # PSGI being used.
@@ -241,7 +238,7 @@ sub do_reply {
             my $responder = shift;
 
             # TODO 0.90 should handle responder's failure somehow
-            $self->{writer} = $responder->( [ $status, \@header_array ] );
+            $self->{writer} = $responder->( [ $status, $header_array ] );
             $self->{writer}->write( $content ) if defined $content;
 
             # Now we may need to output more stuff
@@ -253,7 +250,7 @@ sub do_reply {
     };
 
     # Otherwise just return plain data.
-    return [ $status, \@header_array, [ $content ]];
+    return [ $status, $header_array, [ $content ]];
 };
 
 =head2 do_write( $data )
