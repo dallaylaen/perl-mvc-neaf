@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.2005;
+our $VERSION = 0.2006;
 
 =head1 NAME
 
@@ -1427,7 +1427,7 @@ sub endpoint_origin {
     my $self = shift;
 
     return '(unspecified file):0' unless $self->{endpoint}{caller};
-    return join ":", @{ $self->{endpoint}{caller} }[1,2];
+    return join " line ", @{ $self->{endpoint}{caller} }[1,2];
 };
 
 # If called outside user's code, carp() will point at http server

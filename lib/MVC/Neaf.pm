@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2003;
+our $VERSION = 0.2004;
 
 =head1 NAME
 
@@ -209,6 +209,7 @@ our %EXPORT_TAGS = (
 
 use MVC::Neaf::Util qw(http_date canonize_path path_prefixes run_all run_all_nodie);
 use MVC::Neaf::Request::PSGI;
+use MVC::Neaf::Exception;
 
 our $Inst;
 
@@ -1258,8 +1259,9 @@ in the controller. E.g.
 
 sub neaf_err(;$) { ## no critic # prototype it for less typing on user's part
     my $err = shift || $@;
-    return unless blessed $err and $err->isa("MVC::Neaf::Exception");
-    die $err;
+    die $err if blessed $err and $err->isa("MVC::Neaf::Exception");
+    die $err if !ref $err and $err =~ /^(\d\d\d)\s/s; # die 403
+    return;
 };
 
 =head2 neaf->...
@@ -1911,51 +1913,56 @@ sub _post_setup {
 sub _error_to_reply {
     my ($self, $req, $err) = @_;
 
-    # TODO 0.30 Neaf::Exception === die 404
-    if (blessed $err and $err->isa("MVC::Neaf::Exception")) {
-        $err->{-status} ||= 500;
-        return $err;
+    # Convert all errors to Neaf expt.
+    if (!blessed $err) {
+        $err = MVC::Neaf::Exception->new(
+            -status   => $err,
+            -nocaller => 1,
+        );
+    }
+    elsif ( !$err->isa("MVC::Neaf::Exception")) {
+        $err = MVC::Neaf::Exception->new(
+            -status   => 500,
+            -sudden   => 1,
+            -reason   => $err,
+            -nocaller => 1,
+        );
     };
 
-    my $status = (!ref $err && $err =~ /^(\d\d\d)\s/) ? $1 : 500;
-    my $sudden = !$1;
+    # Now $err is guaranteed to be a Neaf error
 
-    # Try exception handler
-    if( $sudden and exists $self->{on_error}) {
+    # Use on_error callback to fixup error or gather stats
+    if( $err->is_sudden and exists $self->{on_error}) {
         eval {
             $self->{on_error}->($req, $err, $req->endpoint_origin);
-            $sudden = 0;
             1;
         }
             or $req->log_error( "on_error callback failed: ".($@ || "unknown reason") );
     };
 
     # Try fancy error template
-    if (exists $self->{error_template}{$status}) {
+    if (my $tpl = $self->{error_template}{$err->status}) {
         my $ret = eval {
-            $self->{error_template}{$status}->( $req,
-                status => $status,
-                caller => $req->endpoint_origin,
+            $tpl->( $req,
+                status => $err->status,
+                caller => $req->endpoint_origin, # TODO 0.25 kill this
                 error => $err,
             );
         };
         if (ref $ret eq 'HASH') {
-            $ret->{-status} ||= $status;
+            # success
+            $ret->{-status} ||= $err->status;
             return $ret;
         };
-        $req->log_error( "error_template for $status failed:"
+        $req->log_error( "error_template for ".$err->status." failed:"
             .( $@ || "unknown reason") );
     };
 
-    # Options exhausted - return plain error message
-    $req->log_error( $err )
-        if $sudden;
-    my $req_id = $req->id;
-    return {
-        -status     => $status,
-        -type       => 'application/json',
-        -content    => qq({"error":"$status","req_id":"$req_id"}),
-    };
+    # Options exhausted - return plain error message,
+    #    keep track of reason on the inside
+    $req->log_error( $err->reason )
+        if $err->is_sudden;
+    return $err->make_reply( $req );
 };
 
 sub _croak {

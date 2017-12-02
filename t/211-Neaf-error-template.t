@@ -3,10 +3,11 @@
 use strict;
 use warnings;
 use Test::More;
+use Test::Warn;
 
 use MVC::Neaf;
 
-$SIG{__DIE__} = \&Carp::confess;
+warnings_like {
 
 note "TESTING error_template()";
 my $n = MVC::Neaf->new;
@@ -19,7 +20,9 @@ note "TESTING on_error()";
 my @log;
 $n->on_error( sub { push @log, $_[1] } );
 $n->route( '/' => sub { die "Fubar" } );
-$n->run->({});
+warnings_like {
+    $n->run->({});
+} [ qr/req_id=.*Fubar/ ], "Warn despite on_error handler";
 is (scalar @log, 1, "1 error issued");
 like ($log[0], qr/^Fubar\s/s, "Error correct" );
 note "ERROR: $_" for @log;
@@ -43,6 +46,8 @@ eval {
 };
 like( $@, qr/^MVC::Neaf->route.*duplicat/, "Error starts with Neaf");
 note $@;
+
+} [], "And no warnings overall";
 
 done_testing;
 
