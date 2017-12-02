@@ -3,14 +3,14 @@
 use strict;
 use warnings;
 use Test::More;
+use Test::Warn;
 use URI::Escape;
 use Encode;
 use HTTP::Headers::Fast;
 
 use MVC::Neaf::Request;
 
-my $warn = 0;
-$SIG{__WARN__} = sub { $warn++; warn $_[0]; };
+warnings_like {
 
 my $copy = uri_unescape( "%C2%A9" ); # a single (c) symbol
 $copy = decode_utf8($copy);
@@ -22,7 +22,7 @@ my $req = MVC::Neaf::Request->new(
         Referer => 'http://google.com',
         User_Agent => 'test bot',
     ),
-    route => {}, # this one to avoid warnings
+    endpoint => {}, # this one to avoid warnings
                  # - normally script_name is unavailable before routing occurs
 );
 $req->set_path("/foo/bar");
@@ -87,6 +87,6 @@ is ($req->header_out( "foobar" ), 42, "Header set");
 $req->clear;
 is ($req->header_out( "foobar" ), undef, "Clear removed header" );
 
-ok !$warn, "$warn warnings issued";
+} [], "No warnings issued";
 
 done_testing;
