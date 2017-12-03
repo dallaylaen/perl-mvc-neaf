@@ -9,8 +9,13 @@ use MVC::Neaf::Upload;
 
 my $up = MVC::Neaf::Upload->new( id => "data", handle => \*DATA );
 
-is <$up>, "Foo\n", "Diamond op works";
-is <$up>, "Bared\n", "Diamond op works again";
+is <$up>, "Foo\n", "Diamond op works"
+    or diag "Read failed: $!";
+is <$up>, "Bared\n", "Diamond op works again"
+    or diag "Read failed: $!";
+
+note "TESTING LEAK";
+# Because we use inside-out objects, must also test for leaks
 
 {
     package Vanish;
@@ -23,8 +28,6 @@ is <$up>, "Bared\n", "Diamond op works again";
     };
 };
 
-# Because we use inside-out objects, must also test for leaks
-note "TESTING LEAK";
 my $leaky = Vanish->new("fname");
 my $weak  = [$leaky];
 weaken $weak->[0];
