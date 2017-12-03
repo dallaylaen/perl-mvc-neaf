@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2004;
+our $VERSION = 0.2005;
 
 =head1 NAME
 
@@ -19,6 +19,25 @@ MVC::Neaf::View::TT - Template toolkit-based view module for Neaf.
         title => 'Page title',
         ....
     };
+    # Neaf knows it's time to render foo.tt with returned data as stash
+    # and return result to user
+
+    # What actually happens
+    my $view = MVC::Neaf::View::TT->new;
+    my $content = $view->render( { ... } );
+
+    # And if in foo.tt
+    <title>[% title %]</title>
+
+    # Then in $content it becomes
+    <title>Page title</title>
+
+=head1 DESCRIPTION
+
+This module is one of core rendering engines of L<MVC::Neaf>
+known under C<TT> alias.
+
+See also C<neaf view>.
 
 =head1 METHODS
 
@@ -42,13 +61,15 @@ use parent qw(MVC::Neaf::View);
 
 =item * preserve_dash - don't strip dashed options. Useful for debugging.
 
+=item * preload => { name => 'in-memory template' } - preload some templates.
+See C<preload()> below.
+
 =back
 
 Also any UPPERCASE OPTIONS will be forwarded to the backend
 (i.e. Template object) w/o changes.
 
-B<NOTE> No input checks are made whatsoever,
-but this MAY change in the future.
+Any extra options except those above will cause an exception.
 
 =cut
 
@@ -159,6 +180,16 @@ sub _croak {
 =head1 SEE ALSO
 
 L<Template> - the template toolkit used as backend.
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright 2016-2017 Konstantin S. Uvarin L<khedin@cpan.org>.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of either: the GNU General Public License as published
+by the Free Software Foundation; or the Artistic License.
+
+See http://dev.perl.org/licenses/ for more information.
 
 =cut
 
