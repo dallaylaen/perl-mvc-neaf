@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.2003;
+our $VERSION = 0.2004;
 
 =head1 NAME
 
@@ -53,6 +53,13 @@ but this MAY change in the future.
 in memory for cache_ttl seconds.
 B<EXPERIMENTAL>. Cache API is not yet established.
 
+=item * in_memory = { name => [ "content", "type" ] }
+
+Serve some files from memory.
+Content-type defaults to text/plain.
+
+B<EXPERIMENTAL>. Name and signature MAY change in the future.
+
 =back
 
 =cut
@@ -84,7 +91,7 @@ HTML
 
 my %static_options;
 $static_options{$_}++ for qw(
-    root base_url
+    root base_url in_memory
     description buffer cache_ttl allow_dots dir_index dir_template view );
 
 sub new {
@@ -111,7 +118,21 @@ sub new {
     $options{description} = "Static content at $options{root}"
         unless defined $options{description};
 
-    return $class->SUPER::new(%options);
+    # Don't store files twice
+    my $preload = delete $options{in_memory};
+    my $self = $class->SUPER::new(%options);
+
+    if ($preload) {
+        foreach (keys %$preload) {
+            my $raw = $preload->{$_};
+            $self->save_cache( $_, undef, {
+                -content => $raw->[0],
+                -type    => $raw->[1] || 'text/plain',
+            } );
+        };
+    };
+
+    return $self;
 };
 
 =head2 serve_file( $path )
@@ -157,14 +178,13 @@ sub serve_file {
     my @header;
 
     # sanitize file path before caching
-    $file = "/$file";
-    $file =~ s#/+#/#g;
-    $file =~ s#/$##;
+    $file = canonize_path($file);
 
     if (my $data = $self->{cache_content}{$file}) {
-        if ($data->[1] < $time) {
+        if ($data->[1] and $data->[1] < $time) {
             delete $self->{cache_content}{$file};
-        } else {
+        }
+        else {
             return $data->[0];
         };
     };
@@ -291,6 +311,7 @@ Save data in cache.
 sub save_cache {
     my ($self, $name, $expires, $content) = @_;
 
+    $name = canonize_path( $name );
     $self->{cache_content}{$name} = [ $content, $expires ];
 
     return $self;
