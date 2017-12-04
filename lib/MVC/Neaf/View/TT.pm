@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2005;
+our $VERSION = 0.2006;
 
 =head1 NAME
 
@@ -64,6 +64,17 @@ use parent qw(MVC::Neaf::View);
 =item * preload => { name => 'in-memory template' } - preload some templates.
 See C<preload()> below.
 
+=item * preload => $file_name
+
+Preload from file, see C<preload_file> below.
+
+Similar to L<Mojolicious> (but not exactly the same),
+templates are stored in format
+
+     @@ TT <file_name.ext>\n
+
+     <content ...>
+
 =back
 
 Also any UPPERCASE OPTIONS will be forwarded to the backend
@@ -74,7 +85,7 @@ Any extra options except those above will cause an exception.
 =cut
 
 my %new_opt;
-$new_opt{$_}++ for qw( template preserve_dash engine preload );
+$new_opt{$_}++ for qw( template preserve_dash engine preload preload_auto );
 
 my @opt_provider = qw(
     INCLUDE_PATH ABSOLUTE RELATIVE DEFAULT ENCODING CACHE_SIZE STAT_TTL
@@ -115,9 +126,13 @@ sub new {
 
     my $pre = delete $opt{preload};
     my $self = $class->SUPER::new(%opt);
-    if ( $pre ) {
+
+    # TODO 0.40 automagically preload from the calling file's DATA section
+    if ( ref $pre eq 'HASH' ) {
         $self->preload( $_ => $pre->{$_} )
             for keys %$pre;
+    } elsif ($pre) {
+        $self->preload_file( $pre );
     };
     return $self;
 };
@@ -149,23 +164,86 @@ sub render {
     return wantarray ? ($out, "text/html") : $out;
 };
 
-=head2 preload ( "name", "[% in_memory_template %]" )
+=head2 preload ( name => "[% in_memory_template %]", ... )
 
-Compile given template and store it under given name for future use.
+Store precompiled templates under given names.
 
 Returns self, dies on error.
 
 =cut
 
 sub preload {
-    my ($self, $name, $raw_tpl) = @_;
+    my ($self, %tpls) = @_;
 
-    my $compiled = eval { $self->{engine}->template( \$raw_tpl ) }
-        or $self->_croak( $@ );
+    foreach (keys %tpls) {
+        my $compiled = eval { $self->{engine}->template( \$tpls{$_} ) }
+            or $self->_croak( "$_: $@" );
 
-    $self->{engine_preload}->store( $name, $compiled );
+        $self->{engine_preload}->store( $_, $compiled );
+    };
 
     return $self;
+};
+
+=head2 preload_file( $name || \*HANDLE )
+
+Load multiple templates from file.
+
+Templates are separated by
+
+    @@ TT filename.ext\n
+
+The C<@@> mark MUST be at line start.
+One or more spaces MUST separate the mark, type, and file name.
+Pseudofiles with type != TT are possible, but ignored this far.
+
+Newlines at start of template and all whitespace at its end are stripped.
+
+=cut
+
+sub preload_file {
+    my ($self, $file) = @_;
+
+    my $fd;
+    if (ref $file) {
+        $fd = $file;
+    } else {
+        open $fd, "<", $file
+            or $self->_croak( "Failed to open(r) $file: $!" );
+    };
+
+    local $/;
+    my $content = <$fd>;
+    defined $content
+        or $self->_croak( "Failed to read from $file: $!" );
+
+    my @parts = split /^@@\s+(.*\S)\s*$/m, $content, -1;
+    shift @parts;
+    die "Something went wrong" if @parts % 2;
+
+    my %tpls;
+    while (@parts) {
+        my $name = shift @parts;
+        $name =~ /^(\w+)\s+(.*)$/
+            or $self->_croak("Bad naming format @@ $name");
+
+        unless (lc $1 eq 'tt') {
+            # skip non-tt files
+            # TODO 0.40 make common loader for all templating systems
+            shift @parts;
+            next;
+        };
+
+        $name = $2;
+
+        $self->_croak("Duplicate file name '@@ $name' in $file")
+            if defined $tpls{$name};
+        $tpls{$name} = shift @parts;
+        $tpls{$name} =~ s/^\n+//s;
+        $tpls{$name} =~ s/\s+$//s;
+    };
+
+    return $self->preload( %tpls );
 };
 
 sub _croak {
