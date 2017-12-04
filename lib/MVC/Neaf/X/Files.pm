@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.2002;
+our $VERSION = 0.2003;
 
 =head1 NAME
 
@@ -23,7 +23,7 @@ is a bad idea.
 However, forcing the user to run a separate web-server just to test
 their CSS, JS, and images is an even worse one.
 
-So this module is here to fill the gap.
+So this module is here to fill the gap in L<MVC::Neaf>.
 
 =head1 METHODS
 
@@ -41,6 +41,9 @@ use parent qw(MVC::Neaf::X);
 %options may include:
 
 =over
+
+=item * root - where to search for files. May point to asingle file, too.
+(Required).
 
 =item * buffer - buffer size for serving files.
 Currently this is also the size below which in-memory caching is on,
@@ -142,6 +145,7 @@ our %ExtType = (
     js   => 'application/javascript',
     png  => 'image/png',
     txt  => 'text/plain',
+    pl   => 'text/plain',
 );
 
 sub serve_file {
@@ -158,18 +162,10 @@ sub serve_file {
     $file =~ s#/$##;
 
     if (my $data = $self->{cache_content}{$file}) {
-        if ($data->{expire} < $time) {
+        if ($data->[1] < $time) {
             delete $self->{cache_content}{$file};
         } else {
-            push @header, content_disposition => $data->{disposition}
-                if $data->{disposition};
-            $data->{expire_head} ||= http_date( $data->{expire} );
-            push @header, expires => $data->{expire_head};
-            return {
-                -content => $data->{data},
-                -type => $data->{type},
-                -headers=>\@header,
-            };
+            return $data->[0];
         };
     };
 
@@ -213,15 +209,13 @@ sub serve_file {
 
     # return whole file if possible
     if ($size < $bufsize) {
+        my $ret = { -content => $buf, -type => $type, -headers => \@header };
         if ($self->{cache_ttl}) {
-            my %content;
-            $content{data} = $buf;
-            $content{expire} = $time + $self->{cache_ttl};
-            $content{type} = $type;
-            $content{disposition} = $disposition;
-            $self->{cache_content}{$file} = \%content;
+            my $expires = $time + $self->{cache_ttl};
+            push @{ $ret->{-headers} }, expires => http_date( $expires );
+            $self->save_cache( $file, $expires, $ret );
         };
-        return { -content => $buf, -type => $type, -headers => \@header }
+        return $ret;
     };
 
     # If file is big, print header & first data chunk ASAP
@@ -288,9 +282,33 @@ sub list_dir {
     };
 };
 
+=head2 save_cache( $name, $expires, \%data )
+
+Save data in cache.
+
+=cut
+
+sub save_cache {
+    my ($self, $name, $expires, $content) = @_;
+
+    $self->{cache_content}{$name} = [ $content, $expires ];
+
+    return $self;
+};
+
 =head2 make_route()
 
-Returns list of arguments suitable for neaf->route(...);
+Returns list of arguments suitable for C<neaf-E<gt>route(...)>:
+
+=over
+
+=item * base url;
+
+=item * handler sub;
+
+=item * a hash of options: path_info_regex, cache_ttl, and description.
+
+=back
 
 =cut
 
@@ -318,24 +336,27 @@ sub make_route {
 
 =head2 make_handler
 
-Returns a Neaf-compatible hander sub.
+Returns a Neaf-compatible handler sub.
 
-B<DEPRECATED> Use make_route instead.
+B<DEPRECATED> Use make_route instead. This dies.
 
 =cut
 
 sub make_handler {
     my $self = shift;
-
-    # callback to be installed via stock ->route() mechanism
-    my $handler = sub {
-        my $req = shift;
-
-        my $file = $req->path_info();
-        return $self->serve_file( $file );
-    }; # end handler sub
-
-    return $handler;
+    $self->my_croak("DEPRECATED, use make_route() instead");
 };
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright 2016-2017 Konstantin S. Uvarin L<khedin@cpan.org>.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of either: the GNU General Public License as published
+by the Free Software Foundation; or the Artistic License.
+
+See http://dev.perl.org/licenses/ for more information.
+
+=cut
 
 1;
