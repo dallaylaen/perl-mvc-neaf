@@ -9,10 +9,12 @@ use warnings;
 use MVC::Neaf qw(:sugar);
 
 # Now to the NEAF itself: set common default values
-# So far we have to specify \*DATA manually, no magic yet
-neaf view => 'TT02' => 'TT' => preload => \*DATA;
+neaf view => 'TT02' => 'TT';
 neaf default => '/02' =>
     { -view => 'TT02', file => 'example/02 NEAF '.MVC::Neaf->VERSION };
+
+# So far we have to specify \*DATA manually, no magic yet
+neaf->load_resources( \*DATA );
 
 # Sic!
 get+post '/02/request' => sub {
@@ -51,7 +53,7 @@ get+post '/02/request' => sub {
 neaf->run;
 
 __DATA__
-@@ TT main.html
+@@ [TT02] main.html
 <head>
     <title>[% title | html %] - [% file | html %]</title>
     <style>
@@ -104,4 +106,3 @@ __DATA__
 
 </body>
 </html>
-

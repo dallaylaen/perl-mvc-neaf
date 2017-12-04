@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.2004;
+our $VERSION = 0.2005;
 
 =head1 NAME
 
@@ -35,6 +35,20 @@ use Encode;
 use MVC::Neaf::Util qw(http_date canonize_path);
 use MVC::Neaf::View::TT;
 use parent qw(MVC::Neaf::X);
+
+# Enumerate most common file types. Patches welcome.
+our %ExtType = (
+    css  => 'text/css',
+    gif  => 'image/gif',
+    htm  => 'text/html',
+    html => 'text/html',
+    jpeg => 'image/jpeg',
+    jpg  => 'image/jpeg',
+    js   => 'application/javascript',
+    pl   => 'text/plain',
+    png  => 'image/png',
+    txt  => 'text/plain',
+);
 
 =head2 new( %options )
 
@@ -122,15 +136,8 @@ sub new {
     my $preload = delete $options{in_memory};
     my $self = $class->SUPER::new(%options);
 
-    if ($preload) {
-        foreach (keys %$preload) {
-            my $raw = $preload->{$_};
-            $self->save_cache( $_, undef, {
-                -content => $raw->[0],
-                -type    => $raw->[1] || 'text/plain',
-            } );
-        };
-    };
+    $self->preload( %$preload )
+        if ($preload);
 
     return $self;
 };
@@ -154,20 +161,6 @@ This MAY be used to create more fine-grained control over static files.
 B<EXPERIMENTAL>. New options MAY be added.
 
 =cut
-
-# Enumerate most common file types. Patches welcome.
-our %ExtType = (
-    css  => 'text/css',
-    gif  => 'image/gif',
-    htm  => 'text/html',
-    html => 'text/html',
-    jpeg => 'image/jpeg',
-    jpg  => 'image/jpeg',
-    js   => 'application/javascript',
-    png  => 'image/png',
-    txt  => 'text/plain',
-    pl   => 'text/plain',
-);
 
 sub serve_file {
     my ($self, $file) = @_;
@@ -216,7 +209,7 @@ sub serve_file {
     # determine type, fallback to extention
     my $type;
     $xfile =~ m#(?:^|/)([^\/]+?(?:\.(\w+))?)$#;
-    $type = $ExtType{lc $2} if defined $2;
+    $type = $ExtType{lc $2} if defined $2; # TODO 0.40 unify with guess_type
 
     my $show_name = $1;
     $show_name =~ s/[\"\x00-\x19\\]/_/g;
@@ -302,9 +295,35 @@ sub list_dir {
     };
 };
 
+=head2 preload( %files )
+
+Preload multiple in-memory files.
+
+=cut
+
+sub preload {
+    my ($self, %files) = @_;
+
+    foreach (keys %files) {
+        my $spec = $files{$_};
+        # guess order: png; image/png; filename.png; screw it - text
+        my $type = $ExtType{$spec->[1] || ''} || $spec->[1]
+            || $self->guess_type( $_, $spec->[0] ) || 'text/plain';
+
+        $self->save_cache( $_, undef, {
+            -content => $spec->[0],
+            -type    => $type,
+        } );
+    };
+};
+
 =head2 save_cache( $name, $expires, \%data )
 
 Save data in cache.
+
+$name is canonized file name.
+
+$expires is unix timestamp. If undef, cache forever.
 
 =cut
 
@@ -316,6 +335,21 @@ sub save_cache {
 
     return $self;
 };
+
+=head2 guess_type( $filename, $content )
+
+Returns file's MIME type. As of current, content is ignored,
+and only file extention is considered.
+
+=cut
+
+sub guess_type {
+    my ($self, $name, $content) = @_;
+
+    return unless $name =~ /\.([a-z0-9]{1,4})$/;
+    return $ExtType{lc $1};
+};
+
 
 =head2 make_route()
 
@@ -370,7 +404,7 @@ sub make_handler {
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2016-2017 Konstantin S. Uvarin L<khedin@cpan.org>.
+Copyright 2016-2017 Konstantin S. Uvarin C<khedin@cpan.org>.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2004;
+our $VERSION = 0.2005;
 
 =head1 NAME
 
@@ -197,6 +197,7 @@ the default instance, or just returns it if called without arguments.
 use Carp;
 use Encode;
 use HTTP::Headers::Fast;
+use MIME::Base64;
 use Module::Load;
 use Scalar::Util qw(blessed looks_like_number);
 use URI::Escape;
@@ -990,6 +991,119 @@ sub on_error {
         $self->{on_error} = $code;
     } else {
         delete $self->{on_error};
+    };
+
+    return $self;
+};
+
+=head2 load_resources( $file || \*FILE )
+
+Load pseudo-files from a file, like templates or static files.
+
+The format is as follows:
+
+    @@ [TT] main.html
+
+    [% some_tt_template %]
+
+    @@ /favicon.ico format=base64 type=png
+
+    iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAABGdBTUEAAL
+    GPC/xhBQAAAAFzUkdCAK7OHOkAAAAgY0hS<....more encoded lines>
+
+If view is specified in brackets, preload template.
+A missing view is skipped, no error.
+
+Otherwise file is considered a static resource.
+
+Extra options may follow file name:
+
+=over
+
+=item * type = ext | mime/type
+
+=item * format=base64
+
+=back
+
+Unknown options are skipped.
+Unknown format value will cause exception though.
+
+B<EXPERIMENTAL>. This method and exact format of data is being worked on.
+
+=cut
+
+my $INLINE_SPEC = qr/^(?:\[(\w+)\]\s+)?(\S+)((?:\s+\w+=\S+)*)$/;
+sub load_resources {
+    my ($self, $file) = @_;
+
+    my $fd;
+    if (ref $file) {
+        $fd = $file;
+    } else {
+        open $fd, "<", $file
+            or $self->_croak( "Failed to open(r) $file: $!" );
+    };
+
+    local $/;
+    my $content = <$fd>;
+    defined $content
+        or $self->_croak( "Failed to read from $file: $!" );
+
+    my @parts = split /^@@\s+(.*\S)\s*$/m, $content, -1;
+    shift @parts;
+    die "Something went wrong" if @parts % 2;
+
+    my %templates;
+    my %static;
+    while (@parts) {
+        # parse file
+        my $spec = shift @parts;
+        my ($dest, $name, $extra) = ($spec =~ $INLINE_SPEC);
+        my %opt = $extra =~ /(\w+)=(\S+)/g;
+        $name or $self->_croak("Bad resource spec format @@ $spec");
+
+        my $content = shift @parts;
+        if (!$opt{format}) {
+            $content =~ s/^\n+//s;
+            $content =~ s/\s+$//s;
+            $content = Encode::decode_utf8( $content, 1 );
+        } elsif ($opt{format} eq 'base64') {
+            $content = decode_base64( $content );
+        } else {
+            $self->_croak("Unknown format $opt{format} in '@@ $spec' in $file");
+        };
+
+        if ($dest) {
+            # template
+            $self->_croak("Duplicate template '@@ $spec' in $file")
+                if defined $templates{lc $dest}{$name};
+            $templates{$dest}{$name} = $content;
+        } else {
+            # static file
+            $self->_croak("Duplicate static file '@@ $spec' in $file")
+                if $static{$name};
+            $static{$name} = [ $content, $opt{type} ];
+        };
+    };
+
+    # now do the loading
+    foreach my $name( keys %templates ) {
+        my $view = $self->get_view( $name, 1 ) or next;
+        $view->can("preload") or next; # TODO 0.30 warn here?
+        $view->preload( %{ $templates{$name} } );
+    };
+    if( %static ) {
+        require MVC::Neaf::X::Files;
+        my $st = $self->{global_static}
+            ||= MVC::Neaf::X::Files->new( root => '/dev/null' );
+        $st->preload( %static );
+        foreach( keys %static ) {
+            $self->route( $_ => sub {
+                my $req = shift;
+                $st->serve_file( $req->script_name );
+            }, method => 'GET', description => "Static resource from $file" );
+        };
     };
 
     return $self;
@@ -1973,11 +2087,11 @@ sub _croak {
     croak( (ref $self || $self)."->$where: $msg" );
 };
 
-=head2 get_view( "name" )
+=head2 get_view( "name", $lazy )
 
 Fetch view object by name.
 
-Uses C<load_view> ( name => name ) if needed.
+Uses C<load_view> ( name => name ) if needed, unless $lazy flag on.
 
 This is for internal usage.
 
@@ -1986,7 +2100,7 @@ If C<set_forced_view> was called, return its argument instead.
 =cut
 
 sub get_view {
-    my ($self, $view) = @_;
+    my ($self, $view, $lazy) = @_;
     $self = $Inst unless ref $self;
 
     # We've been overridden!
@@ -1999,7 +2113,7 @@ sub get_view {
 
     # Try loading & caching if not present.
     $self->load_view( $view, $view )
-        unless $self->{seen_view}{$view};
+        unless $lazy || $self->{seen_view}{$view};
 
     # Finally, return the thing.
     return $self->{seen_view}{$view};
@@ -2269,7 +2383,7 @@ for requesting multiple methods.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2016-2017 Konstantin S. Uvarin L<khedin@cpan.org>.
+Copyright 2016-2017 Konstantin S. Uvarin C<khedin@cpan.org>.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

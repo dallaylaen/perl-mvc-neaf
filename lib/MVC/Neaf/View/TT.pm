@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2006;
+our $VERSION = 0.2007;
 
 =head1 NAME
 
@@ -64,19 +64,6 @@ use parent qw(MVC::Neaf::View);
 =item * preload => { name => 'in-memory template' } - preload some templates.
 See C<preload()> below.
 
-=item * preload => $file_name
-
-Preload from file, see C<preload_file> below.
-
-Similar to L<Mojolicious> (but not exactly the same),
-templates are stored in format
-
-     @@ TT <file_name.ext>\n
-
-     <content ...>
-
-=back
-
 Also any UPPERCASE OPTIONS will be forwarded to the backend
 (i.e. Template object) w/o changes.
 
@@ -132,7 +119,7 @@ sub new {
         $self->preload( $_ => $pre->{$_} )
             for keys %$pre;
     } elsif ($pre) {
-        $self->preload_file( $pre );
+        $self->_croak("preload must be a hash, not ".(ref $pre || "a scalar") );
     };
     return $self;
 };
@@ -185,67 +172,6 @@ sub preload {
     return $self;
 };
 
-=head2 preload_file( $name || \*HANDLE )
-
-Load multiple templates from file.
-
-Templates are separated by
-
-    @@ TT filename.ext\n
-
-The C<@@> mark MUST be at line start.
-One or more spaces MUST separate the mark, type, and file name.
-Pseudofiles with type != TT are possible, but ignored this far.
-
-Newlines at start of template and all whitespace at its end are stripped.
-
-=cut
-
-sub preload_file {
-    my ($self, $file) = @_;
-
-    my $fd;
-    if (ref $file) {
-        $fd = $file;
-    } else {
-        open $fd, "<", $file
-            or $self->_croak( "Failed to open(r) $file: $!" );
-    };
-
-    local $/;
-    my $content = <$fd>;
-    defined $content
-        or $self->_croak( "Failed to read from $file: $!" );
-
-    my @parts = split /^@@\s+(.*\S)\s*$/m, $content, -1;
-    shift @parts;
-    die "Something went wrong" if @parts % 2;
-
-    my %tpls;
-    while (@parts) {
-        my $name = shift @parts;
-        $name =~ /^(\w+)\s+(.*)$/
-            or $self->_croak("Bad naming format @@ $name");
-
-        unless (lc $1 eq 'tt') {
-            # skip non-tt files
-            # TODO 0.40 make common loader for all templating systems
-            shift @parts;
-            next;
-        };
-
-        $name = $2;
-
-        $self->_croak("Duplicate file name '@@ $name' in $file")
-            if defined $tpls{$name};
-        $tpls{$name} = shift @parts;
-        $tpls{$name} =~ s/^\n+//s;
-        $tpls{$name} =~ s/\s+$//s;
-    };
-
-    return $self->preload( %tpls );
-};
-
 sub _croak {
     my ($self, @msg) = @_;
 
@@ -261,7 +187,7 @@ L<Template> - the template toolkit used as backend.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2016-2017 Konstantin S. Uvarin L<khedin@cpan.org>.
+Copyright 2016-2017 Konstantin S. Uvarin C<khedin@cpan.org>.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
