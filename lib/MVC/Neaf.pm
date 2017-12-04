@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2005;
+our $VERSION = 0.2006;
 
 =head1 NAME
 
@@ -340,6 +340,9 @@ sub route {
     my (%args) = @_;
     $self = $Inst unless ref $self;
 
+    $self->_croak( "handler must be a coderef, not ".ref $sub )
+        unless UNIVERSAL::isa( $sub, "CODE" );
+
     # check defaults to be a hash before accessing them
     $self->_croak( "default must be unblessed hash" )
         if $args{default} and ref $args{default} ne 'HASH';
@@ -442,6 +445,8 @@ sub _dup_route {
 
 =head2 static( $req_path => $file_path, %options )
 
+=head2 static( $req_path => [ $content, $type ] )
+
 Serve static content located under C<$file_path>.
 
 %options may include:
@@ -500,6 +505,12 @@ This is the intended usage.
 sub static {
     my ($self, $path, $dir, %options) = @_;
     $self = $Inst unless ref $self;
+
+    if (ref $dir eq 'ARRAY') {
+        my $sub = $self->_static_global->preload( $path => $dir )->one_file_handler;
+        return $self->route( $path => $sub, method => 'GET'
+            , description => Carp::shortmess( "Static content from memory" ));
+    };
 
     require MVC::Neaf::X::Files;
     my $xfiles = MVC::Neaf::X::Files->new(
@@ -1095,18 +1106,25 @@ sub load_resources {
     };
     if( %static ) {
         require MVC::Neaf::X::Files;
-        my $st = $self->{global_static}
-            ||= MVC::Neaf::X::Files->new( root => '/dev/null' );
+        my $st = $self->_static_global;
         $st->preload( %static );
         foreach( keys %static ) {
-            $self->route( $_ => sub {
-                my $req = shift;
-                $st->serve_file( $req->script_name );
-            }, method => 'GET', description => "Static resource from $file" );
+            $self->route( $_ => $st->one_file_handler, method => 'GET'
+                , description => "Static resource from $file" );
         };
     };
 
     return $self;
+};
+
+# TODO 0.30 lame name, find better
+sub _static_global {
+    my $self = shift;
+
+    return $self->{global_static} ||= do {
+        require MVC::Neaf::X::Files;
+        MVC::Neaf::X::Files->new( root => '/dev/null' );
+    };
 };
 
 =head2 neaf->run()

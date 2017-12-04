@@ -2,7 +2,7 @@ package MVC::Neaf::X::Files;
 
 use strict;
 use warnings;
-our $VERSION = 0.2005;
+our $VERSION = 0.2006;
 
 =head1 NAME
 
@@ -299,6 +299,8 @@ sub list_dir {
 
 Preload multiple in-memory files.
 
+Returns self.
+
 =cut
 
 sub preload {
@@ -314,6 +316,27 @@ sub preload {
             -content => $spec->[0],
             -type    => $type,
         } );
+    };
+
+    return $self;
+};
+
+=head2 one_file_handler()
+
+Returns a simple closure that accepts a L<MVC::Neaf::Request> and
+serves the requested path as is, relative to the X::Files objects's
+root, or from cache.
+
+B<EXPERIMENTAL>. This is used internally by Neaf, name & meaning may change.
+
+=cut
+
+sub one_file_handler {
+    my $self = shift;
+
+    return $self->{one_file} ||= sub {
+        my $req = shift;
+        return $self->serve_file( $req->path );
     };
 };
 
