@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2006;
+our $VERSION = 0.2007;
 
 =head1 NAME
 
@@ -203,9 +203,10 @@ use Scalar::Util qw(blessed looks_like_number);
 use URI::Escape;
 use parent qw(Exporter);
 
-our @EXPORT_OK = qw( neaf_err neaf get post head put );
+our @EXPORT_OK = qw( neaf_err );
+my  @EXPORT_SUGAR = qw( neaf ); # Will populate later - see @ALL_METHODS below
 our %EXPORT_TAGS = (
-    sugar => [qw[ neaf get post head put ]],
+    sugar => \@EXPORT_SUGAR,
 );
 
 use MVC::Neaf::Util qw(http_date canonize_path path_prefixes run_all run_all_nodie);
@@ -359,6 +360,7 @@ sub route {
     $path = canonize_path( $path );
 
     _listify( \$args{method}, qw( GET POST ) );
+    $_ = uc $_ for @{ $args{method} };
 
     my @dupe = grep { exists $self->{route}{$path}{$_} } @{ $args{method} };
     $self->_croak( "Attempting to set duplicate handler for [@dupe] "
@@ -1471,13 +1473,23 @@ sub neaf(@) { ## no critic # DSL
     return $MVC::Neaf::Inst->$method( @args );
 };
 
-=head2 get '/path' => sub { ... }, ...
+=head2 Request method sugar
 
-=head2 head '/path' => sub { ... }, ...
+=head3 get '/path' => sub { ... }, ...
 
-=head2 post '/path' => sub { ... }, ...
+=head3 head '/path' => sub { ... }, ...
 
-=head2 put '/path' => sub { ... }, ...
+=head3 post '/path' => sub { ... }, ...
+
+=head3 put '/path' => sub { ... }, ...
+
+=head3 patch '/path' => sub { ... }, ...
+
+=head3 del '/path' => sub { ... }, ...
+
+Cannot really use
+
+=head3 any '/path' => sub { ... }, ...
 
 Set request method handler. c<get + post @args> is equivalent to
 C<get @args>; C<post @args>.
@@ -1488,12 +1500,23 @@ Other methods and combinations (e.g. PATCH) are available via
 
 =cut
 
-foreach (qw(get head post put)) {
-    my $method = uc $_;
+# Generate alias subs
+my @ALL_METHODS = qw( get head post put patch delete );
+my %ALIAS;
+$ALIAS{$_} = uc $_ for @ALL_METHODS;
+$ALIAS{del} = delete $ALIAS{delete}; # ouch, no delete '/foo' => bar
+$ALIAS{any} = \@ALL_METHODS;
+
+foreach (keys %ALIAS) {
+    my $method = $ALIAS{$_};
+    my $is_any = $_ eq 'any';
 
     my $code = sub(@) { ## no critic
-        # get + post sugar
-        if (@_ == 1 and UNIVERSAL::isa( $_[0], __PACKAGE__ )) {
+        # any
+        if ($is_any and ref $_[0] eq 'ARRAY') {
+            $method = shift;
+        } elsif (@_ == 1 and UNIVERSAL::isa( $_[0], __PACKAGE__ )) {
+            # get + post sugar
             return $_[0]->_dup_route( $method );
         };
 
@@ -1504,9 +1527,11 @@ foreach (qw(get head post put)) {
             $path, $handler, @args, method => $method, caller => [caller(0)] );
     };
 
+    push @EXPORT_SUGAR, $_;
     no strict 'refs'; ## no critic
     *{$_} = $code;
 };
+push @EXPORT_OK, @EXPORT_SUGAR;
 
 =head1 DEVELOPMENT AND DEBUGGING METHODS
 
