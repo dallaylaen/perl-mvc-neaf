@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2007;
+our $VERSION = 0.2008;
 
 =head1 NAME
 
@@ -68,6 +68,8 @@ Also any UPPERCASE OPTIONS will be forwarded to the backend
 (i.e. Template object) w/o changes.
 
 Any extra options except those above will cause an exception.
+
+=back
 
 =cut
 
