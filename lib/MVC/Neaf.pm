@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2009;
+our $VERSION = 0.2010;
 
 =head1 NAME
 
@@ -453,6 +453,10 @@ sub _dup_route {
     $self->{route}{ $path }{$method} = { %$profile, my_method => $method };
 };
 
+# in: { method => [...], path => '/...', tentative => 0|1, override=> 0|1 }
+# out: none
+# spoils $method if tentative
+# dies/warns if violations found
 sub _detect_duplicate {
     my ($self, $profile) = @_;
 
@@ -480,6 +484,12 @@ sub _detect_duplicate {
         if ($profile->{override}) {
             carp( (ref $self)."->$caller: Overriding old handler for"
                 ." $oldpath defined $oldwhere");
+        } elsif( $profile->{tentative} ) {
+            # just skip duplicate methods
+            my %filter;
+            $filter{$_}++ for @{ $profile->{method} };
+            delete $filter{$_} for @dupe;
+            $profile->{method} = [keys %filter];
         } else {
             croak( (ref $self)."->$caller: Attempting to set duplicate handler for"
                 ." $oldpath defined $oldwhere");

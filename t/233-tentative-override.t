@@ -45,6 +45,14 @@ warnings_like {
 
 warnings_like {
     eval {
+        get '/my' => sub { +{-content => 'MORE NEW' } }, tentative => 1;
+    };
+    ok !$@, "Already defined + tentative = nothing happens"
+        or diag "tentative override dies: $@";
+} [], "... and no warnings";
+
+warnings_like {
+    eval {
         put '/our' => sub { +{-content => 'MORE NEW' } };
     };
     like $@, qr#duplicate#, "Dupe handler = no go";
