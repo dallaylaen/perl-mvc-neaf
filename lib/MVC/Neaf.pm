@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2008;
+our $VERSION = 0.2009;
 
 =head1 NAME
 
@@ -371,41 +371,18 @@ sub route {
     $self->_croak( "Unexpected keys in route setup: @extra" )
         if @extra;
 
-    $path = canonize_path( $path );
+    $args{path} = $path = canonize_path( $path );
 
     _listify( \$args{method}, qw( GET POST ) );
     $_ = uc $_ for @{ $args{method} };
 
-    # Handle duplicate route definitions
-    my @dupe = grep {
-        exists $self->{route}{$path}{$_}
-        and !$self->{route}{$path}{$_}{tentative};
-    } @{ $args{method} };
-
-    if (@dupe) {
-        my %olddef;
-        foreach (@dupe) {
-            my $where = $self->{route}{$path}{$_}{where};
-            push @{ $olddef{$where} }, $_;
-        };
-
-        # flatten olddef hash, format list
-        my $oldwhere = join ", ", map { "$_ [@{ $olddef{$_} }]" } keys %olddef;
-        my $oldpath = $path || '/';
-
-        if ($args{override}) {
-            carp( (ref $self)."->route: Overriding old handler for"
-                ." $oldpath defined $oldwhere");
-        } else {
-            $self->_croak( "Attempting to set duplicate handler for"
-                ." $oldpath defined $oldwhere");
-        };
-    };
+    $self->_detect_duplicate( \%args );
 
     # Do the work
     my %profile;
     $profile{code}      = $sub;
     $profile{tentative} = $args{tentative};
+    $profile{override}  = $args{override};
 
     # Always have regex defined to simplify routing
     $profile{path_info_regex} = (defined $args{path_info_regex})
@@ -470,15 +447,44 @@ sub _dup_route {
     $profile ||= $self->{last_added};
     my $path = $profile->{path};
 
-    $self->_croak( "Attempting to set duplicate handler for [$method] "
-        .($path || '/'))
-            if $self->{route}{ $path }{$method};
-
-    $self->{route}{ $path }{$method}
-        and $self->_croak("Attempting to set duplicate ");
+    $self->_detect_duplicate($profile);
 
     delete $self->{route_re};
     $self->{route}{ $path }{$method} = { %$profile, my_method => $method };
+};
+
+sub _detect_duplicate {
+    my ($self, $profile) = @_;
+
+    my $path = $profile->{path};
+    # Handle duplicate route definitions
+    my @dupe = grep {
+        exists $self->{route}{$path}{$_}
+        and !$self->{route}{$path}{$_}{tentative};
+    } @{ $profile->{method} };
+
+    if (@dupe) {
+        my %olddef;
+        foreach (@dupe) {
+            my $where = $self->{route}{$path}{$_}{where};
+            push @{ $olddef{$where} }, $_;
+        };
+
+        # flatten olddef hash, format list
+        my $oldwhere = join ", ", map { "$_ [@{ $olddef{$_} }]" } keys %olddef;
+        my $oldpath = $path || '/';
+
+        # Alas, must do error message by hand
+        my $caller = [caller 1]->[3];
+        $caller =~ s/.*:://;
+        if ($profile->{override}) {
+            carp( (ref $self)."->$caller: Overriding old handler for"
+                ." $oldpath defined $oldwhere");
+        } else {
+            croak( (ref $self)."->$caller: Attempting to set duplicate handler for"
+                ." $oldpath defined $oldwhere");
+        };
+    };
 };
 
 =head2 neaf static => '/path' => ...
@@ -546,16 +552,22 @@ sub static {
     my ($self, $path, $dir, %options) = @_;
     $self = $Inst unless ref $self;
 
+    $options{caller} ||= [caller 0];
+
+    my %fwd_opt;
+    $fwd_opt{$_} = delete $options{$_}
+        for qw(tentative override caller);
+
     if (ref $dir eq 'ARRAY') {
         my $sub = $self->_static_global->preload( $path => $dir )->one_file_handler;
-        return $self->route( $path => $sub, method => 'GET'
+        return $self->route( $path => $sub, method => 'GET', %fwd_opt,
             , description => Carp::shortmess( "Static content from memory" ));
     };
 
     require MVC::Neaf::X::Files;
     my $xfiles = MVC::Neaf::X::Files->new(
         %options, root => $dir, base_url => $path );
-    return $self->route( $xfiles->make_route );
+    return $self->route( $xfiles->make_route, %fwd_opt );
 };
 
 
@@ -736,6 +748,7 @@ sub alias {
     $self->{route}{$old}
         or $self->_croak( "Cannot create alias for unknown route $old" );
 
+    # TODO 0.30 restrict methods, handle tentative/override, detect dupes
     $self->_croak( "Attempting to set duplicate handler for path "
         .( length $new ? $new : "/" ) )
             if $self->{route}{ $new };
@@ -1502,6 +1515,10 @@ sub neaf(@) { ## no critic # DSL
 
     if ($action eq 'session') {
         unshift @args, 'engine';
+    };
+
+    if ($action eq 'route' ) {
+        carp "neaf route is DEPRECATED, use get+post+put instead";
     };
 
     my $method = $method_shortcut{$action};
