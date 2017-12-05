@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2007;
+our $VERSION = 0.2008;
 
 =head1 NAME
 
@@ -302,6 +302,20 @@ to multiple handlers.
 =item * description - just for information, has no action on execution.
 This will be displayed if application called with --list (see L<MVC::Neaf::CLI>).
 
+=item * override => 1 - replace old route even if exists.
+If not set, route collisions causes exception.
+Use this if you know better.
+
+This still warns.
+
+B<EXPERIMENTAL.> Name and meaning may change in the future.
+
+=item * tentative => 1 - don't complain if this route is replaced.
+
+E.g. if setting a static stub for method to be added later.
+
+B<EXPERIMENTAL.> Name and meaning may change in the future.
+
 =back
 
 Also, any number of dash-prefixed keys MAY be present.
@@ -320,7 +334,7 @@ my $year = 365 * 24 * 60 * 60;
 my %known_route_args;
 $known_route_args{$_}++ for qw(default method view cache_ttl
     path_info_regex param_regex
-    description caller);
+    description caller tentative override);
 
 sub route {
     my $self = shift;
@@ -362,15 +376,36 @@ sub route {
     _listify( \$args{method}, qw( GET POST ) );
     $_ = uc $_ for @{ $args{method} };
 
-    my @dupe = grep { exists $self->{route}{$path}{$_} } @{ $args{method} };
-    $self->_croak( "Attempting to set duplicate handler for [@dupe] "
-        .( length $path ? $path : "/" ) )
-            if @dupe;
+    # Handle duplicate route definitions
+    my @dupe = grep {
+        exists $self->{route}{$path}{$_}
+        and !$self->{route}{$path}{$_}{tentative};
+    } @{ $args{method} };
+
+    if (@dupe) {
+        my %olddef;
+        foreach (@dupe) {
+            my $where = $self->{route}{$path}{$_}{where};
+            push @{ $olddef{$where} }, $_;
+        };
+
+        # flatten olddef hash, format list
+        my $oldwhere = join ", ", map { "$_ [@{ $olddef{$_} }]" } keys %olddef;
+        my $oldpath = $path || '/';
+
+        if ($args{override}) {
+            carp( (ref $self)."->route: Overriding old handler for"
+                ." $oldpath defined $oldwhere");
+        } else {
+            $self->_croak( "Attempting to set duplicate handler for"
+                ." $oldpath defined $oldwhere");
+        };
+    };
 
     # Do the work
     my %profile;
-    $profile{code}     = $sub;
-    $profile{caller}   = $args{caller} || [caller(0)]; # file,line
+    $profile{code}      = $sub;
+    $profile{tentative} = $args{tentative};
 
     # Always have regex defined to simplify routing
     $profile{path_info_regex} = (defined $args{path_info_regex})
@@ -380,6 +415,8 @@ sub route {
     # Just for information
     $profile{path}        = $path;
     $profile{description} = $args{description};
+    $profile{caller}      = $args{caller} || [caller(0)]; # save file,line
+    $profile{where}       = "at $profile{caller}[1] line $profile{caller}[2]";
 
     if (my $view = $args{view}) {
         carp "NEAF: route(): view argument is deprecated, use -view instead";
@@ -415,6 +452,7 @@ sub route {
 
     # ready, shallow copy handler & burn cache
     delete $self->{route_re};
+
     $self->{route}{ $path }{$_} = { %profile, my_method => $_ }
         for @{ $args{method} };
 
