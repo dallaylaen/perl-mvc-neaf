@@ -2,7 +2,7 @@ package MVC::Neaf::Exception;
 
 use strict;
 use warnings;
-our $VERSION = 0.2004;
+our $VERSION = 0.2005;
 
 =head1 NAME
 
@@ -203,7 +203,7 @@ sub TO_JSON {
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2016-2017 Konstantin S. Uvarin L<khedin@cpan.org>.
+Copyright 2016-2017 Konstantin S. Uvarin C<khedin@cpan.org>.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
