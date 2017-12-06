@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2012;
+our $VERSION = 0.2013;
 
 =head1 NAME
 
@@ -347,9 +347,6 @@ EVERY time the handler returns.
 Consider using C<neaf default ...> below if you need to add
 the same values to multiple handlers.
 
-=item * description - just for information, has no action on execution.
-This will be displayed if application called with --list (see L<MVC::Neaf::CLI>).
-
 =item * override => 1 - replace old route even if it exists.
 If not set, route collisions causes exception.
 Use this if you know better.
@@ -363,6 +360,14 @@ B<EXPERIMENTAL.> Name and meaning may change in the future.
 E.g. if setting a static stub for method to be added later.
 
 B<EXPERIMENTAL.> Name and meaning may change in the future.
+
+=item * description - just for information, has no action on execution.
+This will be displayed if application called with --list (see L<MVC::Neaf::CLI>).
+
+=item * public => 0|1 - a flag just for information.
+In theory, public endpoints should be searchable from the outside
+while non-public ones should only be reachable from other parts of application.
+This is not enforced whatsoever.
 
 =back
 
@@ -380,9 +385,11 @@ it v.0.25.
 
 my $year = 365 * 24 * 60 * 60;
 my %known_route_args;
-$known_route_args{$_}++ for qw(default method view cache_ttl
+$known_route_args{$_}++ for qw(
+    default method view cache_ttl
     path_info_regex param_regex
-    description caller tentative override);
+    description caller tentative override public
+);
 
 sub route {
     my $self = shift;
@@ -424,6 +431,9 @@ sub route {
     _listify( \$args{method}, qw( GET POST ) );
     $_ = uc $_ for @{ $args{method} };
 
+    $self->_croak("Public endpoint must have nonempty description")
+        if $args{public} and not $args{description};
+
     $self->_detect_duplicate( \%args );
 
     # Do the work
@@ -440,6 +450,7 @@ sub route {
     # Just for information
     $profile{path}        = $path;
     $profile{description} = $args{description};
+    $profile{public}      = $args{public} ? 1 : 0;
     $profile{caller}      = $args{caller} || [caller(0)]; # save file,line
     $profile{where}       = "at $profile{caller}[1] line $profile{caller}[2]";
 
@@ -596,6 +607,11 @@ See C<route> above.
 
 =item * description - comment. The default is "Static content at $dir"
 
+=item * public => 0|1 - a flag just for information.
+In theory, public endpoints should be searchable from the outside
+while non-public ones should only be reachable from other parts of application.
+This is not enforced whatsoever.
+
 =back
 
 The content is really handled by L<MVC::Neaf::X::Files>.
@@ -622,8 +638,8 @@ sub static {
     $options{caller} ||= [caller 0];
 
     my %fwd_opt;
-    $fwd_opt{$_} = delete $options{$_}
-        for qw(tentative override caller);
+    defined $options{$_} and $fwd_opt{$_} = delete $options{$_}
+        for qw( tentative override caller public );
 
     if (ref $dir eq 'ARRAY') {
         my $sub = $self->_static_global->preload( $path => $dir )->one_file_handler;
@@ -636,7 +652,6 @@ sub static {
         %options, root => $dir, base_url => $path );
     return $self->route( $xfiles->make_route, %fwd_opt );
 };
-
 
 =head2 neaf default => '/path' => \%values
 
@@ -1791,6 +1806,7 @@ sub get_routes {
     $self = $Inst unless ref $self;
 
     $code ||= sub { $_[0] };
+    scalar $self->run; # burn caches
 
     # TODO 0.30 must do deeper copying
     my $all = $self->{route};
