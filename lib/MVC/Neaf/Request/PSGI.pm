@@ -2,7 +2,7 @@ package MVC::Neaf::Request::PSGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.2004;
+our $VERSION = 0.2005;
 
 =head1 NAME
 
@@ -28,8 +28,22 @@ BEGIN {
 use URI::Escape qw(uri_unescape);
 use Encode;
 use Plack::Request;
+use HTTP::Headers::Fast; # we want 0.21, but will tolerate older ones
 
 use parent qw(MVC::Neaf::Request);
+
+if (!HTTP::Headers::Fast->can( "psgi_flatten_without_sort" )) {
+    # NOTE HACK Versions below 0.21 don't support the method we call
+    # in do_reply() so fall back to failsafe emulation
+    no warnings 'once'; ## no critic
+    *HTTP::Headers::Fast::psgi_flatten_without_sort = sub {
+        my $self = shift;
+        my @all;
+        $self->scan( sub { push @all, @_ } );
+        return \@all;
+    };
+};
+
 
 =head2 new( env => $psgi_input )
 
