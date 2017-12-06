@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2010;
+our $VERSION = 0.2011;
 
 =head1 NAME
 
@@ -1719,20 +1719,29 @@ sub run_test {
     );
 };
 
-=head2 get_routes
+=head2 get_routes( $callback->(\%route_def, $path, $method) )
 
-Returns a hash with ALL routes for inspection.
+Returns a 2-level hashref with ALL routes for inspection.
+
+So C<$hash{'/path'}{'GET'} = { handler, expected params, description etc }>
+
+If callback is present, run it against route definition
+and append to hash its return value, but ONLY if it's true.
+
+As of 0.20, route definitions are only protected by shallow copy,
+so be careful with them.
+
 This should NOT be used by application itself.
 
 =cut
 
 sub get_routes {
-    my $self = shift;
+    my ($self, $code) = @_;
     $self = $Inst unless ref $self;
 
+    $code ||= sub { $_[0] };
+
     # TODO 0.30 must do deeper copying
-    # TODO 0.30 need callback here
-    # TODO 0.30 filter routes by path & method
     my $all = $self->{route};
     my %ret;
     foreach my $path ( keys %$all ) {
@@ -1741,7 +1750,9 @@ sub get_routes {
             my $route = $batch->{$method};
             $self->_post_setup( $route )
                 unless $route->{lock};
-            $ret{$path}{$method} = { %$route };
+
+            my $filtered = $code->( { %$route }, $path, $method );
+            $ret{$path}{$method} = $filtered if $filtered;
         };
     };
 

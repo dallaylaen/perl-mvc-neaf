@@ -72,7 +72,21 @@ is (scalar @$bar, 3, "PSGI-compatible");
 is ($bar->[0], 200, "Normal request");
 is_deeply ($bar->[2], [137], "Content is fine");
 
-is_deeply ([sort keys %{ MVC::Neaf->get_routes }], [qw[/bar /foo]]
-    , "Introspection: get_routes works");
+
+note "INTROSPECTION";
+
+is_deeply (MVC::Neaf->get_routes( sub { 1 } ), {
+    '/foo' => { GET => 1, POST => 1, HEAD => 1 },
+    '/bar' => { GET => 1, POST => 1, HEAD => 1 },
+}, "Callback that returns true reveals tree");
+
+is_deeply (MVC::Neaf->get_routes( sub { $_[2] eq 'GET' } ), {
+    '/foo' => { GET => 1 },
+    '/bar' => { GET => 1 },
+}, "Callback acts as filter");
+
+my $map = MVC::Neaf->get_routes;
+is $map->{'/bar'}{GET}{path_info_regex}, qr(^$), "No callback => everything";
+is $map->{'/foo'}{GET}{path_info_regex}, qr(^$), "No callback => everything (2)";
 
 done_testing;
