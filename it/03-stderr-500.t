@@ -5,7 +5,7 @@ use warnings;
 use Test::More;
 use File::Basename qw(dirname);
 use IPC::Open3;
-use JSON::MaybeXS;
+use MVC::Neaf::Util qw(JSON encode_json decode_json);
 
 my $lib = dirname(__FILE__)."/../lib";
 

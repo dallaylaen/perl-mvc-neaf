@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Warn;
-use JSON::MaybeXS;
+use MVC::Neaf::Util qw(JSON encode_json decode_json);
 
 use MVC::Neaf qw(:sugar);
 

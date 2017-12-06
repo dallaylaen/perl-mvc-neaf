@@ -3,7 +3,7 @@ package MVC::Neaf::View::JS;
 use strict;
 use warnings;
 
-our $VERSION = 0.2003;
+our $VERSION = 0.2004;
 
 =head1 NAME
 
@@ -32,7 +32,7 @@ instead or rendering a template.
 =cut
 
 use Carp;
-use JSON::MaybeXS;
+use MVC::Neaf::Util qw(JSON);
 
 use parent qw(MVC::Neaf::View);
 
@@ -114,7 +114,7 @@ sub render {
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2016-2017 Konstantin S. Uvarin L<khedin@cpan.org>.
+Copyright 2016-2017 Konstantin S. Uvarin C<khedin@cpan.org>.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

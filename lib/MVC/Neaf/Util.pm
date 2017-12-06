@@ -2,7 +2,7 @@ package MVC::Neaf::Util;
 
 use strict;
 use warnings;
-our $VERSION = 0.2002;
+our $VERSION = 0.2003;
 
 =head1 NAME
 
@@ -20,7 +20,11 @@ This module optionally exports anything it has.
 
 use parent qw(Exporter);
 our @EXPORT_OK = qw(
-    canonize_path http_date path_prefixes rex run_all run_all_nodie);
+    canonize_path http_date path_prefixes rex run_all run_all_nodie
+    JSON encode_json decode_json
+);
+
+# use JSON::MaybeXS; # not now, see JSON() below
 
 =head2 http_date
 
@@ -133,11 +137,36 @@ sub run_all_nodie {
     return $dead;
 };
 
+=head2 JSON()
+
+Because JSON::MaybeXS is not available on all systems, try to load it
+or emulate it.
+
+=head2 encode_json
+
+=head2 decode_json
+
+These two are reexported from whatever JSON module we were lucky enough
+to load.
+
+=cut
+
+sub JSON(); ## no critic
+
+my $luck = eval "use JSON::MaybeXS; 1"; ## no critic
+my $err = $@;
+
+if (!$luck) {
+    require JSON::PP;
+    JSON::PP->import;
+    *JSON = sub () { "JSON::PP" };
+};
+
 =head1 LICENSE AND COPYRIGHT
 
 This module is part of the L<MVC::Neaf> suite.
 
-Copyright 2016-2017 Konstantin S. Uvarin.
+Copyright 2016-2017 Konstantin S. Uvarin C<khedin@cpan.org>.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
