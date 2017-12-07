@@ -1,5 +1,19 @@
 Revision history for MVC-Neaf
 
+0.21    Thu Dec 7 2017
+        - API Add any, put, patch, and del for DELETE to sugar
+        - API route(): Add 'public', 'tentative', 'override' flags
+        - MOD static '/path' => [ "content" ] to serve in-memory files
+        - TPL Add View::TT->preload for in-memory templates
+        - API Experimental load_resources for Mojo-like @@ files in __DATA__
+        - TPL Minor fixes in View::JS, add want_pretty and want_sorted options
+        - DEV Add callback(\%, path, method) to get_routes
+        - REF unify die 404 with MVC::Neaf::Exception
+        - REF Use HTTP::Headers::Fast everywhere
+        - BUG Tighten dependencies, add more workarounds for failing deps
+        - BUG Fix error reporting in diamond upload test
+        - TST Improve test suite somewhat
+
 0.2002  Fri Dec 1 2017
         - BUG Fixed escapes in POD
 
