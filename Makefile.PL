@@ -54,6 +54,7 @@ WriteMakefile(
             runtime => {
                 recommends => {
                     'JSON::XS' => 0,
+                    'Validator::LIVR' => 0,
                 },
             },
         },
