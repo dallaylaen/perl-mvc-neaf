@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.21;
+our $VERSION = 0.2101;
 
 =head1 NAME
 
@@ -12,7 +12,7 @@ MVC::Neaf - Not Even A (Web Application) Framework
 
 =head1 OVERVIEW
 
-Neaf [ni:f] stands for Not Even A Framework.
+Neaf C<[ni:f]> stands for Not Even A Framework.
 
 The B<Model> is assumed to be just a regular Perl module,
 no restrictions are imposed on it.
@@ -31,7 +31,7 @@ that demonstrates the features of Neaf.
 =head1 SYNOPSIS
 
 The following application, outputting a greeting, is ready to run
-as a CGI script, PSGI application, or Apache handler.
+as a L<CGI> script, L<PSGI> application, or Apache handler.
 
     use strict;
     use warnings;
@@ -52,7 +52,7 @@ as a CGI script, PSGI application, or Apache handler.
 
     neaf->run;
 
-A neaf app has some command-line interface built in:
+A neaf application has some command-line interface built in:
 
     perl myapp.pl --list
 
@@ -60,7 +60,7 @@ Will give a summary of available routes.
 
     perl myapp.pl --listen :31415
 
-Will start a default plackup server (C<plackup myapp.pl> works as well)
+Will start a default C<plackup> server (C<plackup myapp.pl> works as well)
 
     perl myapp.pl --post --upload foo=/path/to/file /bar?life=42 --view Dumper
 
@@ -85,7 +85,7 @@ method discussed below.
 
 =head2 THE REQUEST
 
-B<The Request> object is similar to the OO interface of L<CGI>
+B<The Request> object is similar to the object-oriented interface of L<CGI>
 or L<Plack::Request> with some minor differences:
 
     # What was requested:
@@ -144,14 +144,14 @@ The small but growing list of these -options is as follows:
 E.g. display generated image.
 
 =item * -continue - A callback that receives the Request object.
-It will be executed AFTER the headers and pre-generated content
+It will be executed AFTER the headers and the first content chunk
 are served to the client, and may use C<$req-E<gt>write( $data );>
 and C<$req-E<gt>close;> to output more data.
 
 =item * -headers - Pass a hash or array of values for header generation.
 This is an alternative to L<MVC::Neaf::Request>'s C<push_header> method.
 
-=item * -jsonp - Used by JS view module as a callback name to produce a
+=item * -jsonp - Used by C<JS> view module as a callback name to produce a
 L<jsonp|https://en.wikipedia.org/wiki/JSONP> response.
 Callback MUST be a set of identifiers separated by dots.
 Otherwise it's ignored for security reasons.
@@ -162,15 +162,16 @@ This is set by C<$request-E<gt>redirect(...)>.
 B<DEPRECATED.> This will be phased out at some point,
 use C<-header => [ location =E<gt> ... ]> instead.
 
-=item * -serial - if present, the JS view will render this instead of
+=item * -serial - if present, the C<JS> view will render this instead of
 the whole response hash.
 This can be used e.g. to return non-hash data in REST API.
 B<EXPERIMENTAL>. Name and meaning may change in the future.
 
 =item * -status - HTTP status (200, 404, 500 etc).
-Default is 200 if the app managed to live through, and 500 if it died.
+Default is 200 if the handler managed to live through, and 500 if it died.
 
-=item * -template - Set template name for TT (L<Template>-based view).
+=item * -template - Set template name for a text processing view
+(currently L<MVC::Neaf::View::TT> based on L<Template>).
 
 =item * -type - Content-type HTTP header.
 View module may set this parameter if unset.
@@ -183,7 +184,7 @@ are currently supported.
 New short aliases may be created by
 C<MVC::Neaf-E<gt>load_view( "name" =E<gt> $your_view );> (see below).
 
-The default is the JS aka L<MVC::Neaf::View::JS> engine.
+The default is C<JS> denoting the the L<MVC::Neaf::View::JS> engine.
 Adding C<-template> key will cause switching to C<MVC::Neaf::View::TT>,
 but it is deprecated and will go away in v.0.25.
 
@@ -272,7 +273,7 @@ These may be combined using C<+> sign, or alternatively there's
 
 =over
 
-=item * any [ 'get', 'post', 'foobar' ]
+=item * any [ 'get', 'post', 'unknown_method' ] => '/path' => \&handler
 
 =back
 
@@ -296,20 +297,20 @@ Exactly one leading slash will be prepended no matter what you do.
 
 The C<CODEREF> MUST accept exactly one argument,
 referred to as C<$request> or C<$req> hereafter,
-and return un unblessed hashref with response data.
+and return an unblessed hashref with response data.
 
 %options may include:
 
 =over
 
-=item * method - list of allowed HTTP methods.
+=item * C<method> - list of allowed HTTP methods.
 Default is [GET, POST].
 Multiple handles can be defined for the same path, provided that
 methods do not intersect.
 HEAD method is automatically handled if GET is present, however,
 one MAY define a separate HEAD handler explicitly.
 
-=item * path_info_regex => qr/.../ - allow URI subpaths
+=item * C<path_info_regex> => C<qr/.../> - allow URI subpaths
 to be handled by this handler.
 
 A 404 error will be generated unless C<path_info_regex> is present
@@ -323,31 +324,31 @@ their content will also be available as C<$req-E<gt>path_info_split>.
 
 B<EXPERIMENTAL>. Name and semantics MAY change in the future.
 
-=item * param_regex => { name => qr/.../, name2 => '\d+' }
+=item * C<param_regex> => { name => C<qr/.../>, name2 => C<'\d+'> }
 
 Add predefined regular expression validation to certain request parameters,
 so that they can be queried by name only.
-See param() in L<MVC::Neaf::Request>.
+See C<param()> in L<MVC::Neaf::Request>.
 
 B<EXPERIMENTAL>. Name and semantics MAY change in the future.
 
-=item * view - default View object for this Controller.
+=item * C<view> - default View object for this Controller.
 Must be an object with a C<render> method, or a CODEREF
 receiving hashref and returning a list of two scalars
 (content and content-type).
 
 B<DEPRECATED>. Use -view instead, meaning is exactly the same.
 
-=item * cache_ttl - if set, set Expires: HTTP header accordingly.
+=item * C<cache_ttl> - if set, set Expires: HTTP header accordingly.
 
 B<EXPERIMENTAL>. Name and semantics MAY change in the future.
 
-=item * default - a C<\%hash> of values that will be added to results
+=item * C<default> - a C<\%hash> of values that will be added to results
 EVERY time the handler returns.
 Consider using C<neaf default ...> below if you need to add
 the same values to multiple handlers.
 
-=item * override => 1 - replace old route even if it exists.
+=item * C<override> => 1 - replace old route even if it exists.
 If not set, route collisions causes exception.
 Use this if you know better.
 
@@ -355,16 +356,16 @@ This still warns.
 
 B<EXPERIMENTAL.> Name and meaning may change in the future.
 
-=item * tentative => 1 - don't complain if this route is replaced.
+=item * C<tentative> => 1 - don't complain if this route is replaced.
 
 E.g. if setting a static stub for method to be added later.
 
 B<EXPERIMENTAL.> Name and meaning may change in the future.
 
-=item * description - just for information, has no action on execution.
+=item * C<description> - just for information, has no action on execution.
 This will be displayed if application called with --list (see L<MVC::Neaf::CLI>).
 
-=item * public => 0|1 - a flag just for information.
+=item * C<public> => 0|1 - a flag just for information.
 In theory, public endpoints should be searchable from the outside
 while non-public ones should only be reachable from other parts of application.
 This is not enforced whatsoever.
@@ -375,10 +376,10 @@ Also, any number of dash-prefixed keys MAY be present.
 This is totally the same as putting them into C<default> hash.
 
 B<NOTE> For some reason ability to add multicomponent paths
-like (foo => bar => \&code) was added in the past,
-resulting in "/foo/bar" => \&code.
+like C<(foo => bar => \&code)> was added in the past,
+resulting in C<"/foo/bar" => \&code>.
 
-It was never documented, will issue a warning, and will be killed for good
+It was never documented, will issue a warning, and will be removed for good
 it v.0.25.
 
 =cut
@@ -572,11 +573,11 @@ See L<MVC::Meaf::X::Files> for implementation.
 
 =over
 
-=item * buffer => nnn - buffer size for reading/writing files.
+=item * C<buffer> => C<nnn> - buffer size for reading/writing files.
 Default is 4096. Smaller values may be set, but are NOT recommended.
 
-=item * cache_ttl => nnn - if given, files below the buffer size will be stored
-in memory for cache_ttl seconds.
+=item * C<cache_ttl> => C<nnn> - if given, files below the buffer size
+will be stored in memory for C<cache_ttl> seconds.
 
 B<EXPERIMENTAL>. Cache API is not yet established.
 
@@ -595,8 +596,8 @@ B<EXPERIMENTAL>
 
 B<EXPERIMENTAL>
 
-=item * view - specify view object for rendering dir template.
-By default a localized TT instance is used.
+=item * view - specify view object for rendering directory template.
+By default a localized C<TT> instance is used.
 
 B<EXPERIMENTAL> Name MAY be changed (dir_view etc).
 
@@ -605,7 +606,7 @@ See C<route> above.
 
 =item * tentative - don't complain if replaced later.
 
-=item * description - comment. The default is "Static content at $dir"
+=item * description - comment. The default is "Static content at $directory"
 
 =item * public => 0|1 - a flag just for information.
 In theory, public endpoints should be searchable from the outside
@@ -626,7 +627,7 @@ using a web application framework.
 Use a real web server instead.
 
 However, this method may come in handy when testing the application
-in standalone mode, e.g. under plack web server.
+in standalone mode, e.g. under a C<PSGI> web server.
 This is the intended usage.
 
 =cut
@@ -720,7 +721,7 @@ Return value is B<ignored>.
 Use C<$request>'s C<session>, C<reply>, and C<stash> methods
 for communication between hooks.
 
-C<die>ing in a hook may cause interruption of request processing
+Dying in a hook may cause interruption of request processing
 or merely a warning, depending on the phase.
 
 %options may include:
@@ -730,7 +731,7 @@ or merely a warning, depending on the phase.
 =item * path => '/path' - where the hook applies. Default is '/'.
 Multiple locations may be supplied via C<[ /foo, /bar ...]>
 
-=item * exclude => '/path/dont' - don't apply to these locations,
+=item * exclude => '/path/skip' - don't apply to these locations,
 even if under '/path'.
 Multiple locations may be supplied via C<[ /foo, /bar ...]>
 
@@ -863,7 +864,8 @@ Use C<get_view> to fetch the object itself.
 =item * if module name + parameters is given, try to load module
 and create new() instance.
 
-Short aliases JS, TT, and Dumper may be used for MVC::Neaf::View::*
+Short aliases C<JS>, C<TT>, and C<Dumper> may be used
+for corresponding C<MVC::Neaf::View::*> modules.
 
 =item * if coderef is given, use it as a C<render> method.
 
@@ -921,16 +923,16 @@ cross-request user data.
 
 =over
 
-=item * engine (required in OO form, first argument in DSL form)
+=item * C<engine> (required in method form, first argument in DSL form)
 - an object providing the storage primitives;
 
-=item * ttl - time to live for session (default is 0, which means until
+=item * C<ttl> - time to live for session (default is 0, which means until
 browser is closed);
 
-=item * cookie - name of cookie storing session id.
+=item * C<cookie> - name of cookie storing session id.
 The default is "session".
 
-=item * view_as - if set, add the whole session into data hash
+=item * C<view_as> - if set, add the whole session into data hash
 under this name before view processing.
 
 =back
@@ -1017,12 +1019,12 @@ and an is_valid flag.
 
 The C<engine> parameter of the functional form has predefined values
 C<Neaf> (the default), C<LIVR>, and C<Wildcard> (all case-insensitive)
-poining towards L<MVC::Neaf::X::Form>, L<MVC::Neaf::X::Form::LIVR>,
+pointing towards L<MVC::Neaf::X::Form>, L<MVC::Neaf::X::Form::LIVR>,
 and L<MVC::Neaf::X::Form::Wildcard>, respectively.
 
-You are encouraged to use LIVR
+You are encouraged to use C<LIVR>
 (See L<Validator::LIVR> and L<LIVR grammar|https://github.com/koorchik/LIVR>)
-for anything except super-basic regexp checks.
+for anything except super-basic regex checks.
 
 If an arbitrary class name is given instead, C<new()> will be called
 on that class with \%spec ref as first parameter.
@@ -1079,7 +1081,7 @@ sub add_form {
 
 =head2 neaf 403 => sub { ... }
 
-=head2 $neaf->set_error_handler ( status => CODEREF( $req, %options ) )
+=head2 $neaf->set_error_handler ( status => CODEREF( $request, %options ) )
 
 Set custom error handler.
 
@@ -1133,7 +1135,7 @@ sub set_error_handler {
     return $self;
 };
 
-=head2 $neaf->on_error( sub { my ($req, $err) = @_ } )
+=head2 $neaf->on_error( sub { my ($request, $error) = @_ } )
 
 Install custom error handler for dying controller.
 Neaf's own exceptions and C<die \d\d\d> status returns will NOT
@@ -1161,7 +1163,7 @@ sub on_error {
     return $self;
 };
 
-=head2 $neaf->load_resources( $file || \*FILE )
+=head2 $neaf->load_resources( $file || \*FD )
 
 Load pseudo-files from a file, like templates or static files.
 
@@ -1188,9 +1190,9 @@ Extra options may follow file name:
 
 =over
 
-=item * type = ext | mime/type
+=item * C<type=ext | mime/type>
 
-=item * format=base64
+=item * C<format=base64>
 
 =back
 
@@ -1288,16 +1290,16 @@ sub _static_global {
 
 =head2 $neaf->run()
 
-Run the applicaton.
-This should be the last statement in your appication main file.
+Run the application.
+This should be the last statement in your application's main file.
 
-If called in void context, assumes execution as CGI
+If called in void context, assumes execution as C<CGI>
 and prints results to C<STDOUT>.
 If command line options are present at the moment,
 enters debug mode via L<MVC::Neaf::CLI>.
 Call C<perl yourapp.pl --help> for more.
 
-Otherwise returns a PSGI-compliant coderef.
+Otherwise returns a C<PSGI>-compliant coderef.
 This will also happen if you application is C<require>'d,
 meaning that it returns a true value and actually serves nothing until
 C<run()> is called again.
@@ -1392,7 +1394,7 @@ Use hooks for repeated auxiliary tasks such as checking permissions or writing
 down statistics, NOT for primary application logic.
 
 Hook return values are discarded, and deliberately so.
-I<In absense of an explicit return,
+I<In absence of an explicit return,
 Perl will interpret the last statement in the code as such.
 Therefore writers of hooks would have to be extremely careful to avoid
 breaking the execution chain.
@@ -1400,7 +1402,7 @@ On the other hand, proper exception handling is required anyway for
 implementing any kind of callbacks.>
 
 As a rule of thumb, the following primitives should be used to maintain
-state accross hooks and the main controller:
+state across hooks and the main controller:
 
 =over
 
@@ -1505,9 +1507,9 @@ Dying is ignored, only producing a warning.
 
 This hook is run AFTER all postponed actions set up in controller
 (via C<-continue> etc), but BEFORE the request object is actually destroyed.
-This can be useful to deinitialize something or write statistics.
+This can be useful to free some resource or write statistics.
 
-The client conection MAY be closed at this point and SHOULD NOT be relied upon.
+The client connection MAY be closed at this point and SHOULD NOT be relied upon.
 
 Hooks are executed in REVERSE order, from longer to shorter paths.
 
@@ -1527,7 +1529,7 @@ Rethrow Neaf's internal exceptions immediately, do nothing otherwise.
 If no argument if given, acts on current C<$@> value.
 
 Currently Neaf uses exception mechanism for internal signalling,
-so this function may be of use if there's a lot of eval blocks
+so this function may be of use if there's a lot of C<eval> blocks
 in the controller. E.g.
 
     use MVC::Neaf qw(neaf_err);
@@ -1544,6 +1546,15 @@ in the controller. E.g.
         neaf_err;
         # do the rest of error handling
     };
+
+Or alternatively with L<Try::Tiny>:
+
+    try {
+        ...
+    } catch {
+        neaf_err $_;
+        # proceed with error processing
+    }
 
 =cut
 
@@ -1576,7 +1587,7 @@ Don't do this, use C<any> or C<get + post + ...> instead.
 
 =item * hook - C<add_hook>
 
-Don't do this, use phase hame instead.
+Don't do this, use phase name instead.
 
 =item * error - C<set_error_handler>
 
@@ -1668,9 +1679,9 @@ push @EXPORT_OK, @EXPORT_SUGAR;
 
 =head2 $neaf->run_test( \%PSGI_ENV, %options )
 
-=head2 $neaf->run_test( "/path?param=value", %options )
+=head2 $neaf->run_test( "/path?parameter=value", %options )
 
-Run a PSGI request and return a list of
+Run a L<PSGI> request and return a list of
 C<($status, HTTP::Headers::Fast, $whole_content )>.
 
 Returns just the content in scalar context.
@@ -1696,9 +1707,9 @@ This gets overridden by type, cookie etc. in case of conflict
 
 =item * uploads - a hash of L<MVC::Neaf::Upload> objects.
 
-=item * secure = 0|1 - http vs https
+=item * secure = 0|1 - C<http> vs C<https>
 
-=item * override = \%hash - force certain data in ENV
+=item * override = \%hash - force certain data in C<ENV>
 Gets overridden by all of the above.
 
 =back
@@ -1852,7 +1863,7 @@ sub set_forced_view {
 
 Record server performance statistics during run.
 
-The interface of ServerStat is as follows:
+The interface of C<MVC::Neaf::X::ServerStat> is as follows:
 
     my $stat = MVC::Neaf::X::ServerStat->new (
         write_threshold_count => 100,
@@ -2380,7 +2391,7 @@ All of them are supposed to start and end with:
         #    as JS View has its own default filter
     }, path => '/js/api';
 
-More examples to follow as usage (hopefuly) accumulates.
+More examples to follow as usage (hopefully) accumulates.
 
 =head1 THE NEAF PRINCIPLES
 
@@ -2398,7 +2409,7 @@ and thus hard to implement in functional style.
 =item * Sane defaults.
 
 Everything can be configured, nothing needs to be.
-TT view needs work in this respect.
+C<TT> view needs work in this respect.
 
 =item * It's not software unless you can run it.
 
@@ -2508,7 +2519,7 @@ Feedback and/or critique are welcome.
 
 Feel free to email the author to get instant help!
 
-You can find documentation for this module with the perldoc command.
+You can find documentation for this module with the C<perldoc> command:
 
     perldoc MVC::Neaf
     perldoc MVC::Neaf::Request
@@ -2517,11 +2528,11 @@ You can also look for information at:
 
 =over
 
-=item * Github: https://github.com/dallaylaen/perl-mvc-neaf
+=item * Github: L<https://github.com/dallaylaen/perl-mvc-neaf>
 
-=item * MetaCPAN: https://metacpan.org/pod/MVC::Neaf
+=item * MetaCPAN: L<https://metacpan.org/pod/MVC::Neaf>
 
-=item * RT: CPAN's request tracker (report bugs here)
+=item * C<RT>: CPAN's request tracker (report bugs here)
 
 L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=MVC-Neaf>
 
@@ -2551,8 +2562,8 @@ initially unintentional.
 Ideas were shamelessly stolen from L<Catalyst>, L<Dancer>, L<PSGI>,
 and L<sinatra.rb|http://sinatrarb.com/>.
 
-The L<CGI>.pm was used heavily in the beginning of development,
-though Neaf was PSGI-ready from the start.
+L<CGI> was used heavily in the beginning of development,
+though Neaf was C<PSGI>-ready from the start.
 
 Thanks to L<Eugene Ponizovsky|https://metacpan.org/author/IPH>
 for introducing me to the MVC concept.
@@ -2567,7 +2578,7 @@ Thanks to L<Cono|https://github.com/cono>
 for early feedback and feature proposals.
 
 Thanks to Alexey Kuznetsov
-for requesting RESTfullness and thus
+for requesting REST support and thus
 adding of multiple methods for the same path.
 
 =head1 LICENSE AND COPYRIGHT
@@ -2578,7 +2589,7 @@ This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
 by the Free Software Foundation; or the Artistic License.
 
-See http://dev.perl.org/licenses/ for more information.
+See L<http://dev.perl.org/licenses/> for more information.
 
 =cut
 

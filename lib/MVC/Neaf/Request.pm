@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.21;
+our $VERSION = 0.2101;
 
 =head1 NAME
 
@@ -32,12 +32,13 @@ Here's a brief overview of what a Neaf request returns:
     $req->script_name  = /mathing/route
     $req->path_info    = some/more/slashes
 
-    # params and cookies require a regexp
+    # params and cookies require a regex
     $req->param( foo => '\d+' ) = 1
 
 =head1 REQUEST METHODS
 
-The concrete Request object the App gets is going to be a subclass of this.
+The actual Request object the application gets is going to be
+a subclass of this.
 Thus it is expected to have the following methods.
 
 =cut
@@ -54,12 +55,12 @@ use MVC::Neaf::Util qw(http_date run_all_nodie canonize_path);
 use MVC::Neaf::Upload;
 use MVC::Neaf::Exception;
 
-=head2 new( %args )
+=head2 new( %arguments )
 
 The application is not supposed to make its own requests,
 so this constructor is really for testing purposes only.
 
-For now, just swallows whatever given to it.
+For now, just swallows whatever is given to it.
 Restrictions MAY BE added in the future though.
 
 =cut
@@ -76,7 +77,8 @@ sub new {
 
 =head2 client_ip()
 
-Returns the IP of the client. Note this may be mangled by proxy...
+Returns the IP of the client.
+If C<X-Forwarded-For> header is set, returns that instead.
 
 =cut
 
@@ -91,7 +93,7 @@ sub client_ip {
 
 =head2 http_version()
 
-Returns version number of http protocol.
+Returns version number of C<http> protocol.
 
 =cut
 
@@ -107,7 +109,7 @@ sub http_version {
 
 =head2 scheme()
 
-Returns http or https, depending on how the request was done.
+Returns C<http> or C<https>, depending on how the request was done.
 
 =cut
 
@@ -123,7 +125,7 @@ sub scheme {
 
 =head2 secure()
 
-Returns true if https:// is used, false otherwise.
+Returns true if C<https> is used, false otherwise.
 
 =cut
 
@@ -135,8 +137,9 @@ sub secure {
 
 =head2 method()
 
-Return the HTTP method being used.
-GET is the default value if cannot find out (useful for CLI debugging).
+Return the C<HTTP> method being used.
+C<GET> is the default value if cannot determine
+(useful for command-line debugging).
 
 =cut
 
@@ -165,7 +168,7 @@ sub is_post {
 
 =head2 hostname()
 
-Returns the hostname which was requested, or "localhost" if cannot detect.
+Returns the hostname that was requested, or C<localhost> if cannot detect.
 
 =cut
 
@@ -190,7 +193,7 @@ sub port {
 
 =head2 path()
 
-Returns the path part of the uri. Path is guaranteed to start with a slash.
+Returns the path part of the URI. Path is guaranteed to start with a slash.
 
 =cut
 
@@ -231,7 +234,7 @@ application being executed.
 Guaranteed to start with slash.
 Unless C<set_path> was called, it is a prefix of C<path()>.
 
-Not avilable before routing was applied to request.
+Not available before routing was applied to request.
 
 =cut
 
@@ -255,10 +258,10 @@ B<EXPERIMENTAL> Name and meaning subject to change.
 Produce a relative link to the page being served,
 possibly overriding some parameters.
 
-Parameter order is NOT preserved. If parameter is empty or undef,
+Parameter order is NOT preserved. If parameter is empty or C<undef>,
 it is skipped.
 
-B<CAUTION> Multi-values are ignored, this MAY change in the future.
+B<CAUTION> Multiple values are ignored, this MAY change in the future.
 
 B<CAUTION> For a POST request, normal parameters are used instead of URL
 parameters (see C<url_param>). This MAY change in the future.
@@ -313,7 +316,7 @@ Contrary to the
 L<CGI specification|https://tools.ietf.org/html/rfc3875#section-4.1.5>,
 the leading slash is REMOVED.
 
-The validation regexp for this value MUST be specified during application
+The validation regex for this value MUST be specified during application
 setup as C<path_info_regex>. See C<route> in L<MVC::Neaf>.
 
 B<NOTE> Experimental. This part of API is undergoing changes.
@@ -379,7 +382,7 @@ sub set_path_info {
 
 =head2 param($name, $regex [, $default])
 
-Return param, if it passes regex check, default value or undef otherwise.
+Return parameter, if it passes regex check, default value or C<undef> otherwise.
 
 The regular expression is applied to the WHOLE string,
 from beginning to end, not just the middle.
@@ -391,12 +394,12 @@ This feature is not stable yet, though. Use with care.
 
 If method other than GET/HEAD is being used, whatever is in the
 address line after ? is IGNORED.
-Use url_param() (see below) if you intend to mix GET/POST parameters.
+Use C<url_param()> (see below) if you intend to mix GET/POST parameters.
 
-B<NOTE> param() ALWAYS returns a single value, even in list context.
-Use multi_param() (see below) if you really want a list.
+B<NOTE> C<param()> ALWAYS returns a single value, even in list context.
+Use C<multi_param()> (see below) if you really want a list.
 
-B<NOTE> param() has I<nothing to do> with getting parameter list from request.
+B<NOTE> C<param()> has I<nothing to do> with getting parameter list from request.
 Instead, use form with wildcards:
 
     neaf form => "my_form" => [ [ 'guest\d+' => '.*'], [ 'arrival\d+' => '.*' ] ],
@@ -405,7 +408,7 @@ Instead, use form with wildcards:
     # later in controller
     my $guests = $req->form("my_form");
     $guests->fields; # has guest1 & arrival1, guest2 & arrival2 etc
-    $guests->error;  # hash with values that didn't match regexp
+    $guests->error;  # hash with values that didn't match regex
 
 See L<MVC::Neaf::X::Form::Wildcard>.
 
@@ -431,7 +434,7 @@ sub param {
 
 =head2 url_param( name => qr/regex/ )
 
-If method is GET or HEAD, identic to param.
+If method is GET or HEAD, identical to C<param>.
 
 Otherwise would return the parameter from query string,
 AS IF it was a GET request.
@@ -473,7 +476,7 @@ sub url_param {
 
 =head2 multi_param( name => qr/regex/ )
 
-Get a single multivalue GET/POST parameter as a @list.
+Get a multiple value GET/POST parameter as a C<@list>.
 The name generally follows that of newer L<CGI> (4.08+).
 
 ALL values must match the regex, or an empty list is returned.
@@ -482,7 +485,7 @@ B<EXPERIMENTAL> If C<param_regex> hash was given during route definition,
 C<$regex> MAY be omitted for params that were listed there.
 This feature is not stable yet, though. Use with care.
 
-B<EXPERIMENTAL> This method's behaviour MAY change in the future.
+B<EXPERIMENTAL> This method's behavior MAY change in the future.
 Please be careful when upgrading.
 
 =cut
@@ -568,7 +571,7 @@ sub form {
 =head2 get_form_as_list ( [ qr/.../, "default" ], qw(name1 name2 ...)  )
 
 Return a group of uniform parameters as a list, in that order.
-Values that fail validation are returned as undef, unless default given.
+Values that fail validation are returned as C<undef>, unless default given.
 
 B<EXPERIMENTAL>. The name MAY be changed in the future.
 
@@ -605,7 +608,7 @@ sub _all_params {
 Returns request body for PUT/POST requests.
 This is not regex-checked - the check is left for the user.
 
-Also the data is NOT converted to utf8.
+Also the data is NOT converted to C<utf8>.
 
 =cut
 
@@ -718,28 +721,28 @@ sub get_cookie {
 
 =head2 set_cookie( name => "value", %options )
 
-Set HTTP cookie. %options may include:
+Set HTTP cookie. C<%options> may include:
 
 =over
 
-=item * regex - regular expression to check outgoing value
+=item * C<regex> - regular expression to check outgoing value
 
-=item * ttl - time to live in seconds.
-0 means no ttl.
-Use negative ttl and empty value to delete cookie.
+=item * C<ttl> - time to live in seconds.
+0 means no C<ttl>.
+Use negative C<ttl> and empty value to delete cookie.
 
-=item * expire - unix timestamp when the cookie expires
-(overridden by ttl).
+=item * C<expire> - UNIX time stamp when the cookie expires
+(overridden by C<ttl>).
 
-=item * expires - DEPRECATED - use 'expire' instead (w/o 's')
+=item * C<expires> - DEPRECATED - use 'expire' instead (without trailing "s")
 
-=item * domain
+=item * C<domain>
 
-=item * path
+=item * C<path>
 
-=item * httponly - flag
+=item * C<httponly> - flag
 
-=item * secure - flag
+=item * C<secure> - flag
 
 =back
 
@@ -826,10 +829,10 @@ sub format_cookies {
 
 Report error to the CORE.
 
-This throws an MVC::Neaf::Exception object.
+This throws an C<MVC::Neaf::Exception> object.
 
-If you're planning calling $req->error within eval block,
-consider using neaf_err function to let it propagate:
+If you're planning calling C<$req-E<gt>error> within C<eval> block,
+consider using C<neaf_err> function to let it propagate:
 
     use MVC::Neaf::Exception qw(neaf_err);
 
@@ -876,16 +879,17 @@ sub redirect {
 =head2 header_in( "header_name" )
 
 Fetch HTTP header sent by client.
-Header names are lowercased, dashes converted to underscores.
-So "Http-Header", "HTTP_HEADER" and "http_header" are all the same.
+Header names are canonized,
+so C<Http-Header>, C<HTTP_HEADER> and C<http_header> are all the same.
 
 Without argument, returns a L<HTTP::Headers::Fast> object.
 
 With a name, returns all values for that header in list context,
 or ", " - joined value as one scalar in scalar context -
-this is actually a frontend to HTTP::Headers::Fast header() method.
+this is actually a frontend to HTTP::Headers::Fast C<header()> method.
 
-B<EXPERIMENTAL> The return value format MAY change in the near future.
+B<NOTE> No regex checks are made (yet) on headers, these may be added
+in the future.
 
 =cut
 
@@ -923,9 +927,9 @@ sub header_in_keys {
 
 =head2 referer
 
-Get/set referer.
+Get/set HTTP referrer - i.e. where the request pretends to come from.
 
-B<NOTE> Avoid using referer for anything serious - too easy to forge.
+B<NOTE> Avoid using this for anything serious/secure - too easy to forge.
 
 =cut
 
@@ -987,7 +991,7 @@ sub dump {
 =head2 session()
 
 Get reference to session data.
-This reference is guaranteed to be the same throughtout the request lifetime.
+This reference is guaranteed to be the same throughout the request lifetime.
 
 If MVC::Neaf->set_session_handler() was called during application setup,
 this data will be initialized by that handler;
@@ -1115,12 +1119,12 @@ to client.
 However, sometimes more fine-grained control is required.
 
 In this case, a number of methods help stashing your data
-(headers, cookies etc) in the request object until the responce is sent.
+(headers, cookies etc) in the request object until the response is sent.
 
 Also some lengthly actions (e.g. writing request statistics or
 sending confirmation e-mail) may be postponed until the request is served.
 
-=head2 header_out( [$param] )
+=head2 header_out( [$header_name] )
 
 Without parameters returns a L<HTTP::Headers::Fast>-compatible object
 containing all headers to be returned to client.
@@ -1162,7 +1166,7 @@ sub header_out {
 Set, append, and delete values in the header_out object.
 See L<HTTP::Headers::Fast>.
 
-Arrayrefs are ok and will set multiple values for a given header.
+Arrayrefs are fine and will set multiple values for a given header.
 
 =cut
 
@@ -1184,7 +1188,7 @@ sub remove_header {
 =head2 reply
 
 Returns reply hashref that was returned by controller, if any.
-Returns undef unless the controller was actually called.
+Returns C<undef> unless the controller was actually called.
 This may be useful in postponed actions or hooks.
 
 This is killed by a C<clear()> call.
@@ -1211,7 +1215,7 @@ sub _set_reply {
 
 A hashref that is guaranteed to persist throughout the request lifetime.
 
-This may be useful to maintain shared data accross hooks and callbacks.
+This may be useful to maintain shared data across hooks and callbacks.
 
 Use C<session> if you intend to share data between requests.
 
@@ -1237,9 +1241,9 @@ sub stash {
     return $self;
 };
 
-=head2 postpone( CODEREF->(req) )
+=head2 postpone( CODEREF->($request) )
 
-=head2 postpone( [ CODEREF->(req), ... ] )
+=head2 postpone( [ CODEREF->($request), ... ] )
 
 Execute a function (or several) right after the request is served.
 
@@ -1333,7 +1337,7 @@ sub clear {
 Lazily fetch unique request id. These are guaranteed to be unique
 on a given machine within a reasonable timeframe.
 
-Current id-generation mechanism involves url-safe md5_base64 C<[-_]>,
+Current id-generation mechanism involves URI-safe md5_base64 C<[-_]>,
 but this MAY change in the future.
 
 B<CAUTION> Don't use this id for anything secure.
@@ -1364,7 +1368,8 @@ Set the id above to a user-supplied value.
 
 If a false value given, just generate a new one next time id is requested.
 
-Symbols outside ascii, as well as shitespace and C<"> and C"\", are prohibited.
+Symbols outside C<ascii>, as well as whitespace and C<"> and C"\",
+are prohibited.
 
 Returns the request object.
 
@@ -1480,7 +1485,7 @@ sub DESTROY {
 The following methods MUST be implemented in every Request subclass
 to create a working Neaf backend.
 
-They shall not generally be called directly inside the app.
+They SHOULD NOT be called directly inside the application.
 
 =over
 
@@ -1500,13 +1505,13 @@ They shall not generally be called directly inside the app.
 
 =item * do_get_params()
 
-=item * do_get_param_as_array() - get single GET/POST param in list context
+=item * do_get_param_as_array() - get single GET/POST parameter in list context
 
 =item * do_get_upload()
 
 =item * do_get_body()
 
-=item * do_get_header_in() - returns a HTTP::Headers::Fast object.
+=item * do_get_header_in() - returns a L<HTTP::Headers>-compatible object.
 
 =item * do_reply( $status, $content ) - write reply to client
 
@@ -1575,12 +1580,12 @@ Set new path elements which will be returned from this point onward.
 Also updates path() value so that path = script_name + path_info
 still holds.
 
-set_full_path(undef) resets script_name to whatever returned
+C<set_full_path(undef)> resets C<script_name> to whatever returned
 by the underlying driver.
 
 Returns self.
 
-B<DEPRECATED> Use set_path() and set_path_info() instead.
+B<DEPRECATED> Use C<set_path()> and C<set_path_info()> instead.
 
 =cut
 
@@ -1638,7 +1643,7 @@ sub get_form_as_hash {
 
 As of v.0.20 this dies.
 
-USe path-based defaults, or stash().
+Use path-based defaults, or stash().
 
 =cut
 
@@ -1653,7 +1658,7 @@ sub set_default {
 
 As of v.0.20 this dies.
 
-USe path-based defaults, or stash().
+Use path-based defaults, or stash().
 
 =cut
 
@@ -1672,7 +1677,7 @@ This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
 by the Free Software Foundation; or the Artistic License.
 
-See http://dev.perl.org/licenses/ for more information.
+See L<http://dev.perl.org/licenses/> for more information.
 
 =cut
 

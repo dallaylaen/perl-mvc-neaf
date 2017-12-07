@@ -48,6 +48,8 @@ WriteMakefile(
                     'DBI'            => 0,
                     'GD::Simple'     => 0, # for png example
                     'LWP::UserAgent' => 0, # it/*.t depends on it
+                    'Test::Pod::Spelling' => 0,
+                    'Lingua::Ispell' => 0,
                     (($] < 5.010) ? () : ('Validator::LIVR' => 0)),
                 }
             },
