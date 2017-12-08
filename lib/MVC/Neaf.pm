@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2101;
+our $VERSION = 0.2102;
 
 =head1 NAME
 
@@ -1946,6 +1946,25 @@ sub new {
 This is the CORE of this module.
 Should not be called directly - use C<run()> instead.
 
+C<handle_request> really boils down to
+
+    my ($self, $req) = @_;
+
+    my $req->path =~ /($self->{GIANT_ROUTING_RE})/
+        or die 404;
+
+    my $route = $self->{ROUTES}{$1}{ $req->method }
+        or die 405;
+
+    my $reply_hash = $route->{CODE}->($req);
+
+    my $content = $reply_hash->{-view}->render( $reply_hash );
+
+    return [ $reply_hash->{-status}, [...], [ $content ] ];
+
+The rest 200+ lines of it, split into 4 separate private functions,
+are running callbacks, handling corner cases, and substituting sane defaults.
+
 =cut
 
 # sub handle_request is now split into four separate "procedures",
@@ -1953,7 +1972,7 @@ Should not be called directly - use C<run()> instead.
 
 # In:   request
 # Out:  $route + $data
-# Side: request modified
+# Side: request modified - {reply} added
 sub _route_request {
     my ($self, $req) = @_;
 
@@ -2031,6 +2050,9 @@ sub _route_request {
     return ($route, $data);
 }; # end _route_request
 
+# In: $route, $req
+# Out: $content
+# side: $req->reply modified
 sub _render_content {
     my ($self, $route, $req) = @_;
 
@@ -2071,6 +2093,9 @@ sub _render_content {
     return $content;
 }; # end _render_content
 
+# in: $req->reply
+# out: nothing
+# side: $reply->{-content}, $reply->{-type} modified
 sub _fix_encoding {
     my (undef, $data) = @_;
 
@@ -2220,10 +2245,8 @@ sub _post_setup {
     return;
 };
 
-# TODO 0.30 rework error handling altogether:
-#    - convert all errors (inc. blessed) to exceptions
-#    - stabilize error templates
-#    - configurable & robust on_error, log_error (join the 2???)
+# In: $req, raw exception
+# Out: reply hash
 sub _error_to_reply {
     my ($self, $req, $err) = @_;
 
@@ -2279,6 +2302,8 @@ sub _error_to_reply {
     return $err->make_reply( $req );
 };
 
+# See my_croak in MVC::Neaf::X
+# dies with "MVC::Neaf->current_method: $error_message at <calling code>"
 sub _croak {
     my ($self, $msg) = @_;
 
