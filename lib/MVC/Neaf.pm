@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2107;
+our $VERSION = 0.2108;
 
 =head1 NAME
 
@@ -1437,12 +1437,16 @@ sub run {
             };
         };
         if (my $engine = $self->{stat}) {
+            # TODO 0.25 remove for good
             $self->add_hook( pre_route => sub {
                 $engine->record_start;
             }, prepend => 1);
             $self->add_hook( pre_content => sub {
                 $engine->record_controller( $_[0]->script_name );
             }, prepend => 1);
+            # Should've switched to pre_cleanup, but we cannot
+            # guarrantee another request doesn't get mixed in
+            # in the meantime, as X::ServerStat is sequential.
             $self->add_hook( pre_reply => sub {
                 $engine->record_finish($_[0]->reply->{-status}, $_[0]);
             }, prepend => 1);
