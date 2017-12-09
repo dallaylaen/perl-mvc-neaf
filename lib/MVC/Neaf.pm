@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2105;
+our $VERSION = 0.2107;
 
 =head1 NAME
 
@@ -1835,56 +1835,6 @@ sub set_forced_view {
     return $self;
 };
 
-=head2 server_stat()
-
-=over
-
-=item * $neaf->server_stat ( MVC::Neaf::X::ServerStat->new( ... ) )
-
-=back
-
-Record server performance statistics during run.
-
-The interface of C<MVC::Neaf::X::ServerStat> is as follows:
-
-    my $stat = MVC::Neaf::X::ServerStat->new (
-        write_threshold_count => 100,
-        write_threshold_time  => 1,
-        on_write => sub {
-            my $array_of_arrays = shift;
-
-            foreach (@$array_of_arrays) {
-                # @$_ = (script_name, http_status,
-                #       controller_duration, total_duration, start_time)
-                # do something with this data
-                warn "$_->[0] returned $_->[1] in $_->[3] sec\n";
-            };
-        },
-    );
-
-on_write will be executed as soon as either count data points are accumulated,
-or time is exceeded by difference between first and last request in batch.
-
-Returns self.
-
-B<[DEPRECATED]> Just use pre_route/pre_reply/pre_cleanup hooks if you need
-to gather performance statistics.
-
-=cut
-
-sub server_stat {
-    my ($self, $obj) = @_;
-    $self = $Inst unless ref $self;
-
-    if ($obj) {
-        $self->{stat} = $obj;
-    } else {
-        delete $self->{stat};
-    };
-
-    return $self;
-};
-
 =head1 INTERNAL METHODS
 
 B<CAVEAT EMPTOR.>
@@ -2593,9 +2543,11 @@ and a corresponding warning being added.
 
 Please keep an eye on C<Changes> though.
 
+B<Here is the list of such methods, for the sake of completeness.>
+
 =over
 
-=item * C<pre_route( sub { my $req = shift; ... } )>
+=item * C<$neaf-E<gt>pre_route( sub { my $req = shift; ... } )>
 
 Use C<$neaf-E<gt>add_hook( pre_route =E<gt> \&hook )> instead.
 Hook signature & meaning is exactly the same.
@@ -2612,7 +2564,7 @@ sub pre_route {
     return $self;
 };
 
-=item * C<error_template( { param =E<gt> value } )>
+=item * C<$neaf-E<gt>error_template( { param =E<gt> value } )>
 
 Use L</set_error_handler> aka C<neaf \d\d\d =E<gt> sub { ... }>
 instead.
@@ -2627,10 +2579,10 @@ sub error_template {
     return $self->set_error_handler(@_);
 };
 
-=item * set_default ( key => value, ... )
+=item * C<$neaf-E<gt>set_default ( key =E<gt> value, ... )>
 
 Use C<MVC::Neaf-E<gt>set_path_defaults( '/', { key =E<gt> value, ... } );>
-instead.
+as a drop-in replacement.
 
 =cut
 
@@ -2642,6 +2594,52 @@ sub set_default {
     carp "DEPRECATED use set_path_defaults( '/', \%data ) instead of set_default()";
 
     return $self->set_path_defaults( '/', \%data );
+};
+
+=item * C<$neaf-E<gt>server_stat ( MVC::Neaf::X::ServerStat-E<gt>new( ... ) )>
+
+Record server performance statistics during run.
+
+The interface of C<MVC::Neaf::X::ServerStat> is as follows:
+
+    my $stat = MVC::Neaf::X::ServerStat->new (
+        write_threshold_count => 100,
+        write_threshold_time  => 1,
+        on_write => sub {
+            my $array_of_arrays = shift;
+
+            foreach (@$array_of_arrays) {
+                # @$_ = (script_name, http_status,
+                #       controller_duration, total_duration, start_time)
+                # do something with this data
+                warn "$_->[0] returned $_->[1] in $_->[3] sec\n";
+            };
+        },
+    );
+
+on_write will be executed as soon as either count data points are accumulated,
+or time is exceeded by difference between first and last request in batch.
+
+Returns self.
+
+B<[DEPRECATED]> Just use pre_route/pre_reply/pre_cleanup hooks if you need
+to gather performance statistics.
+
+=cut
+
+sub server_stat {
+    my ($self, $obj) = @_;
+    $self = $Inst unless ref $self;
+
+    carp( (ref $self)."->server_stat: DEPRECATED, use hooks & custom stat toolinstead" );
+
+    if ($obj) {
+        $self->{stat} = $obj;
+    } else {
+        delete $self->{stat};
+    };
+
+    return $self;
 };
 
 =back

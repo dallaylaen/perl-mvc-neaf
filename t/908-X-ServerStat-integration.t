@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 use Test::More;
+use Test::Warn;
 
 use MVC::Neaf;
 use MVC::Neaf::X::ServerStat;
@@ -14,7 +15,9 @@ my $stat = MVC::Neaf::X::ServerStat->new(
 );
 
 MVC::Neaf->route( '/foo' => sub { +{} }, -view => 'JS' );
-MVC::Neaf->server_stat( $stat );
+warnings_like {
+    MVC::Neaf->server_stat( $stat );
+} [{carped => qr/DEPRECATED/}], "is deprecated";
 
 my @warn;
 $SIG{__WARN__} = sub { push @warn, shift };
