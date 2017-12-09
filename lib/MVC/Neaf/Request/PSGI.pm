@@ -2,7 +2,7 @@ package MVC::Neaf::Request::PSGI;
 
 use strict;
 use warnings;
-our $VERSION = 0.21;
+our $VERSION = 0.2101;
 
 =head1 NAME
 
@@ -32,14 +32,16 @@ use HTTP::Headers::Fast; # we want 0.21, but will tolerate older ones
 
 use parent qw(MVC::Neaf::Request);
 
-if (!HTTP::Headers::Fast->can( "psgi_flatten_without_sort" )) {
+if (!HTTP::Headers::Fast->can( "psgi_flatten_without_sort" ) || HTTP::XSHeaders->can("new")) {
     # NOTE HACK Versions below 0.21 don't support the method we call
     # in do_reply() so fall back to failsafe emulation
-    no warnings 'once'; ## no critic
+    # NOTE XSHeaders doesn't (yet) provide this method, so fallback as well
+    # See https://rt.cpan.org/Ticket/Display.html?id=123850
+    no warnings 'once', 'redefine'; ## no critic
     *HTTP::Headers::Fast::psgi_flatten_without_sort = sub {
         my $self = shift;
         my @all;
-        $self->scan( sub { push @all, @_ } );
+        $self->scan( sub { push @all, $_[0]=>$_[1] } );
         return \@all;
     };
 };
