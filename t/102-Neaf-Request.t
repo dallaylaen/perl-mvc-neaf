@@ -70,8 +70,11 @@ my $flag = 0;
 $req->postpone( sub { $_[0]->close; $flag++ } );
 is ($flag, 0, "postpone(): no immediate effect");
 
-is_deeply( [sort $req->header_in_keys], [sort qw[Referer User-Agent Cookie]]
-    , "header_in_keys (who needs it anyway?)" );
+
+is_deeply(
+    [sort $req->header_in->header_field_names],
+    [sort qw[Referer User-Agent Cookie]]
+    , "List header keys (who needs it anyway?)" );
 
 my $dump = $req->dump;
 is( ref $dump, 'HASH', "Dump works");

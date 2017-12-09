@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.2104;
+our $VERSION = 0.2105;
 
 =head1 NAME
 
@@ -1712,14 +1712,9 @@ B<[DEPRECATED]> Use C<$req-E<gt>header_in-E<gt>header_field_names> instead.
 sub header_in_keys {
     my $self = shift;
 
+    carp( (ref $self)."->header_in_keys: DEPRECATED, use header_in()->header_field_names instead" );
     my $head = $self->header_in;
-    my %hash;
-    $head->scan( sub {
-        my ($k, $v) = @_;
-        $hash{$k}++;
-    } );
-
-    return keys %hash;
+    $head->header_field_names;
 };
 
 =head2 upload( ... )
@@ -1821,7 +1816,7 @@ B<[DEPRECATED]> and dies. Use L<MVC::Neaf::X::Form> instead.
 sub get_form_as_hash {
     my ($self, %spec) = @_;
 
-    $self->_croak( "DEPRECATED. use neaf form 'foo' => { ... }" );
+    $self->_croak( "DEPRECATED. use neaf->add_form( name, ...) + \$req->form( name )" );
 };
 
 =head2 set_default( ... )
