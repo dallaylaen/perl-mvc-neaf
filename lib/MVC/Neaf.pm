@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2104;
+our $VERSION = 0.2105;
 
 =head1 NAME
 
@@ -71,7 +71,7 @@ dumping stash instead.
 
 =head2 THE CONTROLLER
 
-The handler sub receives an L<MVC::Neaf::Request> object
+The handler sub receives one and only argument, the B<request> object,
 and outputs a C<\%hashref>.
 
 It may also die, which will be interpreted as an error 500,
@@ -80,13 +80,12 @@ in which case this is considered the return status.
 E.g. C<die 404;> is a valid method to return
 a configurable "Not Found" page right away.
 
-Handlers are set using the C<route( path =E<gt> CODEREF );>
-method discussed below.
+Handlers are set using the L</route> method discussed below.
 
 =head2 THE REQUEST
 
-B<The Request> object is similar to the object-oriented interface of L<CGI>
-or L<Plack::Request> with some minor differences:
+L<MVC::Neaf::Request> interface is
+similar to that of L<CGI> or L<Plack::Request> with some minor differences:
 
     # What was requested:
     http(s)://server.name:1337/mathing/route/some/more/slashes?foo=1&bar=2
@@ -106,7 +105,8 @@ or L<Plack::Request> with some minor differences:
 
 One I<major> difference is that there's no (easy) way to fetch
 query parameters or cookies without validation.
-Just use C<qr/.*/> if you know better.
+Just use pattern C<qr/.*/> if you know better.
+But see also L</add_form>, forms are quite powerful.
 
 Also there are some methods that affect the reply,
 mainly the headers, like C<set_cookie> or C<redirect>.
@@ -1467,144 +1467,8 @@ sub _make_route_re {
     return qr{^($re)(?:/*([^?]*)?)(?:\?|$)};
 };
 
-=head1 REQUEST PROCESSING PHASES AND HOOKS
 
-Hooks are subroutines executed during various phases of request processing.
-Each hook is characterized by phase, code to be executed, path, and method.
-Multiple hooks MAY be added for the same phase/path/method combination.
-ALL hooks matching a given route will be executed, either short to long or
-long to short (aka "event bubbling"), depending on the phase.
-
-B<[CAUTION]> Don't overuse hooks.
-This may lead to a convoluted, hard to follow application.
-Use hooks for repeated auxiliary tasks such as checking permissions or writing
-down statistics, NOT for primary application logic.
-
-Hook return values are discarded, and deliberately so.
-I<In absence of an explicit return,
-Perl will interpret the last statement in the code as such.
-Therefore writers of hooks would have to be extremely careful to avoid
-breaking the execution chain.
-On the other hand, proper exception handling is required anyway for
-implementing any kind of callbacks.>
-
-As a rule of thumb, the following primitives should be used to maintain
-state across hooks and the main controller:
-
-=over
-
-=item * Use C<session> if you intend to share data between requests.
-
-=item * Use C<reply> if you intend to render the data for the user.
-
-=item * Use C<stash> as a last resort for temporary, private data.
-
-=back
-
-The following list of phases MAY change in the future.
-Current request processing diagram looks as follows:
-
-   [*] request created
-    . <- pre_route [no path] [can die]
-    |
-    * route - select handler
-    |
-    . <- pre_logic [can die]
-   [*] execute main handler
-    * apply path-based defaults - reply() is populated now
-    |
-    . <- pre_content
-    ? checking whether content already generated
-    |\
-    | . <- pre_render [can die - template error produced]
-    | [*] render - -content is present now
-    |/
-    * generate default headers (content type & length, cookies, etc)
-    . <- pre_reply [path traversal long to short]
-    |
-   [*] headers sent out, no way back!
-    * output the rest of reply (if -continue specified)
-    * execute postponed actions (if any)
-    |
-    . <- pre_cleanup [path traversal long to short] [no effect on headers]
-   [*] request destroyed
-
-=head2 pre_route
-
-Executed AFTER the request has been received, but BEFORE the path has been
-resolved and handler found.
-
-Dying in this phase stops both further hook processing and controller execution.
-Instead, the corresponding error handler is executed right away.
-
-Options C<path> and C<exclude> are not available on this stage.
-
-May be useful for mangling path.
-Use C<$request-E<gt>set_path($new_path)> if you need to.
-
-=head2 pre_logic
-
-Executed AFTER finding the correct route, but BEFORE processing the main
-handler code (one that returns C<\%hash>, see C<route> above).
-
-Hooks are executed in order, shorted paths to longer.
-C<reply> is not available at this stage,
-as the controller has not been executed yet.
-
-Dying in this phase stops both further hook processing and controller execution.
-Instead, the corresponding error handler is executed right away.
-
-B<[EXAMPLE]> use this hook to produce a 403 error if the user is not logged in
-and looking for a restricted area of the site:
-
-    neaf pre_logic => sub {
-        my $request = shift;
-        $request->session->{user_id} or die 403;
-    }, path => '/admin', exclude => '/admin/static';
-
-=head2 pre_content
-
-This hook is run AFTER the main handler has returned or died, but BEFORE
-content rendering/serialization is performed.
-
-C<reply()> hash is available at this stage.
-
-Dying is ignored, only producing a warning.
-
-=head2 pre_render
-
-This hook is run BEFORE content rendering is performed, and ONLY IF
-the content is going to be rendered,
-i.e. no C<-content> key set in response hash on previous stages.
-
-Dying will stop rendering, resulting in a template error instead.
-
-=head2 pre_reply
-
-This hook is run AFTER the headers have been generated, but BEFORE the reply is
-actually sent to client. This is the last chance to amend something.
-
-Hooks are executed in REVERSE order, from longer to shorter paths.
-
-C<reply()> hash is available at this stage.
-
-Dying is ignored, only producing a warning.
-
-=head2 pre_cleanup
-
-This hook is run AFTER all postponed actions set up in controller
-(via C<-continue> etc), but BEFORE the request object is actually destroyed.
-This can be useful to free some resource or write statistics.
-
-The client connection MAY be closed at this point and SHOULD NOT be relied upon.
-
-Hooks are executed in REVERSE order, from longer to shorter paths.
-
-Dying is ignored, only producing a warning.
-
-=cut
-
-=head1 HELPER FUNCTIONS
+=head1 EXPORTED HELPER FUNCTIONS
 
 Neaf tries hard to keep user's namespace clean, however,
 some helper functions are needed.
@@ -1640,7 +1504,7 @@ Or alternatively with L<Try::Tiny>:
         ...
     } catch {
         neaf_err $_;
-        # proceed with normal error processing
+        # proceed with normal error handling
     }
 
 See also L<MVC::Neaf::Exception>.
@@ -2021,7 +1885,7 @@ sub server_stat {
     return $self;
 };
 
-=head1 INTERNAL API
+=head1 INTERNAL METHODS
 
 B<CAVEAT EMPTOR.>
 
@@ -2491,6 +2355,141 @@ sub get_form {
 # aside from deprecated methods
 $Inst = __PACKAGE__->new;
 
+=head1 REQUEST PROCESSING PHASES AND HOOKS
+
+Hooks are subroutines executed during various phases of request processing.
+Each hook is characterized by phase, code to be executed, path, and method.
+Multiple hooks MAY be added for the same phase/path/method combination.
+ALL hooks matching a given route will be executed, either short to long or
+long to short (aka "event bubbling"), depending on the phase.
+
+B<[CAUTION]> Don't overuse hooks.
+This may lead to a convoluted, hard to follow application.
+Use hooks for repeated auxiliary tasks such as checking permissions or writing
+down statistics, NOT for primary application logic.
+
+Hook return values are discarded, and deliberately so.
+I<In absence of an explicit return,
+Perl will interpret the last statement in the code as such.
+Therefore writers of hooks would have to be extremely careful to avoid
+breaking the execution chain.
+On the other hand, proper exception handling is required anyway for
+implementing any kind of callbacks.>
+
+As a rule of thumb, the following primitives should be used to maintain
+state across hooks and the main controller:
+
+=over
+
+=item * Use C<session> if you intend to share data between requests.
+
+=item * Use C<reply> if you intend to render the data for the user.
+
+=item * Use C<stash> as a last resort for temporary, private data.
+
+=back
+
+The following list of phases MAY change in the future.
+Current request processing diagram looks as follows:
+
+   [*] request created
+    . <- pre_route [no path] [can die]
+    |
+    * route - select handler
+    |
+    . <- pre_logic [can die]
+   [*] execute main handler
+    * apply path-based defaults - reply() is populated now
+    |
+    . <- pre_content
+    ? checking whether content already generated
+    |\
+    | . <- pre_render [can die - template error produced]
+    | [*] render - -content is present now
+    |/
+    * generate default headers (content type & length, cookies, etc)
+    . <- pre_reply [path traversal long to short]
+    |
+   [*] headers sent out, no way back!
+    * output the rest of reply (if -continue specified)
+    * execute postponed actions (if any)
+    |
+    . <- pre_cleanup [path traversal long to short] [no effect on headers]
+   [*] request destroyed
+
+=head2 pre_route
+
+Executed AFTER the request has been received, but BEFORE the path has been
+resolved and handler found.
+
+Dying in this phase stops both further hook processing and controller execution.
+Instead, the corresponding error handler is executed right away.
+
+Options C<path> and C<exclude> are not available on this stage.
+
+May be useful for mangling path.
+Use C<$request-E<gt>set_path($new_path)> if you need to.
+
+=head2 pre_logic
+
+Executed AFTER finding the correct route, but BEFORE processing the main
+handler code (one that returns C<\%hash>, see C<route> above).
+
+Hooks are executed in order, shorted paths to longer.
+C<reply> is not available at this stage,
+as the controller has not been executed yet.
+
+Dying in this phase stops both further hook processing and controller execution.
+Instead, the corresponding error handler is executed right away.
+
+B<[EXAMPLE]> use this hook to produce a 403 error if the user is not logged in
+and looking for a restricted area of the site:
+
+    neaf pre_logic => sub {
+        my $request = shift;
+        $request->session->{user_id} or die 403;
+    }, path => '/admin', exclude => '/admin/static';
+
+=head2 pre_content
+
+This hook is run AFTER the main handler has returned or died, but BEFORE
+content rendering/serialization is performed.
+
+C<reply()> hash is available at this stage.
+
+Dying is ignored, only producing a warning.
+
+=head2 pre_render
+
+This hook is run BEFORE content rendering is performed, and ONLY IF
+the content is going to be rendered,
+i.e. no C<-content> key set in response hash on previous stages.
+
+Dying will stop rendering, resulting in a template error instead.
+
+=head2 pre_reply
+
+This hook is run AFTER the headers have been generated, but BEFORE the reply is
+actually sent to client. This is the last chance to amend something.
+
+Hooks are executed in REVERSE order, from longer to shorter paths.
+
+C<reply()> hash is available at this stage.
+
+Dying is ignored, only producing a warning.
+
+=head2 pre_cleanup
+
+This hook is run AFTER all postponed actions set up in controller
+(via C<-continue> etc), but BEFORE the request object is actually destroyed.
+This can be useful to free some resource or write statistics.
+
+The client connection MAY be closed at this point and SHOULD NOT be relied upon.
+
+Hooks are executed in REVERSE order, from longer to shorter paths.
+
+Dying is ignored, only producing a warning.
+
 =head1 MORE EXAMPLES
 
 See the examples directory in this distro or at
@@ -2550,7 +2549,7 @@ All of them are supposed to start and end with:
 
 More examples to follow as usage (hopefully) accumulates.
 
-=head1 THE NEAF PRINCIPLES
+=head1 FOUNDATIONS OF NEAF
 
 =over
 
@@ -2581,7 +2580,7 @@ This is not yet enforced for HTTP headers and body.
 =item * Unicode inside the perimeter.
 
 This is not yet implemented (but planned) for body and file uploads
-which may well be binary data.
+because these may well be binary data.
 
 =back
 
@@ -2594,18 +2593,12 @@ and a corresponding warning being added.
 
 Please keep an eye on C<Changes> though.
 
-=head2 pre_route()
+=over
 
-     pre_route( sub { my $req = shift; ... } )
+=item * C<pre_route( sub { my $req = shift; ... } )>
 
-Mangle request before serving it.
-E.g. canonize uri or read session cookie.
-
-Return value from callback is ignored.
-
-Dying in callback is treated the same way as in normal controller sub.
-
-B<[DEPRECATED]> Use C<$neaf-E<gt>add_hook( pre_route =E<gt> \&hook )> instead.
+Use C<$neaf-E<gt>add_hook( pre_route =E<gt> \&hook )> instead.
+Hook signature & meaning is exactly the same.
 
 =cut
 
@@ -2619,16 +2612,14 @@ sub pre_route {
     return $self;
 };
 
-=head2 error_template()
+=item * C<error_template( { param =E<gt> value } )>
 
-    error_template( { param => value } )
-
-B<[DEPRECATED]> Use L</set_error_handler> aka C<neaf \d\d\d =E<gt> sub { ... }>
+Use L</set_error_handler> aka C<neaf \d\d\d =E<gt> sub { ... }>
 instead.
 
 =cut
 
-# TODO 0.20 remove
+# TODO 0.25 remove
 sub error_template {
     my $self = shift;
 
@@ -2636,17 +2627,10 @@ sub error_template {
     return $self->set_error_handler(@_);
 };
 
-=head2 set_default()
+=item * set_default ( key => value, ... )
 
-    set_default ( key => value, ... )
-
-Set some default values that would be appended to data hash returned
-from any controller on successful operation.
-Controller return always overrides these values.
-
-Returns self.
-
-B<[DEPRECATED]> Use C<MVC::Neaf-E<gt>set_path_defaults( '/', { ... } );> instead.
+Use C<MVC::Neaf-E<gt>set_path_defaults( '/', { key =E<gt> value, ... } );>
+instead.
 
 =cut
 
@@ -2654,11 +2638,13 @@ sub set_default {
     my ($self, %data) = @_;
     $self = $Inst unless ref $self;
 
-    # TODO 0.20 remove
+    # TODO 0.25 remove
     carp "DEPRECATED use set_path_defaults( '/', \%data ) instead of set_default()";
 
     return $self->set_path_defaults( '/', \%data );
 };
+
+=back
 
 =head1 BUGS
 
