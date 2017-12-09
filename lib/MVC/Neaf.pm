@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.2103;
+our $VERSION = 0.2104;
 
 =head1 NAME
 
@@ -159,13 +159,13 @@ Otherwise it's ignored for security reasons.
 =item * -location - HTTP Location: header for 3xx statuses.
 This is set by C<$request-E<gt>redirect(...)>.
 
-B<DEPRECATED.> This will be phased out at some point,
+B<[DEPRECATED]> This will be phased out at some point,
 use C<-header => [ location =E<gt> ... ]> instead.
 
 =item * -serial - if present, the C<JS> view will render this instead of
 the whole response hash.
 This can be used e.g. to return non-hash data in REST API.
-B<EXPERIMENTAL>. Name and meaning may change in the future.
+B<[EXPERIMENTAL]> Name and meaning may change in the future.
 
 =item * -status - HTTP status (200, 404, 500 etc).
 Default is 200 if the handler managed to live through, and 500 if it died.
@@ -344,7 +344,7 @@ as C<$req-E<gt>path_info>.
 If capture groups are present in said regular expression,
 their content will also be available as C<$req-E<gt>path_info_split>.
 
-B<EXPERIMENTAL>. Name and semantics MAY change in the future.
+B<[EXPERIMENTAL]> Name and semantics MAY change in the future.
 
 =item * C<param_regex> => { name => C<qr/.../>, name2 => C<'\d+'> }
 
@@ -352,18 +352,18 @@ Add predefined regular expression validation to certain request parameters,
 so that they can be queried by name only.
 See C<param()> in L<MVC::Neaf::Request>.
 
-B<EXPERIMENTAL>. Name and semantics MAY change in the future.
+B<[EXPERIMENTAL]> Name and semantics MAY change in the future.
 
 =item * C<view> - default View object for this Controller.
 Must be an object with a C<render> method, or a CODEREF
 receiving hashref and returning a list of two scalars
 (content and content-type).
 
-B<DEPRECATED>. Use -view instead, meaning is exactly the same.
+B<[DEPRECATED]> Use -view instead, meaning is exactly the same.
 
 =item * C<cache_ttl> - if set, set Expires: HTTP header accordingly.
 
-B<EXPERIMENTAL>. Name and semantics MAY change in the future.
+B<[EXPERIMENTAL]> Name and semantics MAY change in the future.
 
 =item * C<default> - a C<\%hash> of values that will be added to results
 EVERY time the handler returns.
@@ -376,13 +376,13 @@ Use this if you know better.
 
 This still warns.
 
-B<EXPERIMENTAL.> Name and meaning may change in the future.
+B<[EXPERIMENTAL]> Name and meaning may change in the future.
 
 =item * C<tentative> => 1 - don't complain if this route is replaced.
 
 E.g. if setting a static stub for method to be added later.
 
-B<EXPERIMENTAL.> Name and meaning may change in the future.
+B<[EXPERIMENTAL]> Name and meaning may change in the future.
 
 =item * C<description> - just for information, has no action on execution.
 This will be displayed if application called with --list (see L<MVC::Neaf::CLI>).
@@ -397,7 +397,7 @@ This is not enforced whatsoever.
 Also, any number of dash-prefixed keys MAY be present.
 This is totally the same as putting them into C<default> hash.
 
-B<NOTE> For some reason ability to add multicomponent paths
+B<[NOTE]> For some reason ability to add multicomponent paths
 like C<(foo => bar => \&code)> was added in the past,
 resulting in C<"/foo/bar" => \&code>.
 
@@ -607,27 +607,27 @@ Default is 4096. Smaller values may be set, but are NOT recommended.
 =item * C<cache_ttl> => C<nnn> - if given, files below the buffer size
 will be stored in memory for C<cache_ttl> seconds.
 
-B<EXPERIMENTAL>. Cache API is not yet established.
+B<[EXPERIMENTAL]> Cache API is not yet established.
 
 =item * allow_dots => 1|0 - if true, serve files/directories
 starting with a dot (.git etc), otherwise give a 404.
 
-B<EXPERIMENTAL>
+B<[EXPERIMENTAL]>
 
 =item * dir_index => 1|0 - if true, generate index for a directory;
 otherwise a 404 is returned, and deliberately so, for security reasons.
 
-B<EXPERIMENTAL>
+B<[EXPERIMENTAL]>
 
 =item * dir_template - specify template for directory listing
 (with images etc). A sane default is provided.
 
-B<EXPERIMENTAL>
+B<[EXPERIMENTAL]>
 
 =item * view - specify view object for rendering directory template.
 By default a localized C<TT> instance is used.
 
-B<EXPERIMENTAL> Name MAY be changed (dir_view etc).
+B<[EXPERIMENTAL]> Name MAY be changed (dir_view etc).
 
 =item * override - override the route that was here before.
 See C<route> above.
@@ -865,7 +865,7 @@ The handler will be executed as is,
 but the hooks and defaults will be re-calculated.
 So be careful.
 
-B<CAUTION:> As of 0.21, C<alias> does NOT follow tentative/override switches.
+B<[CAUTION]> As of 0.21, C<alias> does NOT follow tentative/override switches.
 This needs to be fixed in the future.
 
 =cut
@@ -1280,7 +1280,7 @@ Extra options may follow file name:
 Unknown options are skipped.
 Unknown format value will cause exception though.
 
-B<EXPERIMENTAL>. This method and exact format of data is being worked on.
+B<[EXPERIMENTAL]> This method and exact format of data is being worked on.
 
 =cut
 
@@ -1475,7 +1475,7 @@ Multiple hooks MAY be added for the same phase/path/method combination.
 ALL hooks matching a given route will be executed, either short to long or
 long to short (aka "event bubbling"), depending on the phase.
 
-B<CAUTION> Don't overuse hooks.
+B<[CAUTION]> Don't overuse hooks.
 This may lead to a convoluted, hard to follow application.
 Use hooks for repeated auxiliary tasks such as checking permissions or writing
 down statistics, NOT for primary application logic.
@@ -1554,7 +1554,7 @@ as the controller has not been executed yet.
 Dying in this phase stops both further hook processing and controller execution.
 Instead, the corresponding error handler is executed right away.
 
-B<EXAMPLE>: use this hook to produce a 403 error if the user is not logged in
+B<[EXAMPLE]> use this hook to produce a 403 error if the user is not logged in
 and looking for a restricted area of the site:
 
     neaf pre_logic => sub {
@@ -2003,7 +2003,7 @@ or time is exceeded by difference between first and last request in batch.
 
 Returns self.
 
-B<DEPRECATED.> Just use pre_route/pre_reply/pre_cleanup hooks if you need
+B<[DEPRECATED]> Just use pre_route/pre_reply/pre_cleanup hooks if you need
 to gather performance statistics.
 
 =cut
@@ -2605,7 +2605,7 @@ Return value from callback is ignored.
 
 Dying in callback is treated the same way as in normal controller sub.
 
-B<DEPRECATED>. Use C<$neaf-E<gt>add_hook( pre_route =E<gt> \&hook )> instead.
+B<[DEPRECATED]> Use C<$neaf-E<gt>add_hook( pre_route =E<gt> \&hook )> instead.
 
 =cut
 
@@ -2623,7 +2623,7 @@ sub pre_route {
 
     error_template( { param => value } )
 
-B<DEPRECATED>. Use L</set_error_handler> aka C<neaf \d\d\d =E<gt> sub { ... }>
+B<[DEPRECATED]> Use L</set_error_handler> aka C<neaf \d\d\d =E<gt> sub { ... }>
 instead.
 
 =cut
@@ -2646,7 +2646,7 @@ Controller return always overrides these values.
 
 Returns self.
 
-B<DEPRECATED>. Use C<MVC::Neaf-E<gt>set_path_defaults( '/', { ... } );> instead.
+B<[DEPRECATED]> Use C<MVC::Neaf-E<gt>set_path_defaults( '/', { ... } );> instead.
 
 =cut
 

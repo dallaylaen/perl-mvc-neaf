@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.2102;
+our $VERSION = 0.2103;
 
 =head1 NAME
 
@@ -255,7 +255,7 @@ sub script_name {
 
 Get scheme, server, and port of the application.
 
-B<EXPERIMENTAL> Name and meaning subject to change.
+B<[EXPERIMENTAL]> Name and meaning subject to change.
 
 =head2 get_url_rel( ... )
 
@@ -271,12 +271,12 @@ possibly overriding some parameters.
 Parameter order is NOT preserved. If parameter is empty or C<undef>,
 it is skipped.
 
-B<CAUTION> Multiple values are ignored, this MAY change in the future.
+B<[CAUTION]> Multiple values are ignored, this MAY change in the future.
 
-B<CAUTION> For a POST request, normal parameters are used instead of URL
+B<[CAUTION]> For a POST request, normal parameters are used instead of URL
 parameters (see C<url_param>). This MAY change in the future.
 
-B<EXPERIMENTAL> Name and meaning subject to change.
+B<[EXPERIMENTAL]> Name and meaning subject to change.
 
 =head2 get_url_full( ... )
 
@@ -288,7 +288,7 @@ B<EXPERIMENTAL> Name and meaning subject to change.
 
 Same as above, but prefixed with schema, server name, and port.
 
-B<EXPERIMENTAL> Name and meaning subject to change.
+B<[EXPERIMENTAL]> Name and meaning subject to change.
 
 =cut
 
@@ -335,7 +335,7 @@ the leading slash is REMOVED.
 The validation regex for this value MUST be specified during application
 setup as C<path_info_regex>. See C<route> in L<MVC::Neaf>.
 
-B<NOTE> Experimental. This part of API is undergoing changes.
+B<[EXPERIMENTAL]> This part of API is undergoing changes.
 
 =cut
 
@@ -349,7 +349,7 @@ sub path_info {
 
 Return a list of matched capture groups found in path_info_regex, if any.
 
-B<EXPERIMENTAL> Name and meaning subject to change.
+B<[EXPERIMENTAL]> Name and meaning subject to change.
 
 =cut
 
@@ -418,7 +418,7 @@ The regular expression is applied to the WHOLE string,
 from beginning to end, not just the middle.
 Use '.*' if you really trust the data.
 
-B<EXPERIMENTAL> If C<param_regex> hash was given during route definition,
+B<[EXPERIMENTAL]> If C<param_regex> hash was given during route definition,
 C<$regex> MAY be omitted for params that were listed there.
 This feature is not stable yet, though. Use with care.
 
@@ -426,10 +426,10 @@ If method other than GET/HEAD is being used, whatever is in the
 address line after ? is IGNORED.
 Use L<url_param> (see below) if you intend to mix GET/POST parameters.
 
-B<NOTE> C<param()> ALWAYS returns a single value, even in list context.
+B<[NOTE]> C<param()> ALWAYS returns a single value, even in list context.
 Use C<multi_param()> (see below) if you really want a list.
 
-B<NOTE> C<param()> has I<nothing to do> with getting parameter list from request.
+B<[NOTE]> C<param()> has I<nothing to do> with getting parameter list from request.
 Instead, use form with wildcards:
 
     neaf form => "my_form" => [ [ 'guest\d+' => '.*'], [ 'arrival\d+' => '.*' ] ],
@@ -523,11 +523,11 @@ The name generally follows that of newer L<CGI> (4.08+).
 
 ALL values must match the regex, or an empty list is returned.
 
-B<EXPERIMENTAL> If C<param_regex> hash was given during route definition,
+B<[EXPERIMENTAL]> If C<param_regex> hash was given during route definition,
 C<$regex> MAY be omitted for params that were listed there.
 This feature is not stable yet, though. Use with care.
 
-B<EXPERIMENTAL> This method's behavior MAY change in the future.
+B<[EXPERIMENTAL]> This method's behavior MAY change in the future.
 Please be careful when upgrading.
 
 =cut
@@ -639,7 +639,7 @@ sub form {
 Return a group of uniform parameters as a list, in that order.
 Values that fail validation are returned as C<undef>, unless default given.
 
-B<EXPERIMENTAL>. The name MAY be changed in the future.
+B<[EXPERIMENTAL]> The name MAY be changed in the future.
 
 =cut
 
@@ -738,7 +738,7 @@ Like above, but no decoding whatsoever is performed.
 
 =back
 
-B<DEPRECATED>. Same as upload_raw, but issues a warning.
+B<[DEPRECATED]> Same as upload_raw, but issues a warning.
 
 =cut
 
@@ -882,7 +882,7 @@ sub set_cookie {
 
 Remove cookie by setting value to an empty string,
 and expiration in the past.
-B<NOTE> It is up to the user agent to actually remove cookie.
+B<[NOTE]> It is up to the user agent to actually remove cookie.
 
 Returns self.
 
@@ -1008,7 +1008,7 @@ With a name, returns all values for that header in list context,
 or ", " - joined value as one scalar in scalar context -
 this is actually a frontend to HTTP::Headers::Fast C<header()> method.
 
-B<NOTE> No regex checks are made (yet) on headers, these may be added
+B<[NOTE]> No regex checks are made (yet) on headers, these may be added
 in the future.
 
 =cut
@@ -1028,7 +1028,7 @@ sub header_in {
 
 Return all keys in header_in object as a list.
 
-B<DEPRECATED.> Use C<$req-E<gt>header_in-E<gt>header_field_names> instead.
+B<[DEPRECATED]> Use C<$req-E<gt>header_in-E<gt>header_field_names> instead.
 
 =cut
 
@@ -1049,7 +1049,7 @@ sub header_in_keys {
 
 Get/set HTTP referrer - i.e. where the request pretends to come from.
 
-B<NOTE> Avoid using this for anything serious/secure - too easy to forge.
+B<[NOTE]> Avoid using this for anything serious/secure - too easy to forge.
 
 =cut
 
@@ -1066,7 +1066,7 @@ sub referer {
 
 Get/set user_agent.
 
-B<NOTE> Avoid using user_agent for anything serious - too easy to forge.
+B<[NOTE]> Avoid using user_agent for anything serious - too easy to forge.
 
 =cut
 
@@ -1275,7 +1275,7 @@ or
 
     my $old_value = [ $req->header_out( foobar => delete => 1 ) ];
 
-B<NOTE> This format may change in the future.
+B<[NOTE]> This format may change in the future.
 
 =cut
 
@@ -1412,7 +1412,7 @@ Execute a function (or several) right after the request is served.
 
 Can be called multiple times.
 
-B<CAVEAT>: If CODEREF contains reference to the request,
+B<[CAVEAT]> If CODEREF contains reference to the request,
 the request will never be destroyed due to circular reference.
 Thus CODEREF may not be executed.
 
@@ -1508,7 +1508,7 @@ on a given machine within a reasonable timeframe.
 Current id-generation mechanism involves URI-safe md5_base64 C<[-_]>,
 but this MAY change in the future.
 
-B<CAUTION> Don't use this id for anything secure.
+B<[CAUTION]> Don't use this id for anything secure.
 Use L<MVC::Neaf::X::Session>'s ids instead.
 This one is just for information.
 
@@ -1571,7 +1571,7 @@ Log an error message, annotated with request id and the route being processed.
 
 Currently works via warn, but this may change in the future.
 
-B<EXPERIMENTAL.> This feature is still under development.
+B<[EXPERIMENTAL]> This feature is still under development.
 
 One can count on C<log_error> to be available in the future and do
 some king of logging.
@@ -1604,7 +1604,7 @@ sub _log_mark {
 
 Returns file:line where controller was defined.
 
-B<DEPRECATED>. Do not use.
+B<[DEPRECATED]> Do not use.
 
 =cut
 
@@ -1771,7 +1771,7 @@ by the underlying driver.
 
 Returns self.
 
-B<DEPRECATED> Use C<set_path()> and C<set_path_info()> instead.
+B<[DEPRECATED]> Use C<set_path()> and C<set_path_info()> instead.
 
 =cut
 
@@ -1821,7 +1821,7 @@ sub upload {
 
 =back
 
-B<DEPRECATED> and dies. Use L<MVC::Neaf::X::Form> instead.
+B<[DEPRECATED]> and dies. Use L<MVC::Neaf::X::Form> instead.
 
 =cut
 
