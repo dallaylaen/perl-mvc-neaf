@@ -3,7 +3,7 @@ package MVC::Neaf::Request;
 use strict;
 use warnings;
 
-our $VERSION = 0.2103;
+our $VERSION = 0.2104;
 
 =head1 NAME
 
@@ -688,11 +688,11 @@ sub body {
 
 =head2 upload_utf8( ... )
 
+=head2 upload_raw( ... )
+
 =over
 
 =item * C<$req-E<gt>upload_utf8( "name" )>
-
-=back
 
 Returns an L<MVC::Neaf::Upload> object corresponding to an uploaded file,
 if such uploaded file is present.
@@ -720,25 +720,11 @@ or just
         };
     };
 
-=head2 upload_raw( ... )
-
-=over
-
 =item * C<$req-E<gt>upload_raw( "name" )>
-
-=back
 
 Like above, but no decoding whatsoever is performed.
 
-=head2 upload( ... )
-
-=over
-
-=item * C<$req-E<gt>upload( "name" )>
-
 =back
-
-B<[DEPRECATED]> Same as upload_raw, but issues a warning.
 
 =cut
 
@@ -830,7 +816,7 @@ Use negative C<ttl> and empty value to delete cookie.
 =item * C<expire> - UNIX time stamp when the cookie expires
 (overridden by C<ttl>).
 
-=item * C<expires> - DEPRECATED - use 'expire' instead (without trailing "s")
+=item * C<expires> - B<[DEPRECATED]> - use 'expire' instead (without trailing "s")
 
 =item * C<domain>
 
@@ -1022,27 +1008,6 @@ sub header_in {
     $name = lc $name;
     $name =~ s/-/_/g;
     return $self->{header_in}->header( $name );
-};
-
-=head2 header_in_keys ()
-
-Return all keys in header_in object as a list.
-
-B<[DEPRECATED]> Use C<$req-E<gt>header_in-E<gt>header_field_names> instead.
-
-=cut
-
-sub header_in_keys {
-    my $self = shift;
-
-    my $head = $self->header_in;
-    my %hash;
-    $head->scan( sub {
-        my ($k, $v) = @_;
-        $hash{$k}++;
-    } );
-
-    return keys %hash;
 };
 
 =head2 referer
@@ -1600,21 +1565,6 @@ sub _log_mark {
 
 # See do_log_error below
 
-=head2 endpoint_origin
-
-Returns file:line where controller was defined.
-
-B<[DEPRECATED]> Do not use.
-
-=cut
-
-sub endpoint_origin {
-    my $self = shift;
-
-    return '(unspecified file):0' unless $self->{endpoint}{caller};
-    return join " line ", @{ $self->{endpoint}{caller} }[1,2];
-};
-
 # If called outside user's code, carp() will point at http server
 #     which is misleading.
 # So make a warn/die message that actually blames user's code
@@ -1751,6 +1701,57 @@ Please keep an eye on C<Changes> though.
 
 Here are these methods, for the sake of completeness.
 
+=head2 header_in_keys ()
+
+Return all keys in header_in object as a list.
+
+B<[DEPRECATED]> Use C<$req-E<gt>header_in-E<gt>header_field_names> instead.
+
+=cut
+
+sub header_in_keys {
+    my $self = shift;
+
+    my $head = $self->header_in;
+    my %hash;
+    $head->scan( sub {
+        my ($k, $v) = @_;
+        $hash{$k}++;
+    } );
+
+    return keys %hash;
+};
+
+=head2 upload( ... )
+
+B<[DEPRECATED]> Same as upload_raw, but issues a warning.
+Use upload_utf8() for text files, or upload_raw() for binary ones.
+
+=cut
+
+# TODO 0.25 kill
+sub upload {
+    my ($self, $name) = @_;
+
+    carp "NEAF: req->upload() is DEPRECATED, use upload_utf8 or upload_raw instead";
+    return $self->_upload( id => $name, utf8 => 0 );
+};
+
+=head2 endpoint_origin
+
+Returns file:line where controller was defined.
+
+B<[DEPRECATED]> This function was added prematurely and shall not be used.
+
+=cut
+
+sub endpoint_origin {
+    my $self = shift;
+
+    return '(unspecified file):0' unless $self->{endpoint}{caller};
+    return join " line ", @{ $self->{endpoint}{caller} }[1,2];
+};
+
 =head2 set_full_path( ... )
 
 =over
@@ -1803,14 +1804,6 @@ sub set_full_path {
     $self->{path} = "$self->{script_name}"
         .(length $self->{path_info} ? "/$self->{path_info}" : '');
     return $self;
-};
-
-# TODO 0.25 kill
-sub upload {
-    my ($self, $name) = @_;
-
-    carp "NEAF: req->upload() is DEPRECATED, use upload_utf8 or upload_raw instead";
-    return $self->_upload( id => $name, utf8 => 0 );
 };
 
 =head2 get_form_as_hash( ... )
