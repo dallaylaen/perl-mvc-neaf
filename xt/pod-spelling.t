@@ -17,8 +17,7 @@ BEGIN {
                 github metacpan annocpan
                 regex arrayref hostname unicode wildcard referer
                 validator validators proxied stateful unblessed rethrow
-                aka distro del param
-                qw qr
+                aka distro del param js css
             ]],
         }
     );
