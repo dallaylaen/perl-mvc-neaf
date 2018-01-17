@@ -18,6 +18,7 @@ example/09-continue.pl
 example/10-multi-param.pl
 example/11-auto-error.pl
 example/12-wildcard.pl
+example/13-runtime-stat.pl
 example/README.md
 example/run-all.pl
 it/01-plackup.t
@@ -123,7 +124,6 @@ t/801-cli.t
 t/802-X-Form.t
 t/803-X-Form-LIVR.t
 t/804-X-ServerStat.t
-t/805-X-ServerStat-integration.t
 t/810-X-Session.t
 t/811-X-Session-random.t
 t/812-X-Session-File.t
@@ -138,8 +138,11 @@ t/903-Request-get-form-as.0.25.t
 t/904-switch-tt-to-js-v.0.20.t
 t/905-set_full_path.0.20.t
 t/906-multicomponent-path.0.25.t
+t/907-neader_in_keys.0.25.t
+t/908-X-ServerStat-integration.t
 t/README
 t/todo.t
 TODO
 xt/pod-coverage.t
+xt/pod-spelling.t
 xt/pod.t
