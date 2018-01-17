@@ -7,12 +7,18 @@ use Scalar::Util qw(weaken);
 
 use MVC::Neaf::Upload;
 
-my $up = MVC::Neaf::Upload->new( id => "data", handle => \*DATA );
+TODO: {
 
-is <$up>, "Foo\n", "Diamond op works"
-    or diag "Read failed: $!";
-is <$up>, "Bared\n", "Diamond op works again"
-    or diag "Read failed: $!";
+    local $TODO = "Diamond op may not work on perl < 5.10, but it's non-essential"
+        if $] < 5.010;
+
+    my $up = MVC::Neaf::Upload->new( id => "data", handle => \*DATA );
+
+    is <$up>, "Foo\n", "Diamond op works"
+        or diag "Read failed: $!";
+    is <$up>, "Bared\n", "Diamond op works again"
+        or diag "Read failed: $!";
+};
 
 note "TESTING LEAK";
 # Because we use inside-out objects, must also test for leaks
