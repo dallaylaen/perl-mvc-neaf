@@ -1,5 +1,8 @@
 Revision history for MVC-Neaf
 
+0.2201  Thu Jan 18 2018
+        - DOC Fix escaping in docs
+
 0.22    Thu Jan 18 2018
         - DOC Rearrange core doc sections
         - DOC Deprecate X::Stat module, say replacement pending
