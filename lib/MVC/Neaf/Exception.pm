@@ -2,7 +2,7 @@ package MVC::Neaf::Exception;
 
 use strict;
 use warnings;
-our $VERSION = 0.22;
+our $VERSION = 0.2201;
 
 =head1 NAME
 
@@ -16,7 +16,7 @@ these internal exceptions are blessed into this class.
 
 Please see the neaf_err() function in L<MVC::Neaf>.
 
-By convention, C<die nnn> and C<die MVC::Neaf::Exception->new( nnn )>
+By convention, C<die nnn> and C<die MVC::Neaf::Exception-E<gt>new( nnn )>
 will be treated exactly the same by Neaf.
 
 B<CAUTION.> This file is mostly used internally by Neaf
