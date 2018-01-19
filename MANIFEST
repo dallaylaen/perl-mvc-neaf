@@ -138,8 +138,8 @@ t/903-Request-get-form-as.0.25.t
 t/904-switch-tt-to-js-v.0.20.t
 t/905-set_full_path.0.20.t
 t/906-multicomponent-path.0.25.t
-t/907-neader_in_keys.0.25.t
-t/908-X-ServerStat-integration.t
+t/907-header_in_keys.0.25.t
+t/908-X-ServerStat-integration.0.30.t
 t/README
 t/todo.t
 TODO
