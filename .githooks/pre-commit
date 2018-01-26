@@ -31,7 +31,6 @@ for i in $FILES; do
 
 	# The module part
 	echo "$i" | egrep -q 'pm$' || continue;
-	git diff --cached $i | grep '^+.*\$VERSION' || fail "$i" - "No version change"
 done 
 
 check_fail
