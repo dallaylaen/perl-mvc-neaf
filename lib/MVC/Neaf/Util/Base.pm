@@ -1,46 +1,36 @@
-package MVC::Neaf::X;
+package MVC::Neaf::Util::Base;
 
 use strict;
 use warnings;
 our $VERSION = 0.2203;
 
-# This class is empty (yet).
-# See MVC::Neaf::Util::Base for implementation
-
 =head1 NAME
 
-MVC::Neaf::X - base class for Not Even A Framework extentions.
-
-=head1 SYNOPSIS
-
-    package MVC::Neaf::X::My::Module;
-    use parent qw(MVC::Neaf::X);
-
-    sub foo {
-        my $self = shift;
-
-        $self->my_croak("unimplemented"); # will die with package & foo prepended
-    };
-
-    1;
+MVC::Neaf::Util::Base - base class for other Not Even A Framework classes.
 
 =head1 DESCRIPTION
 
-Start out a Neaf extention by subclassing this class.
+This is an internal package providing some utility methods for Neaf itself.
 
-Some convenience methods here to help develop.
+See L<MVC::Neaf::X> for public interface.
 
 =head1 METHODS
 
 =cut
 
-use parent qw(MVC::Neaf::Util::Base);
+use Carp;
 
 =head2 new( %options )
 
 Will happily accept any args and pack them into self.
 
 =cut
+
+sub new {
+    my ($class, %opt) = @_;
+
+    return bless \%opt, $class;
+};
 
 =head2 my_croak( $message )
 
@@ -49,6 +39,15 @@ with self's package and the name of method
 in which error occurred.
 
 =cut
+
+sub my_croak {
+    my ($self, $msg) = @_;
+
+    my $sub = [caller(1)]->[3];
+    $sub =~ s/.*:://;
+
+    croak join "", (ref $self || $self),"->",$sub,": ",$msg;
+};
 
 =head1 LICENSE AND COPYRIGHT
 
