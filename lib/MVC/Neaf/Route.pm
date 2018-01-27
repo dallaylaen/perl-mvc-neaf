@@ -21,9 +21,12 @@ It is useless in and off itself.
 =cut
 
 use Carp;
+use Scalar::Util qw(looks_like_number);
 
 use parent qw(MVC::Neaf::Util::Base);
 use MVC::Neaf::Util qw(canonize_path);
+
+our @CARP_NOT = qw(MVC::Neaf MVC::Neaf::Request);
 
 =head2 new
 
@@ -35,7 +38,7 @@ Route has the following read-only attributes:
 
 =item * method (required)
 
-=item * handler (required)
+=item * code (required)
 
 =item * default
 
@@ -53,16 +56,21 @@ Route has the following read-only attributes:
 
 =item * tentative
 
+=item * override TODO
+
+=item * hooks
+
 =back
 
 =cut
 
 # Should just Moo here but we already have a BIG dependency footprint
-my @ESSENTIAL = qw(method path handler);
+my @ESSENTIAL = qw(method path code);
 my @OPTIONAL  = qw(
     default cache_ttl
-    path_info_regex param_regex
+    path_info_regex param_regex hooks
     description public caller tentative
+    override
 );
 my %RO_FIELDS;
 $RO_FIELDS{$_}++ for @ESSENTIAL, @OPTIONAL;
@@ -70,6 +78,9 @@ my $year = 365 * 24 * 60 * 60;
 
 sub new {
     my ($class, %opt) = @_;
+
+    # kill generated fields
+    delete $opt{$_} for qw(lock where);
 
     my @missing = grep { !defined $opt{$_} } @ESSENTIAL;
     my @extra   = grep { !$RO_FIELDS{$_}   } keys %opt;
@@ -84,8 +95,8 @@ sub new {
     $opt{public} = $opt{public} ? 1 : 0;
 
     # Check args
-    $class->my_croak("'handler' must be a subroutine, not ".(ref $opt{handler}||'scalar'))
-        unless ref UNIVERSAL::isa($opt{handler}, 'CODE');
+    $class->my_croak("'code' must be a subroutine, not ".(ref $opt{code}||'scalar'))
+        unless UNIVERSAL::isa($opt{code}, 'CODE');
     $class->my_croak("'public' endpoint must have a 'description'")
         if $opt{public} and not $opt{description};
     $class->_croak( "'default' must be unblessed hash" )
@@ -94,9 +105,11 @@ sub new {
         unless $opt{method} =~ /^[A-Z0-9_]+$/;
 
     # Always have regex defined to simplify routing
-    $opt{path_info_regex} = (defined $opt{path_info_regex})
-        ? qr#^$opt{path_info_regex}$#
-        : qr#^$#;
+    if (!UNIVERSAL::isa($opt{path_info_regex}, 'Regexp')) {
+        $opt{path_info_regex} = (defined $opt{path_info_regex})
+            ? qr#^$opt{path_info_regex}$#
+            : qr#^$#;
+    };
 
     # Just for information
     $opt{caller}    ||= [caller(0)]; # save file,line
@@ -168,9 +181,16 @@ sub append_defaults {
     my ($self, @hashes) = @_;
 
     $self->_can_modify;
-    %{ $self->{default} } = map { %$_ } grep { defined $_ }
+
+    # merge hashes, older override newer
+    my %data = map { %$_ } grep { defined $_ }
         ((reverse @hashes), $self->{default});
 
+    # kill undefs
+    defined $data{$_} or delete $data{$_}
+        for keys %data;
+
+    $self->{default} = \%data;
     return $self;
 };
 
