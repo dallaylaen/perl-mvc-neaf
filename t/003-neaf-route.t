@@ -10,4 +10,6 @@ my $sub = eval {
     MVC::Neaf->run;
 };
 
+diag $@ if $@;
+
 is (ref $sub, 'CODE', "run works") || print "Bail out!\n";
