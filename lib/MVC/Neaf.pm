@@ -248,6 +248,7 @@ our %EXPORT_TAGS = (
 use MVC::Neaf::Util qw(http_date canonize_path path_prefixes run_all run_all_nodie);
 use MVC::Neaf::Request::PSGI;
 use MVC::Neaf::Exception;
+use MVC::Neaf::Route;
 
 our $Inst;
 
@@ -477,9 +478,9 @@ sub route {
     $profile{description} = $args{description};
     $profile{public}      = $args{public} ? 1 : 0;
     $profile{caller}      = $args{caller} || [caller(0)]; # save file,line
-    $profile{where}       = "at $profile{caller}[1] line $profile{caller}[2]";
 
     if (my $view = $args{view}) {
+        # TODO 0.30
         carp "NEAF: route(): view argument is deprecated, use -view instead";
         $args{default}{-view} = $view;
     };
@@ -489,8 +490,7 @@ sub route {
         if $args{default}{-view};
 
     # todo_default because some path-based defs will be mixed in later
-    $profile{todo_default} = $args{default}
-        if $args{default};
+    $profile{default} = $args{default};
 
     # preprocess regular expression for params
     if ( my $reg = $args{param_regex} ) {
@@ -514,7 +514,7 @@ sub route {
     # ready, shallow copy handler & burn cache
     delete $self->{route_re};
 
-    $self->{route}{ $path }{$_} = { %profile, my_method => $_ }
+    $self->{route}{ $path }{$_} = MVC::Neaf::Route->new( %profile, method => $_ )
         for @{ $args{method} };
 
     # This is for get+post sugar
@@ -534,7 +534,8 @@ sub _dup_route {
     $self->_detect_duplicate($profile);
 
     delete $self->{route_re};
-    $self->{route}{ $path }{$method} = { %$profile, my_method => $method };
+    $self->{route}{ $path }{$method} = MVC::Neaf::Route->new(
+        %$profile, method => $method );
 };
 
 # in: { method => [...], path => '/...', tentative => 0|1, override=> 0|1 }
@@ -890,6 +891,7 @@ sub alias {
     # reset cache
     $self->{route_re} = undef;
 
+    # FIXME clone()
     $self->{route}{$new} = $self->{route}{$old};
     return $self;
 };
@@ -1421,7 +1423,7 @@ sub run {
     # Add implicit HEAD for all GETs via shallow copy
     foreach my $node (values %{ $self->{route} }) {
         $node->{GET} or next;
-        $node->{HEAD} ||= { %{ $node->{GET} }, my_method => 'HEAD' };
+        $node->{HEAD} ||= $node->{GET}->clone( method => 'HEAD' );
     };
 
     # initialize stuff if first run
@@ -1805,7 +1807,7 @@ sub get_routes {
             $self->_post_setup( $route )
                 unless $route->{lock};
 
-            my $filtered = $code->( { %$route }, $path, $method );
+            my $filtered = $code->( $route->clone, $path, $method );
             $ret{$path}{$method} = $filtered if $filtered;
         };
     };
@@ -2128,32 +2130,18 @@ sub _post_setup {
     my ($self, $route) = @_;
 
     # LOCK PROFILE
-    $route->{lock}++
-        and die "MVC::Neaf broken, please file a bug";
+    confess "Attempt to repeat route setup. MVC::Neaf broken, please file a bug"
+        if $route->{lock};
 
     # CALCULATE DEFAULTS
-    my %def;
     # merge data sources, longer paths first
-    my @sources = (
-          $route->{todo_default}
-        , map { $self->{path_defaults}{$_} }
-            reverse path_prefixes( $route->{path} )
-    );
-
-    foreach my $src( @sources ) {
-        $src or next;
-        exists $def{$_} or $def{$_} = $src->{$_}
-            for keys %$src;
-    };
-
-    # kill undef values
-    defined $def{$_} or delete $def{$_}
-        for keys %def;
-    $route->{default} = \%def;
+    my @sources = map { $self->{path_defaults}{$_} }
+        reverse path_prefixes( $route->{path} );
+    $route->append_defaults( @sources);
 
     # CALCULATE HOOKS
     # select ALL hooks prepared for upper paths
-    my $hook_tree = $self->{hooks}{ $route->{my_method} };
+    my $hook_tree = $self->{hooks}{ $route->method };
     my @hook_by_path =
         map { $hook_tree->{$_} || () } path_prefixes( $route->{path} );
 
@@ -2185,6 +2173,7 @@ sub _post_setup {
         for qw(pre_cleanup pre_reply);
 
     $route->{hooks} = \%phases;
+    $route->lock;
 
     return;
 };
