@@ -24,7 +24,7 @@ use Carp;
 use Scalar::Util qw(looks_like_number);
 
 use parent qw(MVC::Neaf::Util::Base);
-use MVC::Neaf::Util qw(canonize_path);
+use MVC::Neaf::Util qw(canonize_path path_prefixes);
 
 our @CARP_NOT = qw(MVC::Neaf MVC::Neaf::Request);
 
@@ -33,6 +33,8 @@ our @CARP_NOT = qw(MVC::Neaf MVC::Neaf::Request);
 Route has the following read-only attributes:
 
 =over
+
+=item * parent (required)
 
 =item * path (required)
 
@@ -65,7 +67,7 @@ Route has the following read-only attributes:
 =cut
 
 # Should just Moo here but we already have a BIG dependency footprint
-my @ESSENTIAL = qw(method path code);
+my @ESSENTIAL = qw( parent method path code );
 my @OPTIONAL  = qw(
     default cache_ttl
     path_info_regex param_regex hooks
@@ -216,6 +218,67 @@ sub set_hooks {
 
     # TODO 0.00 filter must be here
     $self->{hooks} = $hooks;
+};
+
+=head2 post_setup
+
+Calculate hooks and path-based defaults.
+
+Locks route, dies if already locked.
+
+=cut
+
+sub post_setup {
+    my $self = shift;
+
+    # LOCK PROFILE
+    confess "Attempt to repeat route setup. MVC::Neaf broken, please file a bug"
+        if $self->is_locked;
+
+    my $neaf = $self->parent;
+    # CALCULATE DEFAULTS
+    # merge data sources, longer paths first
+    my @sources = map { $neaf->{path_defaults}{$_} }
+        reverse path_prefixes( $self->path );
+    $self->append_defaults( @sources);
+
+    # CALCULATE HOOKS
+    # select ALL hooks prepared for upper paths
+    my $hook_tree = $neaf->{hooks}{ $self->method };
+    my @hook_by_path =
+        map { $hook_tree->{$_} || () } path_prefixes( $self->path );
+
+    # Merge callback stacks into one hash, in order
+    # hook = {method}{path}{phase}[nnn] => { code => sub{}, ... }
+    # We need to extract that sub {}
+    # We do so in a rather clumsy way that would short cirtuit
+    #     at all possibilities
+    # Premature optimization FTW!
+    my %phases;
+    foreach my $hook_by_phase (@hook_by_path) {
+        foreach my $phase ( keys %$hook_by_phase ) {
+            my $hook_list = $hook_by_phase->{$phase};
+            foreach my $hook (@$hook_list) {
+                # process excludes - if path starts with any, no go!
+                grep { $self->path =~ m#^\Q$_\E(?:/|$)# }
+                    @{ $hook->{exclude} }
+                        and next;
+                # TODO 0.90 filter out repetition
+                push @{ $phases{$phase} }, $hook->{code};
+                # TODO 0.30 also store hook info somewhere for better error logging
+            };
+        };
+    };
+
+    # the pre-reply, pre-cleanup should go in backward direction
+    # those are for cleaning up stuff
+    $phases{$_} and @{ $phases{$_} } = reverse @{ $phases{$_} }
+        for qw(pre_cleanup pre_reply);
+
+    $self->set_hooks( \%phases );
+    $self->lock;
+
+    return;
 };
 
 # TODO 0.30 Class::XSAccessors or smth
