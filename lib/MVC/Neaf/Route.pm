@@ -162,6 +162,17 @@ sub lock {
     return $self;
 };
 
+=head2 is_locked
+
+Check that route is locked.
+
+=cut
+
+sub is_locked {
+    my $self = shift;
+    return !!$self->{lock};
+};
+
 # TODO 0.30 -> Util::Base?
 sub _can_modify {
     my $self = shift;
@@ -192,6 +203,19 @@ sub append_defaults {
 
     $self->{default} = \%data;
     return $self;
+};
+
+=head2 set_hooks(\%phases)
+
+Install hooks. Currently no preprocessing is done.
+
+=cut
+
+sub set_hooks {
+    my ($self, $hooks) = @_;
+
+    # TODO 0.00 filter must be here
+    $self->{hooks} = $hooks;
 };
 
 # TODO 0.30 Class::XSAccessors or smth

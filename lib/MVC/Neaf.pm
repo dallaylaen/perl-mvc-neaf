@@ -1805,7 +1805,7 @@ sub get_routes {
         foreach my $method ( keys %$batch ) {
             my $route = $batch->{$method};
             $self->_post_setup( $route )
-                unless $route->{lock};
+                unless $route->is_locked;
 
             my $filtered = $code->( $route->clone, $path, $method );
             $ret{$path}{$method} = $filtered if $filtered;
@@ -1938,26 +1938,26 @@ sub _route_request {
             die "405\n";
         };
         $self->_post_setup( $route )
-            unless exists $route->{lock};
+            unless $route->is_locked;
 
         # TODO 0.90 optimize this or do smth. Still MUST keep route_re a prefix tree
         if ($path_info =~ /%/) {
             $path_info = decode_utf8( uri_unescape( $path_info ) );
         };
-        my @split = $path_info =~ $route->{path_info_regex}
+        my @split = $path_info =~ $route->path_info_regex
             or die "404\n";
         $req->_import_route( $route, $path, $path_info, \@split );
 
         # execute hooks
-        run_all( $route->{hooks}{pre_logic}, $req)
-            if exists $route->{hooks}{pre_logic};
+        run_all( $route->hooks->{pre_logic}, $req)
+            if $route and $route->hooks->{pre_logic};
         # Run the controller!
-        return $route->{code}->($req);
+        return $route->code->($req);
     };
 
     if ($data and UNIVERSAL::isa($data, 'HASH')) {
-        # post-process data - fill in request(RD) & global(GD) defaults.
-        my $GD = $route->{default};
+        # post-process data - fill in path-based defaults.
+        my $GD = $route->default;
         exists $data->{$_} or $data->{$_} = $GD->{$_} for keys %$GD;
     } elsif( $@ ) {
         # Fall back to error page
@@ -1987,8 +1987,8 @@ sub _route_request {
     };
 
     $req->_set_reply( $data );
-    if (exists $route->{hooks}{pre_content}) {
-        run_all_nodie( $route->{hooks}{pre_content}, sub {
+    if ($route and $route->hooks->{pre_content}) {
+        run_all_nodie( $route->hooks->{pre_content}, sub {
                 $req->log_error( "pre_content hook failed: $@" )
         }, $req );
     };
@@ -2016,8 +2016,8 @@ sub _render_content {
 
         my $view = $self->get_view( $data->{-view} );
         eval {
-            run_all( $route->{hooks}{pre_render}, $req )
-                if exists $route->{hooks}{pre_render};
+            run_all( $route->hooks->{pre_render}, $req )
+                if $route and $route->hooks->{pre_render};
 
             ($content, my $type) = blessed $view
                 ? $view->render( $data ) : $view->( $data );
@@ -2094,16 +2094,16 @@ sub handle_request {
     $head->push_header( set_cookie => $req->format_cookies );
     $head->init_header( content_length => length $$content )
         unless $data->{-continue};
-    $head->init_header( expires => http_date( time + $route->{cache_ttl} ) )
-        if exists $route->{cache_ttl} and $data->{-status} == 200;
+    $head->init_header( expires => http_date( time + $route->cache_ttl ) )
+        if $route and $route->cache_ttl and $data->{-status} == 200;
 
     # END MANGLE HEADERS
 
-    if (exists $route->{hooks}{pre_cleanup}) {
-        $req->postpone( $route->{hooks}{pre_cleanup} );
+    if ($route and $route->hooks->{pre_cleanup}) {
+        $req->postpone( $route->hooks->{pre_cleanup} );
     };
-    if (exists $route->{hooks}{pre_reply}) {
-        run_all_nodie( $route->{hooks}{pre_reply}, sub {
+    if ($route and $route->hooks->{pre_reply}) {
+        run_all_nodie( $route->hooks->{pre_reply}, sub {
                 $req->log_error( "pre_reply hook failed: $@" )
         }, $req );
     };
@@ -2131,19 +2131,19 @@ sub _post_setup {
 
     # LOCK PROFILE
     confess "Attempt to repeat route setup. MVC::Neaf broken, please file a bug"
-        if $route->{lock};
+        if $route->is_locked;
 
     # CALCULATE DEFAULTS
     # merge data sources, longer paths first
     my @sources = map { $self->{path_defaults}{$_} }
-        reverse path_prefixes( $route->{path} );
+        reverse path_prefixes( $route->path );
     $route->append_defaults( @sources);
 
     # CALCULATE HOOKS
     # select ALL hooks prepared for upper paths
     my $hook_tree = $self->{hooks}{ $route->method };
     my @hook_by_path =
-        map { $hook_tree->{$_} || () } path_prefixes( $route->{path} );
+        map { $hook_tree->{$_} || () } path_prefixes( $route->path );
 
     # Merge callback stacks into one hash, in order
     # hook = {method}{path}{phase}[nnn] => { code => sub{}, ... }
@@ -2157,7 +2157,7 @@ sub _post_setup {
             my $hook_list = $hook_by_phase->{$phase};
             foreach my $hook (@$hook_list) {
                 # process excludes - if path starts with any, no go!
-                grep { $route->{path} =~ m#^\Q$_\E(?:/|$)# }
+                grep { $route->path =~ m#^\Q$_\E(?:/|$)# }
                     @{ $hook->{exclude} }
                         and next;
                 # TODO 0.90 filter out repetition
@@ -2172,7 +2172,7 @@ sub _post_setup {
     $phases{$_} and @{ $phases{$_} } = reverse @{ $phases{$_} }
         for qw(pre_cleanup pre_reply);
 
-    $route->{hooks} = \%phases;
+    $route->set_hooks( \%phases );
     $route->lock;
 
     return;
