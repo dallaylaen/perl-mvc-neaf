@@ -1938,22 +1938,8 @@ sub _route_request {
             $req->set_header( Allow => join ", ", keys %$node );
             die "405\n";
         };
-        $route->post_setup
-            unless $route->is_locked;
 
-        # TODO 0.90 optimize this or do smth. Still MUST keep route_re a prefix tree
-        if ($path_info =~ /%/) {
-            $path_info = decode_utf8( uri_unescape( $path_info ) );
-        };
-        my @split = $path_info =~ $route->path_info_regex
-            or die "404\n";
-        $req->_import_route( $route, $path, $path_info, \@split );
-
-        # execute hooks
-        run_all( $route->hooks->{pre_logic}, $req)
-            if $route and $route->hooks->{pre_logic};
-        # Run the controller!
-        return $route->code->($req);
+        $route->_handle_logic( $req, $path, $path_info );
     };
 
     if ($data and UNIVERSAL::isa($data, 'HASH')) {

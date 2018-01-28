@@ -21,10 +21,12 @@ It is useless in and off itself.
 =cut
 
 use Carp;
+use Encode;
 use Scalar::Util qw(looks_like_number);
+use URI::Escape qw(uri_unescape);
 
 use parent qw(MVC::Neaf::Util::Base);
-use MVC::Neaf::Util qw(canonize_path path_prefixes);
+use MVC::Neaf::Util qw( canonize_path path_prefixes run_all run_all_nodie http_date );
 
 our @CARP_NOT = qw(MVC::Neaf MVC::Neaf::Request);
 
@@ -279,6 +281,28 @@ sub post_setup {
     $self->lock;
 
     return;
+};
+
+sub _handle_logic {
+    my ($self, $req, $path, $path_info) = @_;
+
+    $self->post_setup
+        unless $self->{lock};
+
+    # TODO 0.90 optimize this or do smth. Still MUST keep route_re a prefix tree
+    if ($path_info =~ /%/) {
+        $path_info = decode_utf8( uri_unescape( $path_info ) );
+    };
+    my @split = $path_info =~ $self->path_info_regex
+        or die "404\n";
+    $req->_import_route( $self, $path, $path_info, \@split );
+
+    # execute hooks
+    run_all( $self->{hooks}{pre_logic}, $req)
+        if exists $self->{hooks}{pre_logic};
+
+    # Run the controller!
+    return $self->code->($req);
 };
 
 # TODO 0.30 Class::XSAccessors or smth
