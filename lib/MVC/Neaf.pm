@@ -248,7 +248,10 @@ our %EXPORT_TAGS = (
 use MVC::Neaf::Util qw(http_date canonize_path path_prefixes run_all run_all_nodie);
 use MVC::Neaf::Request::PSGI;
 use MVC::Neaf::Exception;
-use MVC::Neaf::Route;
+use parent qw(MVC::Neaf::Route);
+
+# TODO 0.30 Make a separate "MVC::Neaf::Route::Main" class,
+# this file should be for sugar & docs only
 
 our $Inst;
 
@@ -1460,7 +1463,7 @@ sub run {
 
     return sub {
         $self->handle_request(
-            MVC::Neaf::Request::PSGI->new( env => $_[0], _neaf => $self ));
+            MVC::Neaf::Request::PSGI->new( env => $_[0], route => $self ));
     };
 };
 
@@ -1753,7 +1756,7 @@ sub run_test {
 
     scalar $self->run; # warm up caches
 
-    my $req = MVC::Neaf::Request::PSGI->new( %fake, env => $env, _neaf => $self );
+    my $req = MVC::Neaf::Request::PSGI->new( %fake, env => $env, route => $self );
 
     my $ret = $self->handle_request( $req );
     if (ref $ret eq 'CODE') {
@@ -2225,6 +2228,52 @@ Fetch form named "name". No magic here. See L</add_form>.
 sub get_form {
     my ($self, $name) = @_;
     return $self->{forms}{$name};
+};
+
+=head2 REDEFINED METHODS
+
+As a Neaf object may need to impost as L<MVC::Neaf::Route> from time to time,
+it redefines the following method as constans stubs:
+
+=over
+
+=item * parent = self, unless overridden;
+
+=item * method = C<'*'>;
+
+=item * path = C<'[in pre_route]'>
+
+=item * code = C<die 404;>
+
+=item * where = C<'[in pre_route]'>
+
+=back
+
+Do not rely on these values.
+
+=cut
+
+my $nobody_home = sub { die 404 };
+sub code {
+    $nobody_home;
+};
+
+sub path {
+    "[in pre_route]";
+};
+
+sub method {
+    '*';
+};
+
+sub parent {
+    my $self = shift;
+    $self->{parent} || $self;
+};
+
+sub where {
+    my $self = shift;
+    return $self->{where} || '[in pre_route]';
 };
 
 # Setup default instance, no more code after this

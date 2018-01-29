@@ -307,6 +307,31 @@ sub _handle_logic {
     return $self->code->($req);
 };
 
+=head2 PROXY METHODS
+
+The following methods are redirected as is to 'parent'
+(presumably a L<MVC::Neaf> instance.
+
+=over
+
+=item * get_form
+
+=item * get_view
+
+=back
+
+=cut
+
+# Setup proxy methods
+foreach (qw(get_form get_view)) {
+    my $method = $_;
+    use warnings FATAL=>qw(all);
+    my $sub = sub { (shift)->parent->$method(@_) };
+    no strict 'refs'; ## no critic
+    *{$method} = $sub;
+};
+
+# Setup getters
 # TODO 0.30 Class::XSAccessors or smth
 foreach (keys %RO_FIELDS) {
     my $method = $_;

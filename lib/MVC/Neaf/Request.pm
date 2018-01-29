@@ -245,8 +245,9 @@ Not available before routing was applied to request.
 sub script_name {
     my $self = shift;
 
-    carp "NEAF: script_name call before routing was applied is DEPRECATED"
-        unless $self->{route};
+    # TODO kill in 0.30
+    carp "NEAF: script_name call before routing was applied is DEPRECATED: "
+        unless $self->{route} && $self->{route}->path =~ m,^(?:/|$),;
 
     return $self->{script_name} ||= $self->path;
 };
@@ -609,7 +610,7 @@ sub form {
     my ($self, $validator) = @_;
 
     if (!ref $validator) {
-        $validator = $self->{_neaf} && $self->{_neaf}->get_form( $validator )
+        $validator = $self->{route}->get_form( $validator )
             || $self->_croak("Unknown form name $validator");
     };
 
