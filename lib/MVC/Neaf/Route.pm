@@ -58,6 +58,8 @@ Route has the following read-only attributes:
 
 =item * caller
 
+=item * where
+
 =item * tentative
 
 =item * override TODO
@@ -73,7 +75,7 @@ my @ESSENTIAL = qw( parent method path code );
 my @OPTIONAL  = qw(
     default cache_ttl
     path_info_regex param_regex hooks
-    description public caller tentative
+    description public caller where tentative
     override
 );
 my %RO_FIELDS;
@@ -84,7 +86,7 @@ sub new {
     my ($class, %opt) = @_;
 
     # kill generated fields
-    delete $opt{$_} for qw(lock where);
+    delete $opt{$_} for qw( lock );
 
     my @missing = grep { !defined $opt{$_} } @ESSENTIAL;
     my @extra   = grep { !$RO_FIELDS{$_}   } keys %opt;
@@ -116,8 +118,8 @@ sub new {
     };
 
     # Just for information
-    $opt{caller}    ||= [caller(0)]; # save file,line
-    $opt{where}       = "at $opt{caller}[1] line $opt{caller}[2]";
+    $opt{caller}  ||= [caller(0)]; # save file,line
+    $opt{where}   ||= "at $opt{caller}[1] line $opt{caller}[2]";
 
     # preprocess regular expression for params
     if ( my $reg = $opt{param_regex} ) {

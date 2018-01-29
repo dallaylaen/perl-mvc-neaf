@@ -246,7 +246,7 @@ sub script_name {
     my $self = shift;
 
     carp "NEAF: script_name call before routing was applied is DEPRECATED"
-        unless $self->{endpoint};
+        unless $self->{route};
 
     return $self->{script_name} ||= $self->path;
 };
@@ -363,7 +363,7 @@ sub path_info_split {
 sub _import_route {
     my ($self, $route, $path, $path_info, $tail) = @_;
 
-    $self->{endpoint}        = $route;
+    $self->{route}        = $route;
     $self->{script_name}  = $path;
     $self->{path_info}    = $path_info;
     $self->{path_info_split}   = $tail;
@@ -447,7 +447,7 @@ See L<MVC::Neaf::X::Form::Wildcard>.
 sub param {
     my ($self, $name, $regex, $default) = @_;
 
-    $regex ||= $self->{endpoint}{param_regex}{$name};
+    $regex ||= $self->{route}{param_regex}{$name};
 
     $self->_croak( "NEAF: param(): a validation regex is REQUIRED" )
         unless defined $regex;
@@ -538,7 +538,7 @@ Please be careful when upgrading.
 sub multi_param {
     my ($self, $name, $regex) = @_;
 
-    $regex ||= $self->{endpoint}{param_regex}{$name};
+    $regex ||= $self->{route}{param_regex}{$name};
     $self->_croak( "validation regex is REQUIRED" )
         unless defined $regex;
 
@@ -1743,8 +1743,8 @@ B<[DEPRECATED]> This function was added prematurely and shall not be used.
 sub endpoint_origin {
     my $self = shift;
 
-    return '(unspecified file):0' unless $self->{endpoint}{caller};
-    return join " line ", @{ $self->{endpoint}{caller} }[1,2];
+    return '(unspecified file):0' unless $self->{route}{caller};
+    return join " line ", @{ $self->{route}{caller} }[1,2];
 };
 
 =head2 set_full_path( ... )
