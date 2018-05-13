@@ -50,6 +50,8 @@ otherwise is reset to 500 and reason is updated.
 
 =item * -reason - details about what happened
 
+=item * -headers - array or hash of headers, just like that of a normal reply.
+
 =item * -location - indicates a redirection
 
 =item * -sudden - this was not an expected error (die 404 or redirect)
@@ -153,7 +155,7 @@ sub make_reply {
         -status   => $self->{-status},
         -content  => "See $self->{-location}\n",
         -type     => 'text/plain; charset=utf8',
-        -headers  => [ location => $self->{-location} ],
+        -headers  => [ Location => $self->{-location}, @{ $self->{-headers} } ],
     } if ($self->{-location});
 
     my $req_id = $req->id;
@@ -161,6 +163,7 @@ sub make_reply {
         -status   => $self->{-status},
         -type     => 'application/json',
         -content  => qq({"error":"$self->{-status}","req_id":"$req_id"}),
+        -headers  => $self->{-headers},
     };
 };
 
