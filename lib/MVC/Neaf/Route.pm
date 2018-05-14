@@ -244,7 +244,7 @@ sub post_setup {
     # merge data sources, longer paths first
     my @sources = map { $neaf->{path_defaults}{$_} }
         reverse path_prefixes( $self->path );
-    $self->append_defaults( @sources);
+    $self->append_defaults( @sources );
 
     # CALCULATE HOOKS
     # select ALL hooks prepared for upper paths
@@ -305,6 +305,48 @@ sub _handle_logic {
 
     # Run the controller!
     return $self->code->($req);
+};
+
+=head2 INTERNAL LOGIC
+
+The following methods are part of NEAF's core and should not be called
+unless you want something I<very> special.
+
+=head2 dispatch_logic
+
+    dispatch_logic( $req, $stem, $suffix )
+
+May die. May spoil request.
+
+Apply controller code to given request object, path stem, and path suffix.
+
+Upon success, return a Neaf response hash (see L<MVC::Neaf/THE-RESPONSE>).
+
+=cut
+
+sub dispatch_logic {
+    my ($self, $req, $stem, $suffix) = @_;
+
+    $self->post_setup
+        unless $self->{lock};
+
+    # TODO 0.90 optimize this or do smth. Still MUST keep route_re a prefix tree
+    if ($suffix =~ /%/) {
+        $suffix = decode_utf8( uri_unescape( $suffix ) );
+    };
+    my @split = $suffix =~ $self->path_info_regex
+        or die "404\n";
+    $req->_import_route( $self, $stem, $suffix, \@split );
+
+    # execute hooks
+    run_all( $self->{hooks}{pre_logic}, $req)
+        if exists $self->{hooks}{pre_logic};
+
+    # Run the controller!
+    my $reply = $self->code->($req);
+#   TODO cannot write to request until hash type-checked
+#    $req->_set_reply( $reply );
+    $reply;
 };
 
 =head2 PROXY METHODS

@@ -15,7 +15,7 @@ get '/garbled' => sub {"Hello world!"}; my $line = __LINE__;
 my $content;
 warnings_like {
     $content = neaf->run_test('/garbled');
-} [qr/[Rr]eturn.*SCALAR.*\b$file\b.*\b$line\.?\n?$/], "Warning correct";
+} [qr/Controller must return hash.*\b$file\b.*\b$line\.?\n?$/], "Warning correct";
 
 my $ref = eval {
     decode_json( $content );

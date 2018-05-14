@@ -248,7 +248,9 @@ our %EXPORT_TAGS = (
 use MVC::Neaf::Util qw(http_date canonize_path path_prefixes run_all run_all_nodie);
 use MVC::Neaf::Request::PSGI;
 use MVC::Neaf::Exception;
-use parent qw(MVC::Neaf::Route);
+
+# TODO 0.25 This module must be a fronted to Recursive
+use parent qw(MVC::Neaf::Route::Recursive);
 
 # TODO 0.30 Make a separate "MVC::Neaf::Route::Main" class,
 # this file should be for sugar & docs only
@@ -1697,6 +1699,7 @@ $run_test_allow{$_}++
     for qw( type method cookie body override secure uploads header );
 sub run_test {
     my ($self, $env, %opt) = @_;
+    $self = $Inst unless ref $self;
 
     my @extra = grep { !$run_test_allow{$_} } keys %opt;
     $self->_croak( "Extra keys @extra" )
@@ -1881,292 +1884,27 @@ sub new {
 
     # TODO 0.20 set default (-view => JS)
     $self->set_path_defaults( '/' => { -status => 200 } );
+    $self->{hooks} = {};
 
     return $self;
 };
 
-=head2 handle_request()
+=head2 handle_request
 
-=over
-
-=item * $neaf->handle_request( MVC::Neaf::Request->new )
-
-=back
-
-This is the CORE of this module.
-Should not be called directly - use C<run()> instead.
-
-C<handle_request> really boils down to
-
-    my ($self, $req) = @_;
-
-    my $req->path =~ /($self->{GIANT_ROUTING_RE})/
-        or die 404;
-
-    my $route = $self->{ROUTES}{$1}{ $req->method }
-        or die 405;
-
-    my $reply_hash = $route->{CODE}->($req);
-
-    my $content = $reply_hash->{-view}->render( $reply_hash );
-
-    return [ $reply_hash->{-status}, [...], [ $content ] ];
-
-The rest 200+ lines of it, split into 4 separate private functions,
-are running callbacks, handling corner cases, and substituting sane defaults.
+See L<MVC::Neaf::Route::Recursive> for implementation.
 
 =cut
 
-# sub handle_request is now split into four separate "procedures",
-# but it is still a 200-line method by nature.
-
-# In:   request
-# Out:  $route + $data
-# Side: request modified - {reply} added
-sub _route_request {
-    my ($self, $req) = @_;
-
-    my $route;
-    my $data = eval {
-        my $method = $req->method;
-        # Try running the pre-routing callback.
-        run_all( $self->{pre_route}{$method}, $req )
-            if (exists $self->{pre_route}{$method});
-
-        # Lookup the rules for the given path
-        $req->path =~ $self->{route_re} and my $node = $self->{route}{$1}
-            or die "404\n";
-        my ($path, $path_info) = ($1, $2);
-        unless ($route = $node->{ $method }) {
-            $req->set_header( Allow => join ", ", keys %$node );
-            die "405\n";
-        };
-
-        $route->_handle_logic( $req, $path, $path_info );
-    };
-
-    if ($data and UNIVERSAL::isa($data, 'HASH')) {
-        # post-process data - fill in path-based defaults.
-        my $GD = $route->default;
-        exists $data->{$_} or $data->{$_} = $GD->{$_} for keys %$GD;
-    } elsif( $@ ) {
-        # Fall back to error page
-        # TODO 0.90 $req->clear; - but don't kill cleanup hooks
-        $data = $self->_error_to_reply( $req, $@ );
-    } else {
-        # controller returned garbage
-        # so prevent dying with criptic error message
-        $data = $self->_error_to_reply(
-            $req, "Returned value is a ".(ref $data || 'SCALAR').
-            ", not a HASH at ". $req->endpoint_origin
-        );
-    };
-
-    if (my $append = $data->{-headers}) {
-        if (ref $append eq 'ARRAY') {
-            my $head = $req->header_out;
-            for (my $i = 0; $i < @$append; $i+=2) {
-                $head->push_header($append->[$i], $append->[$i+1]);
-            };
-        }
-        else {
-            # Would love to die, but it's impossible here
-            $req->log_error("-headers must be ARRAY, not ".(ref $append)
-                ." at ".$req->endpoint_origin);
-        };
-    };
-
-    $req->_set_reply( $data );
-    if ($route and $route->hooks->{pre_content}) {
-        run_all_nodie( $route->hooks->{pre_content}, sub {
-                $req->log_error( "pre_content hook failed: $@" )
-        }, $req );
-    };
-
-    return ($route, $data);
-}; # end _route_request
-
-# In: $route, $req
-# Out: $content
-# side: $req->reply modified
-sub _render_content {
-    my ($self, $route, $req) = @_;
-
-    my $data = $req->reply;
-    my $content;
-        # TODO 0.20 remove, set default( -view => JS ) instead
-        if (!$data->{-view}) {
-            if ($data->{-template}) {
-                $data->{-view} = 'TT';
-                warn $req->_message( "default -view=TT is DEPRECATED, will switch to JS in 0.20" );
-            } else {
-                $data->{-view} = 'JS';
-            };
-        };
-
-        my $view = $self->get_view( $data->{-view} );
-        eval {
-            run_all( $route->hooks->{pre_render}, $req )
-                if $route and $route->hooks->{pre_render};
-
-            ($content, my $type) = blessed $view
-                ? $view->render( $data ) : $view->( $data );
-            $data->{-type} ||= $type;
-        };
-        if (!defined $content) {
-            # TODO 0.90 $req->clear; - but don't kill cleanup hooks
-            # FIXME bug here - resetting data does NOT affect the inside of req
-            $req->log_error( "Request processed, but rendering failed: ". ($@ || "unknown error") );
-            %$data = (
-                -status => 500,
-                -type   => "application/json",
-            );
-            # TODO 0.30 configurable
-            $content = '{"error":"500","reason":"rendering error","req_id":"'
-                . $req->id .'"}';
-        };
-
-    return $content;
-}; # end _render_content
-
-# in: $req->reply
-# out: nothing
-# side: $reply->{-content}, $reply->{-type} modified
-sub _fix_encoding {
-    my (undef, $data) = @_;
-
-    my $content = \$data->{-content};
-
-    # Encode unicode content NOW so that we don't lie about its length
-    # Then detect ascii/binary
-    if (Encode::is_utf8( $$content )) {
-        # UTF8 means text, period
-        $$content = encode_utf8( $$content );
-        $data->{-type} ||= 'text/plain';
-        $data->{-type} .= "; charset=utf-8"
-            unless $data->{-type} =~ /; charset=/;
-    } elsif (!$data->{-type}) {
-        # Autodetect binary. Plain text is believed to be in utf8 still
-        $data->{-type} = $$content =~ /^.{0,512}?[^\s\x20-\x7F]/s
-            ? 'application/octet-stream'
-            : 'text/plain; charset=utf-8';
-    } elsif ($data->{-type} =~ m#^text/#) {
-        # Some other text, mark as utf-8 just in case
-        $data->{-type} .= "; charset=utf-8"
-            unless $data->{-type} =~ /; charset=/;
-    };
-}; # end _fix_encoding
-
 sub handle_request {
     my ($self, $req) = @_;
-    $self = $Inst unless ref $self;
 
-    # Route request, process logic, generate reply
-    my ($route, $data) = $self->_route_request( $req );
-    # $data == $req->reply at this point
-
-    # Render content if needed.
-    my $content = \$data->{-content};
-    $$content = $self->_render_content( $route, $req )
-        unless defined $$content;
-
-    # encode_utf8 if needed, define -type if none
-    $self->_fix_encoding( $data );
-
-    # MANGLE HEADERS
-    # NOTE these modifications remain stored in req
-    my $head = $req->header_out;
-
-    # The most standard ones...
-    $head->init_header( content_type => $data->{-type} );
-    $head->init_header( location => $data->{-location} )
-        if $data->{-location};
-    $head->push_header( set_cookie => $req->format_cookies );
-    $head->init_header( content_length => length $$content )
-        unless $data->{-continue};
-    $head->init_header( expires => http_date( time + $route->cache_ttl ) )
-        if $route and $route->cache_ttl and $data->{-status} == 200;
-
-    # END MANGLE HEADERS
-
-    if ($route and $route->hooks->{pre_cleanup}) {
-        $req->postpone( $route->hooks->{pre_cleanup} );
-    };
-    if ($route and $route->hooks->{pre_reply}) {
-        run_all_nodie( $route->hooks->{pre_reply}, sub {
-                $req->log_error( "pre_reply hook failed: $@" )
-        }, $req );
+    if (!ref $self) {
+        $self = $Inst;
+        # TODO forbid bareword usage
+        # croak "Bareword usage of handle_request() forbidden";
     };
 
-    # DISPATCH CONTENT
-
-    $$content = '' if $req->method eq 'HEAD';
-    if ($data->{-continue} and $req->method ne 'HEAD') {
-        $req->postpone( $data->{'-continue'}, 1 );
-        $req->postpone( sub { $_[0]->write( $$content ); }, 1 );
-        return $req->do_reply( $data->{-status} );
-    } else {
-        return $req->do_reply( $data->{-status}, $$content );
-    };
-
-    # END DISPATCH CONTENT
-}; # End handle_request()
-
-# In: $req, raw exception
-# Out: reply hash
-sub _error_to_reply {
-    my ($self, $req, $err) = @_;
-
-    # Convert all errors to Neaf expt.
-    if (!blessed $err) {
-        $err = MVC::Neaf::Exception->new(
-            -status   => $err,
-            -nocaller => 1,
-        );
-    }
-    elsif ( !$err->isa("MVC::Neaf::Exception")) {
-        $err = MVC::Neaf::Exception->new(
-            -status   => 500,
-            -sudden   => 1,
-            -reason   => $err,
-            -nocaller => 1,
-        );
-    };
-
-    # Now $err is guaranteed to be a Neaf error
-
-    # Use on_error callback to fixup error or gather stats
-    if( $err->is_sudden and exists $self->{on_error}) {
-        eval {
-            $self->{on_error}->($req, $err, $req->endpoint_origin);
-            1;
-        }
-            or $req->log_error( "on_error callback failed: ".($@ || "unknown reason") );
-    };
-
-    # Try fancy error template
-    if (my $tpl = $self->{error_template}{$err->status}) {
-        my $ret = eval {
-            $tpl->( $req,
-                status => $err->status,
-                caller => $req->endpoint_origin, # TODO 0.25 kill this
-                error => $err,
-            );
-        };
-        if (ref $ret eq 'HASH') {
-            # success
-            $ret->{-status} ||= $err->status;
-            return $ret;
-        };
-        $req->log_error( "error_template for ".$err->status." failed:"
-            .( $@ || "unknown reason") );
-    };
-
-    # Options exhausted - return plain error message,
-    #    keep track of reason on the inside
-    $req->log_error( $err->reason )
-        if $err->is_sudden;
-    return $err->make_reply( $req );
+    $self->SUPER::handle_request( $req );
 };
 
 # See my_croak in MVC::Neaf::X
