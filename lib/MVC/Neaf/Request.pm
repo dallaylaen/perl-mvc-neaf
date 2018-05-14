@@ -205,6 +205,18 @@ sub path {
     return $self->{path} ||= $self->do_get_path;
 };
 
+=head2 route()
+
+A L<MVC::Neaf::Route> object that this request is being dispatched to,
+or the root of the routing tree if none yet.
+
+=cut
+
+sub route {
+    my $self = shift;
+    return $self->{route};
+};
+
 =head2 set_path()
 
     $req->set_path( $new_path )
@@ -1311,6 +1323,10 @@ sub reply {
 
 sub _set_reply {
     my ($self, $data) = @_;
+
+    croak "Bareword forbidden in reply"
+        unless ref $data and UNIVERSAL::isa($data, 'HASH');
+
     $self->{response}{ret} = $data;
     return $self;
 }
