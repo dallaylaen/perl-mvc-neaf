@@ -29,8 +29,8 @@ Here's a brief overview of what a Neaf request returns:
     $req->hostname     = server.name
     $req->port         = 1337
     $req->path         = /mathing/route/some/more/slashes
-    $req->script_name  = /mathing/route
-    $req->path_info    = some/more/slashes
+    $req->prefix       = /mathing/route
+    $req->postfix      = some/more/slashes
 
     # params and cookies require a regex
     $req->param( foo => '\d+' ) = 1
@@ -242,7 +242,7 @@ sub set_path {
     $self;
 };
 
-=head2 script_name()
+=head2 prefix()
 
 The part of the request that matched the route to the
 application being executed.
@@ -254,14 +254,14 @@ Not available before routing was applied to request.
 
 =cut
 
-sub script_name {
+sub prefix {
     my $self = shift;
 
     # TODO kill in 0.30
-    carp "NEAF: script_name call before routing was applied is DEPRECATED: "
+    carp "NEAF: prefix() call before routing was applied is DEPRECATED: "
         unless $self->{route} && $self->{route}->path =~ m,^(?:/|$),;
 
-    return $self->{script_name} ||= $self->path;
+    return $self->{prefix} ||= $self->path;
 };
 
 =head2 get_url_base()
@@ -337,7 +337,7 @@ sub get_url_full {
     return $self->get_url_base . $self->get_url_rel(@_);
 };
 
-=head2 path_info()
+=head2 postfix()
 
 Returns the part of URI path beyond what matched the application's path.
 
@@ -352,21 +352,19 @@ B<[EXPERIMENTAL]> This part of API is undergoing changes.
 
 =cut
 
-sub path_info {
+sub postfix {
     my ($self) = @_;
 
-    return $self->{path_info};
+    return $self->{postfix};
 };
 
-=head2 path_info_split()
+=head2 splat()
 
 Return a list of matched capture groups found in path_info_regex, if any.
 
-B<[EXPERIMENTAL]> Name and meaning subject to change.
-
 =cut
 
-sub path_info_split {
+sub splat {
     my $self = shift;
 
     return @{ $self->{path_info_split} || [] };
@@ -377,8 +375,8 @@ sub _import_route {
     my ($self, $route, $path, $path_info, $tail) = @_;
 
     $self->{route}        = $route;
-    $self->{script_name}  = $path;
-    $self->{path_info}    = $path_info;
+    $self->{prefix}  = $path;
+    $self->{postfix}    = $path_info;
     $self->{path_info_split}   = $tail;
 
     return $self;
@@ -408,9 +406,9 @@ sub set_path_info {
     # CANONIZE
     $path_info =~ s#^/+##;
 
-    $self->{path_info} = $path_info;
+    $self->{postfix} = $path_info;
     $self->{path} = $self->script_name
-        .(length $self->{path_info} ? "/$self->{path_info}" : '');
+        .(length $self->{postfix} ? "/$self->{postfix}" : '');
 
     return $self;
 };
@@ -1078,8 +1076,8 @@ sub dump {
     $raw{header_in} = $self->header_in->as_string;
     $self->get_cookie( noexist => '' ); # warm up cookie cache
     $raw{cookie_in} = $self->{neaf_cookie_in};
-    $raw{path_info} = $self->{path_info}
-        if defined $self->{path_info};
+    $raw{path_info} = $self->{postfix}
+        if defined $self->{postfix};
 
     return \%raw;
 };
@@ -1568,7 +1566,7 @@ sub log_error {
 sub _where {
     my $self = shift;
 
-    return $self->{script_name} || "pre_route";
+    return $self->{prefix} || "pre_route";
 };
 
 sub _log_mark {
@@ -1718,6 +1716,35 @@ Please keep an eye on C<Changes> though.
 
 Here are these methods, for the sake of completeness.
 
+=cut
+
+=head2 script_name
+
+See L</prefix>
+
+=cut
+
+# TODO 0.30 start warning "deprecated"
+*script_name = \&prefix;
+
+=head2 path_info
+
+See L</postfix>.
+
+=cut
+
+# TODO 0.30 start warning "deprecated"
+*path_info = \&postfix;
+
+=head2 path_info_split
+
+See L</prefix>
+
+=cut
+
+# TODO 0.30 start warning "deprecated"
+*path_info_split = \&splat;
+
 =head2 header_in_keys ()
 
 Return all keys in header_in object as a list.
@@ -1800,21 +1827,21 @@ sub set_full_path {
 
     # CANONIZE
     $script_name =~ s#^/*#/#;
-    $self->{script_name} = $script_name;
+    $self->{prefix} = $script_name;
 
     if (defined $path_info) {
         # Make sure path_info always has a slash if nonempty
         $path_info =~ s#^/+##;
-        $self->{path_info} = Encode::is_utf8($path_info)
+        $self->{postfix} = Encode::is_utf8($path_info)
                 ? $path_info
                 : decode_utf8(uri_unescape($path_info));
-    } elsif (!defined $self->{path_info}) {
-        $self->{path_info} = '';
+    } elsif (!defined $self->{postfix}) {
+        $self->{postfix} = '';
     };
-    # assert $self->{path_info} is defined by now
+    # assert $self->{postfix} is defined by now
 
-    $self->{path} = "$self->{script_name}"
-        .(length $self->{path_info} ? "/$self->{path_info}" : '');
+    $self->{path} = "$self->{prefix}"
+        .(length $self->{postfix} ? "/$self->{postfix}" : '');
     return $self;
 };
 

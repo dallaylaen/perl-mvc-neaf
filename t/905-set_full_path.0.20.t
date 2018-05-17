@@ -10,7 +10,7 @@ use MVC::Neaf::Request;
 warns_like {
     my $req = MVC::Neaf::Request->new( path => '/foo/bar' );
     is $req->script_name, '/foo/bar', "script name defaulted to path";
-} qr/NEAF.*script_name.*DEPRECATED/;
+} qr/NEAF.*prefix.*DEPRECATED/;
 
 warns_like {
     my $req = MVC::Neaf::Request->new( path => '/foo/bar' );
@@ -18,7 +18,7 @@ warns_like {
     is $req->script_name, '/foo', "script name set correctly";
     is $req->path_info, 'bar', "path_info set correctly";
     is $req->path, '/foo/bar', "path preserved";
-}qr/NEAF.*set_full_path.*DEPRECATED/, qr/NEAF.*script_name.*DEPRECATED/;
+}qr/NEAF.*set_full_path.*DEPRECATED/, qr/NEAF.*prefix.*DEPRECATED/;
 
 done_testing;
 
