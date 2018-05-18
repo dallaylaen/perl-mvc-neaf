@@ -370,14 +370,18 @@ sub splat {
     return @{ $self->{path_info_split} || [] };
 };
 
-
+# This is somewhat ugly.
+# When a route is matched, we'll store it
+#    and _also_ the leftovers of regex splitting that happens around that moment
 sub _import_route {
     my ($self, $route, $path, $path_info, $tail) = @_;
 
     $self->{route}        = $route;
-    $self->{prefix}  = $path;
-    $self->{postfix}    = $path_info;
-    $self->{path_info_split}   = $tail;
+    if (defined $path) {
+        $self->{prefix}  = $path;
+        $self->{postfix}    = $path_info;
+        $self->{path_info_split}   = $tail;
+    };
 
     return $self;
 };

@@ -33,10 +33,10 @@ C<handle_request> really boils down to
     my $req->path =~ /($self->{GIANT_ROUTING_RE})/
         or die 404;
 
-    my $route = $self->{ROUTES}{$1}{ $req->method }
+    my $endpoint = $self->{ROUTES}{$1}{ $req->method }
         or die 405;
 
-    my $reply_hash = $route->{CODE}->($req);
+    my $reply_hash = $endpoint->{CODE}->($req);
 
     my $content = $reply_hash->{-view}->render( $reply_hash );
 
@@ -53,8 +53,10 @@ sub handle_request {
     confess "Bareword usage forbidden"
         unless blessed $self;
 
-    # OUCH
-    $req->{route} = $self;
+    # We MUST now ensure that $req->route is avail at any time
+    # so add self to route
+    # but maybe this whould be in dispatch_logic
+    $req->_import_route( $self );
 
     my $data = eval {
         my $hash = $self->dispatch_logic( $req, '', $req->path );

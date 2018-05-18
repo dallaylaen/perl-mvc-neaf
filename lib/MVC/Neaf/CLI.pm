@@ -243,6 +243,7 @@ sub list {
         my ($route, $path, $method) = @_;
 
         my @features;
+        # TODO 0.30 call methods instead of ->{}
         if ( my $rex = $route->{path_info_regex} ) {
             $rex = "$rex";
             $rex =~ m#^\(.*?\((.*)\).*?\)$# and $rex = $1;
