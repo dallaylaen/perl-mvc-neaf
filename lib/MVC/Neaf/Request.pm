@@ -1722,28 +1722,26 @@ Here are these methods, for the sake of completeness.
 
 See L</prefix>
 
-=cut
-
-# TODO 0.30 start warning "deprecated"
-*script_name = \&prefix;
-
 =head2 path_info
 
 See L</postfix>.
-
-=cut
-
-# TODO 0.30 start warning "deprecated"
-*path_info = \&postfix;
 
 =head2 path_info_split
 
 See L</prefix>
 
+These three will start warning in 0.30 and will be removed in 0.40
+
 =cut
 
 # TODO 0.30 start warning "deprecated"
-*path_info_split = \&splat;
+{
+    no warnings 'once'; ## no critic
+    use warnings FATAL => 'redefine';
+    *script_name = \&prefix;
+    *path_info = \&postfix;
+    *path_info_split = \&splat;
+}
 
 =head2 header_in_keys ()
 
