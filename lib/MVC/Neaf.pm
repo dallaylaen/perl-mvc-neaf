@@ -422,6 +422,7 @@ $known_route_args{$_}++ for qw(
     description caller tentative override public
 );
 
+# TODO 0.25 R::R->add_route
 sub route {
     my $self = shift;
 
@@ -531,6 +532,7 @@ sub route {
 
 # This is for get+post sugar
 # TODO 0.90 merge with alias, GET => implicit HEAD
+# TODO 0.25 R::R->dup_route
 sub _dup_route {
     my ($self, $method, $profile) = @_;
 
@@ -548,6 +550,7 @@ sub _dup_route {
 # out: none
 # spoils $method if tentative
 # dies/warns if violations found
+# TODO 0.25 R::R->
 sub _detect_duplicate {
     my ($self, $profile) = @_;
 
@@ -711,6 +714,7 @@ For example,
 
 =cut
 
+# TODO 0.25 R::R
 sub set_path_defaults {
     my ($self, $path, $src) = @_;
     $self = $Inst unless ref $self;
@@ -802,6 +806,7 @@ my %hook_phases;
 $hook_phases{$_}++ for qw(pre_route
     pre_logic pre_content pre_render pre_reply pre_cleanup);
 
+# TODO 0.25 R::R
 sub add_hook {
     my ($self, $phase, $code, %opt) = @_;
     $self = $Inst unless ref $self;
@@ -845,7 +850,7 @@ sub add_hook {
     return $self;
 };
 
-# TODO 0.90 util?
+# TODO 0.25 util
 # usage: listify ( \$var, default1, default2... )
 # converts scalar in-place to arrayref if needed
 sub _listify {
@@ -879,6 +884,7 @@ This needs to be fixed in the future.
 
 =cut
 
+# TODO 0.25 R::R
 sub alias {
     my ($self, $new, $old) = @_;
     $self = $Inst unless ref $self;
@@ -941,6 +947,7 @@ my %view_alias = (
     JS     => 'MVC::Neaf::View::JS',
     Dumper => 'MVC::Neaf::View::Dumper',
 );
+# TODO R::R-> or Route->
 sub load_view {
     my ($self, $name, $obj, @param) = @_;
     $self = $Inst unless ref $self;
@@ -1027,6 +1034,7 @@ The engine MUST provide the following methods
 
 =cut
 
+# TODO 0.25 R::R
 sub set_session_handler {
     my ($self, %opt) = @_;
     $self = $Inst unless ref $self;
@@ -1129,6 +1137,7 @@ And by running this one gets
 
 =cut
 
+# TODO 0.25 Route
 sub add_form {
     my ($self, $name, $spec, %opt) = @_;
 
@@ -1192,6 +1201,7 @@ This is a synonym to C<sub { +{ status =E<gt> $status,  ... } }>.
 
 =cut
 
+# TODO 0.25 R::R or Route
 sub set_error_handler {
     my ($self, $status, $code) = @_;
     $self = $Inst unless ref $self;
@@ -1233,6 +1243,7 @@ If it dies, only a warning is emitted.
 
 =cut
 
+# TODO 0.25 R::R
 sub on_error {
     my ($self, $code) = @_;
     $self = $Inst unless ref $self;
@@ -1294,6 +1305,7 @@ B<[EXPERIMENTAL]> This method and exact format of data is being worked on.
 
 =cut
 
+# TODO 0.25 R::R
 my $INLINE_SPEC = qr/^(?:\[(\w+)\]\s+)?(\S+)((?:\s+\w+=\S+)*)$/;
 sub load_resources {
     my ($self, $file) = @_;
@@ -1368,6 +1380,7 @@ sub load_resources {
 };
 
 # TODO 0.30 lame name, find better
+# TODO 0.25 R::R
 sub _static_global {
     my $self = shift;
 
@@ -1469,6 +1482,7 @@ sub run {
     };
 };
 
+# TODO 0.25 R::R
 sub _make_route_re {
     my ($self, $hash) = @_;
 
@@ -1697,6 +1711,7 @@ Gets overridden by all of the above.
 my %run_test_allow;
 $run_test_allow{$_}++
     for qw( type method cookie body override secure uploads header );
+# TODO 0.25 R::R
 sub run_test {
     my ($self, $env, %opt) = @_;
     $self = $Inst unless ref $self;
@@ -1797,6 +1812,7 @@ This SHOULD NOT be used by application itself.
 
 =cut
 
+# TODO 0.25 R::R and rework
 sub get_routes {
     my ($self, $code) = @_;
     $self = $Inst unless ref $self;
@@ -1838,6 +1854,7 @@ Returns self.
 
 =cut
 
+# TODO 0.25 R::R
 sub set_forced_view {
     my ($self, $view) = @_;
     $self = $Inst unless ref $self;
@@ -1900,14 +1917,14 @@ sub handle_request {
 
     if (!ref $self) {
         $self = $Inst;
-        # TODO forbid bareword usage
+        # TODO 0.30 forbid bareword usage
         # croak "Bareword usage of handle_request() forbidden";
     };
 
     $self->SUPER::handle_request( $req );
 };
 
-# See my_croak in MVC::Neaf::X
+# TODO 0.25 kill for good, use my_croak in MVC::Neaf::X
 # dies with "MVC::Neaf->current_method: $error_message at <calling code>"
 sub _croak {
     my ($self, $msg) = @_;
@@ -1935,6 +1952,7 @@ If C<set_forced_view> was called, return its argument instead.
 
 =cut
 
+# TODO 0.25 R::R
 sub get_view {
     my ($self, $view, $lazy) = @_;
     $self = $Inst unless ref $self;
@@ -1963,6 +1981,7 @@ Fetch form named "name". No magic here. See L</add_form>.
 
 =cut
 
+# TODO 0.25 R::R
 sub get_form {
     my ($self, $name) = @_;
     return $self->{forms}{$name};
@@ -1991,6 +2010,7 @@ Do not rely on these values.
 
 =cut
 
+# TODO R::R all of the below
 my $nobody_home = sub { die 404 };
 sub code {
     $nobody_home;
