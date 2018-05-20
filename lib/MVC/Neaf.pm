@@ -2280,23 +2280,6 @@ B<Here is the list of such methods, for the sake of completeness.>
 
 =over
 
-=item * C<$neaf-E<gt>pre_route( sub { my $req = shift; ... } )>
-
-Use C<$neaf-E<gt>add_hook( pre_route =E<gt> \&hook )> instead.
-Hook signature & meaning is exactly the same.
-
-=cut
-
-sub pre_route {
-    my ($self, $code) = @_;
-    $self = $Inst unless ref $self;
-
-    # TODO 0.20 remove
-    carp ("NEAF: pre_route(): DEPRECATED until 0.20, use add_hook( pre_route => CODE )");
-    $self->add_hook( pre_route => $code );
-    return $self;
-};
-
 =item * C<$neaf-E<gt>error_template( { param =E<gt> value } )>
 
 Use L</set_error_handler> aka C<neaf \d\d\d =E<gt> sub { ... }>
