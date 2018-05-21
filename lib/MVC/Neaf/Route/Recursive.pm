@@ -188,6 +188,36 @@ sub set_forced_view {
     return $self;
 };
 
+=head2 on_error()
+
+    on_error( sub { my ($request, $error) = @_ } )
+
+Install custom error handler for a dying controller.
+Neaf's own exceptions, redirects, and C<die \d\d\d> status returns will NOT
+trigger it.
+
+E.g. write to log, or something.
+
+Return value from this callback is ignored.
+If it dies, only a warning is emitted.
+
+=cut
+
+sub on_error {
+    my ($self, $code) = @_;
+    $self = MVC::Neaf::neaf() unless ref $self;
+
+    if (defined $code) {
+        ref $code eq 'CODE'
+            or $self->my_croak( "Argument MUST be a callback" );
+        $self->{on_error} = $code;
+    } else {
+        delete $self->{on_error};
+    };
+
+    return $self;
+};
+
 =head2 post_setup
 
 Currently does nothing except locking.
@@ -197,8 +227,65 @@ Currently does nothing except locking.
 sub post_setup {
     my $self = shift;
 
+    $self->{route_re} ||= $self->_make_route_re;
+
+    # Add implicit HEAD for all GETs via shallow copy
+    foreach my $node (values %{ $self->{route} }) {
+        $node->{GET} or next;
+        $node->{HEAD} ||= $node->{GET}->clone( method => 'HEAD' );
+    };
+
+    # initialize stuff if first run
+    # TODO 0.30 don't allow modification after lock
+    # Please bear in mind that $_[0] in callbacks is ALWAYS the Request object
+    if (!$self->{lock}) {
+        if (my $engine = $self->{session_handler}) {
+            $self->add_hook( pre_route => sub {
+                $_[0]->_set_session_handler( $engine );
+            }, prepend => 1 );
+            if (my $key = $self->{session_view_as}) {
+                $self->add_hook( pre_render => sub {
+                    $_[0]->reply->{$key} = $_[0]->load_session;
+                }, prepend => 1 );
+            };
+        };
+        if (my $engine = $self->{stat}) {
+            # TODO 0.25 remove for good
+            $self->add_hook( pre_route => sub {
+                $engine->record_start;
+            }, prepend => 1);
+            $self->add_hook( pre_content => sub {
+                $engine->record_controller( $_[0]->script_name );
+            }, prepend => 1);
+            # Should've switched to pre_cleanup, but we cannot
+            # guarrantee another request doesn't get mixed in
+            # in the meantime, as X::ServerStat is sequential.
+            $self->add_hook( pre_reply => sub {
+                $engine->record_finish($_[0]->reply->{-status}, $_[0]);
+            }, prepend => 1);
+        };
+    };
+
+
     # TODO maybe compile route_rex here
     $self->{lock}++;
+};
+
+# Create a giant regexp from a hash of paths
+# PURE
+# The regex can be matched against an URI path,
+# in which case it returns either nothing,
+# or mathed route in $1 (prefix) and the rest of the string in $2 (postfix)
+sub _make_route_re {
+    my ($self, $hash) = @_;
+
+    $hash ||= $self->{route};
+
+    my $re = join "|", map { quotemeta } reverse sort keys %$hash;
+
+    # make $1, $2 always defined
+    # split into (/foo/bar)/(baz)?param=value
+    return qr{^($re)(?:/*([^?]*)?)(?:\?|$)};
 };
 
 =head1 RUN TIME METHODS
