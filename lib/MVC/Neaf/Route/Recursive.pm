@@ -7,6 +7,19 @@ use warnings FATAL => qw(all);
 
 MVC::Neaf::Route::Recursive - route resolution class for Not Even A Framework.
 
+=head1 DESCRIPTION
+
+This class contains a L<MVC::Neaf> application structure
+and implements the core of Neaf logic.
+
+It is a L<MVC::Neaf::Route> object itself,
+containing a hash of other routes designated by their path prefixes.
+Hence the name.
+
+B<[NOTE]> It is not truly recursive as of yet.
+A Neaf application within a Neaf application is not tested
+and may misbehave.
+
 =head1 SETUP TIME METHODS
 
 =cut
@@ -18,6 +31,36 @@ use Data::Dumper;
 
 use parent qw(MVC::Neaf::Route);
 use MVC::Neaf::Util qw(run_all run_all_nodie http_date);
+
+=head2 new()
+
+    new( %options )
+
+Create a new Route::Recursive instance.
+This is also called by C<MVC::Neaf-E<gt>new>,
+in case one wants to instantiate a Neaf application object
+instead of using the default L<MVC::Neaf/neaf>.
+
+Options are not checked whatsoever.
+
+=cut
+
+sub new {
+    my ($class, %opt) = @_;
+
+    my $force = delete $opt{force_view};
+
+    my $self = bless \%opt, $class;
+
+    $self->set_forced_view( $force )
+        if $force;
+
+    # TODO 0.20 set default (-view => JS)
+    $self->set_path_defaults( '/' => { -status => 200 } );
+    $self->{hooks} = {};
+
+    return $self;
+};
 
 =head2 set_path_defaults
 
@@ -36,7 +79,7 @@ sub set_path_defaults {
     $self = MVC::Neaf::neaf() unless ref $self;
 
     # TODO 0.30 pathspec instead
-    $self->_croak("arguments must be a scalar and a hashref")
+    $self->my_croak("arguments must be a scalar and a hashref")
         unless defined $path and !ref $path and ref $src eq 'HASH';
 
     # CANONIZE

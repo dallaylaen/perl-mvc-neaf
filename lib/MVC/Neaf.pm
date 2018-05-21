@@ -437,16 +437,16 @@ sub route {
         last if ref $sub;
         $path .= "/$sub";
     };
-    $self->_croak( "Odd number of elements in hash assignment" )
+    $self->my_croak( "Odd number of elements in hash assignment" )
         if @_ % 2;
     my (%args) = @_;
     $self = $Inst unless ref $self;
 
-    $self->_croak( "handler must be a coderef, not ".ref $sub )
+    $self->my_croak( "handler must be a coderef, not ".ref $sub )
         unless UNIVERSAL::isa( $sub, "CODE" );
 
     # check defaults to be a hash before accessing them
-    $self->_croak( "default must be unblessed hash" )
+    $self->my_croak( "default must be unblessed hash" )
         if $args{default} and ref $args{default} ne 'HASH';
 
     # minus-prefixed keys are typically defaults
@@ -455,7 +455,7 @@ sub route {
 
     # kill extra args
     my @extra = grep { !$known_route_args{$_} } keys %args;
-    $self->_croak( "Unexpected keys in route setup: @extra" )
+    $self->my_croak( "Unexpected keys in route setup: @extra" )
         if @extra;
 
     $args{path} = $path = canonize_path( $path );
@@ -463,7 +463,7 @@ sub route {
     _listify( \$args{method}, qw( GET POST ) );
     $_ = uc $_ for @{ $args{method} };
 
-    $self->_croak("Public endpoint must have nonempty description")
+    $self->my_croak("Public endpoint must have nonempty description")
         if $args{public} and not $args{description};
 
     $self->_detect_duplicate( \%args );
@@ -502,7 +502,7 @@ sub route {
     # preprocess regular expression for params
     if ( my $reg = $args{param_regex} ) {
         my %real_reg;
-        $self->_croak("param_regex must be a hash of regular expressions")
+        $self->my_croak("param_regex must be a hash of regular expressions")
             if ref $reg ne 'HASH' or grep { !defined $reg->{$_} } keys %$reg;
         $real_reg{$_} = qr(^$reg->{$_}$)s
             for keys %$reg;
@@ -510,7 +510,7 @@ sub route {
     };
 
     if ( $args{cache_ttl} ) {
-        $self->_croak("cache_ttl must be a number")
+        $self->my_croak("cache_ttl must be a number")
             unless looks_like_number($args{cache_ttl});
         # as required by RFC
         $args{cache_ttl} = -100000 if $args{cache_ttl} < 0;
@@ -793,15 +793,15 @@ sub add_hook {
     $self = $Inst unless ref $self;
 
     my @extra = grep { !$add_hook_args{$_} } keys %opt;
-    $self->_croak( "unknown options: @extra" )
+    $self->my_croak( "unknown options: @extra" )
         if @extra;
-    $self->_croak( "illegal phase: $phase" )
+    $self->my_croak( "illegal phase: $phase" )
         unless $hook_phases{$phase};
 
     _listify( \$opt{method}, qw( GET HEAD POST PUT PATCH DELETE ) );
     if ($phase eq 'pre_route') {
         # handle pre_route separately
-        $self->_croak("cannot specify paths/excludes for $phase")
+        $self->my_croak("cannot specify paths/excludes for $phase")
             if defined $opt{path} || defined $opt{exclude};
         foreach( @{ $opt{method} } ) {
             my $where = $self->{pre_route}{$_} ||= [];
@@ -874,10 +874,10 @@ sub alias {
     $old = canonize_path( $old );
 
     $self->{route}{$old}
-        or $self->_croak( "Cannot create alias for unknown route $old" );
+        or $self->my_croak( "Cannot create alias for unknown route $old" );
 
     # TODO 0.30 restrict methods, handle tentative/override, detect dupes
-    $self->_croak( "Attempting to set duplicate handler for path "
+    $self->my_croak( "Attempting to set duplicate handler for path "
         .( length $new ? $new : "/" ) )
             if $self->{route}{ $new };
 
@@ -933,7 +933,7 @@ sub load_view {
     my ($self, $name, $obj, @param) = @_;
     $self = $Inst unless ref $self;
 
-    $self->_croak("At least two arguments required")
+    $self->my_croak("At least two arguments required")
         unless defined $name and defined $obj;
 
     # Instantiate if needed
@@ -944,12 +944,12 @@ sub load_view {
         # Try loading...
         if (!$obj->can("new")) {
             eval { load $obj; 1 }
-                or $self->_croak( "Failed to load view $name=>$obj: $@" );
+                or $self->my_croak( "Failed to load view $name=>$obj: $@" );
         };
         $obj = $obj->new( @param );
     };
 
-    $self->_croak( "view must be a coderef or a MVC::Neaf::View object" )
+    $self->my_croak( "view must be a coderef or a MVC::Neaf::View object" )
         unless blessed $obj and $obj->can("render")
             or ref $obj eq 'CODE';
 
@@ -1023,14 +1023,14 @@ sub set_session_handler {
     my $sess = delete $opt{engine};
     my $cook = $opt{cookie} || 'neaf.session';
 
-    $self->_croak("engine parameter is required")
+    $self->my_croak("engine parameter is required")
         unless $sess;
 
     if (!ref $sess) {
         $opt{session_ttl} = delete $opt{ttl} || $opt{session_ttl};
 
         my $obj = eval { load $sess; $sess->new( %opt ); }
-            or $self->_croak("Failed to load session '$sess': $@");
+            or $self->my_croak("Failed to load session '$sess': $@");
 
         $sess = $obj;
     };
@@ -1038,7 +1038,7 @@ sub set_session_handler {
     my @missing = grep { !$sess->can($_) }
         qw(get_session_id session_id_regex session_ttl
             create_session load_session save_session delete_session );
-    $self->_croak("engine object does not have methods: @missing")
+    $self->my_croak("engine object does not have methods: @missing")
         if @missing;
 
     my $regex = $sess->session_id_regex;
@@ -1123,9 +1123,9 @@ sub add_form {
     my ($self, $name, $spec, %opt) = @_;
 
     $name and $spec
-        or $self->_croak( "Form name and spec must be nonempty" );
+        or $self->my_croak( "Form name and spec must be nonempty" );
     exists $self->{forms}{$name}
-        and $self->_croak( "Form $name redefined" );
+        and $self->my_croak( "Form $name redefined" );
 
     if (!blessed $spec) {
         my $eng = delete $opt{engine} || 'MVC::Neaf::X::Form';
@@ -1133,7 +1133,7 @@ sub add_form {
 
         if (!$eng->can("new")) {
             eval { load $eng; 1 }
-                or $self->_croak( "Failed to load form engine $eng: $@" );
+                or $self->my_croak( "Failed to load form engine $eng: $@" );
         };
 
         $spec = $eng->new( $spec, %opt );
@@ -1188,7 +1188,7 @@ sub set_error_handler {
     $self = $Inst unless ref $self;
 
     $status =~ /^(?:\d\d\d)$/
-        or $self->_croak( "1st arg must be http status");
+        or $self->my_croak( "1st arg must be http status");
     if (ref $code eq 'HASH') {
         my $hash = $code;
         $code = sub {
@@ -1198,7 +1198,7 @@ sub set_error_handler {
         };
     };
     UNIVERSAL::isa($code, 'CODE')
-        or $self->_croak( "2nd arg must be callback or hash");
+        or $self->my_croak( "2nd arg must be callback or hash");
 
     $self->{error_template}{$status} = $code;
 
@@ -1231,7 +1231,7 @@ sub on_error {
 
     if (defined $code) {
         ref $code eq 'CODE'
-            or $self->_croak( "Argument MUST be a callback" );
+            or $self->my_croak( "Argument MUST be a callback" );
         $self->{on_error} = $code;
     } else {
         delete $self->{on_error};
@@ -1296,13 +1296,13 @@ sub load_resources {
         $fd = $file;
     } else {
         open $fd, "<", $file
-            or $self->_croak( "Failed to open(r) $file: $!" );
+            or $self->my_croak( "Failed to open(r) $file: $!" );
     };
 
     local $/;
     my $content = <$fd>;
     defined $content
-        or $self->_croak( "Failed to read from $file: $!" );
+        or $self->my_croak( "Failed to read from $file: $!" );
 
     my @parts = split /^@@\s+(.*\S)\s*$/m, $content, -1;
     shift @parts;
@@ -1315,7 +1315,7 @@ sub load_resources {
         my $spec = shift @parts;
         my ($dest, $name, $extra) = ($spec =~ $INLINE_SPEC);
         my %opt = $extra =~ /(\w+)=(\S+)/g;
-        $name or $self->_croak("Bad resource spec format @@ $spec");
+        $name or $self->my_croak("Bad resource spec format @@ $spec");
 
         my $content = shift @parts;
         if (!$opt{format}) {
@@ -1325,17 +1325,17 @@ sub load_resources {
         } elsif ($opt{format} eq 'base64') {
             $content = decode_base64( $content );
         } else {
-            $self->_croak("Unknown format $opt{format} in '@@ $spec' in $file");
+            $self->my_croak("Unknown format $opt{format} in '@@ $spec' in $file");
         };
 
         if ($dest) {
             # template
-            $self->_croak("Duplicate template '@@ $spec' in $file")
+            $self->my_croak("Duplicate template '@@ $spec' in $file")
                 if defined $templates{lc $dest}{$name};
             $templates{$dest}{$name} = $content;
         } else {
             # static file
-            $self->_croak("Duplicate static file '@@ $spec' in $file")
+            $self->my_croak("Duplicate static file '@@ $spec' in $file")
                 if $static{$name};
             $static{$name} = [ $content, $opt{type} ];
         };
@@ -1698,7 +1698,7 @@ sub run_test {
     $self = $Inst unless ref $self;
 
     my @extra = grep { !$run_test_allow{$_} } keys %opt;
-    $self->_croak( "Extra keys @extra" )
+    $self->my_croak( "Extra keys @extra" )
         if @extra;
 
     if (!ref $env) {
@@ -1826,38 +1826,6 @@ B<CAVEAT EMPTOR.>
 The following methods are generally not to be used,
 unless you want something very strange.
 
-=head2 new()
-
-=over
-
-=item * MVC::Neaf->new(%options)
-
-=back
-
-Constructor. Usually, instantiating Neaf is not required.
-But it's possible.
-
-Options are not checked whatsoever.
-
-=cut
-
-sub new {
-    my ($class, %opt) = @_;
-
-    my $force = delete $opt{force_view};
-
-    my $self = bless \%opt, $class;
-
-    $self->set_forced_view( $force )
-        if $force;
-
-    # TODO 0.20 set default (-view => JS)
-    $self->set_path_defaults( '/' => { -status => 200 } );
-    $self->{hooks} = {};
-
-    return $self;
-};
-
 =head2 handle_request
 
 See L<MVC::Neaf::Route::Recursive> for implementation.
@@ -1874,16 +1842,6 @@ sub handle_request {
     };
 
     $self->SUPER::handle_request( $req );
-};
-
-# TODO 0.25 kill for good, use my_croak in MVC::Neaf::X
-# dies with "MVC::Neaf->current_method: $error_message at <calling code>"
-sub _croak {
-    my ($self, $msg) = @_;
-
-    my $where = [caller(1)]->[3];
-    $where =~ s/.*:://;
-    croak( (ref $self || $self)."->$where: $msg" );
 };
 
 =head2 get_view()
