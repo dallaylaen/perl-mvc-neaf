@@ -7,7 +7,7 @@ use warnings FATAL => qw(all);
 
 MVC::Neaf::Route::Recursive - route resolution class for Not Even A Framework.
 
-=head1 METHODS
+=head1 SETUP TIME METHODS
 
 =cut
 
@@ -18,6 +18,80 @@ use Data::Dumper;
 
 use parent qw(MVC::Neaf::Route);
 use MVC::Neaf::Util qw(run_all run_all_nodie http_date);
+
+=head2 set_path_defaults
+
+    set_path_defaults( "/path" => { js => 42.137 });
+
+Append the given values to the hash returned by any route under the given path.
+
+Longer paths take over the shorter ones, and values returned
+by the controller itself override defaults.
+
+=cut
+
+# TODO 0.25 better docs here
+sub set_path_defaults {
+    my ($self, $path, $src) = @_;
+    $self = MVC::Neaf::neaf() unless ref $self;
+
+    # TODO 0.30 pathspec instead
+    $self->_croak("arguments must be a scalar and a hashref")
+        unless defined $path and !ref $path and ref $src eq 'HASH';
+
+    # CANONIZE
+    $path =~ s#/+#/#;
+    $path =~ s#^/*#/#;
+    $path =~ s#/$##;
+    my $dst = $self->{path_defaults}{$path} ||= {};
+    $dst->{$_} = $src->{$_}
+        for keys %$src;
+
+    return $self;
+};
+
+=head2 set_forced_view()
+
+=over
+
+=item * $neaf->set_forced_view( $view )
+
+=back
+
+If set, this view object will be user instead of ANY other view.
+
+See L</get_view>.
+
+Returns self.
+
+=cut
+
+sub set_forced_view {
+    my ($self, $view) = @_;
+    $self = MVC::Neaf::neaf() unless ref $self;
+
+    delete $self->{force_view};
+    return $self unless $view;
+
+    $self->{force_view} = $self->get_view( $view );
+
+    return $self;
+};
+
+=head2 post_setup
+
+Currently does nothing except locking.
+
+=cut
+
+sub post_setup {
+    my $self = shift;
+
+    # TODO maybe compile route_rex here
+    $self->{lock}++;
+};
+
+=head1 RUN TIME METHODS
 
 =head2 handle_request
 
@@ -124,7 +198,42 @@ sub handle_request {
     # END DISPATCH CONTENT
 };
 
-=head2 INTERNAL LOGIC
+=head2 get_view()
+
+    $route->get_view( "name", $lazy )
+
+Fetch view object by name.
+
+This is used to fetch/instantiate whatever is in C<-view> of the
+controller return hash.
+
+Uses C<load_view> ( name => name ) if needed, unless $lazy flag is on.
+
+If L</set_forced_view> was called, return its argument instead.
+
+=cut
+
+sub get_view {
+    my ($self, $view, $lazy) = @_;
+    $self = MVC::Neaf::neaf() unless ref $self;
+
+    # We've been overridden!
+    return $self->{force_view}
+        if exists $self->{force_view};
+
+    # An object/code means controller knows better
+    return $view
+        if ref $view;
+
+    # Try loading & caching if not present.
+    $self->load_view( $view, $view )
+        unless $lazy || $self->{seen_view}{$view};
+
+    # Finally, return the thing.
+    return $self->{seen_view}{$view};
+};
+
+=head2 INTERNAL LOGIC METHODS
 
 The following methods are part of NEAF's core and should not be called
 unless you want something I<very> special.
@@ -368,19 +477,6 @@ sub mangle_headers {
     };
 
     # END MANGLE HEADERS
-};
-
-=head2 post_setup
-
-Currently does nothing except locking.
-
-=cut
-
-sub post_setup {
-    my $self = shift;
-
-    # TODO maybe compile route_rex here
-    $self->{lock}++;
 };
 
 1;

@@ -714,26 +714,6 @@ For example,
 
 =cut
 
-# TODO 0.25 R::R
-sub set_path_defaults {
-    my ($self, $path, $src) = @_;
-    $self = $Inst unless ref $self;
-
-    $self->_croak("arguments must be a scalar and a hashref")
-        unless defined $path and !ref $path and ref $src eq 'HASH';
-
-    # canonize path
-    # CANONIZE
-    $path =~ s#/+#/#;
-    $path =~ s#^/*#/#;
-    $path =~ s#/$##;
-    my $dst = $self->{path_defaults}{$path} ||= {};
-    $dst->{$_} = $src->{$_}
-        for keys %$src;
-
-    return $self;
-};
-
 =head2 add_hook()
 
 =over
@@ -799,6 +779,7 @@ Note that this does NOT override path bubbling order.
 
 =cut
 
+# TODO 0.25 this should be generic pathspec arg
 my %add_hook_args;
 $add_hook_args{$_}++ for qw(method path exclude prepend);
 
@@ -1838,35 +1819,6 @@ sub get_routes {
     return \%ret;
 };
 
-=head2 set_forced_view()
-
-=over
-
-=item * $neaf->set_forced_view( $view )
-
-=back
-
-If set, this view object will be user instead of ANY other view.
-
-See C<load_view>.
-
-Returns self.
-
-=cut
-
-# TODO 0.25 R::R
-sub set_forced_view {
-    my ($self, $view) = @_;
-    $self = $Inst unless ref $self;
-
-    delete $self->{force_view};
-    return $self unless $view;
-
-    $self->{force_view} = $self->get_view( $view );
-
-    return $self;
-};
-
 =head1 INTERNAL METHODS
 
 B<CAVEAT EMPTOR.>
@@ -1952,26 +1904,6 @@ If C<set_forced_view> was called, return its argument instead.
 
 =cut
 
-# TODO 0.25 R::R
-sub get_view {
-    my ($self, $view, $lazy) = @_;
-    $self = $Inst unless ref $self;
-
-    # We've been overridden!
-    return $self->{force_view}
-        if exists $self->{force_view};
-
-    # An object/code means controller knows better
-    return $view
-        if ref $view;
-
-    # Try loading & caching if not present.
-    $self->load_view( $view, $view )
-        unless $lazy || $self->{seen_view}{$view};
-
-    # Finally, return the thing.
-    return $self->{seen_view}{$view};
-};
 
 =head2 get_form()
 
