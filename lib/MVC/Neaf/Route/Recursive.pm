@@ -276,6 +276,47 @@ sub get_view {
     return $self->{seen_view}{$view};
 };
 
+=head2 RUNTIME STUB METHODS
+
+As L<MVC::Neaf::Route::Recursive> is actually a L<MVC::Neaf::Route> instance,
+it has to provide some of route's accessors in a strange way.
+
+=over
+
+=item * method = C<'*'>;
+
+=item * path = C<'[in pre_route]'>
+
+=item * code = C<die 404;>
+
+=item * where = C<'[in pre_route]'>
+
+=back
+
+Do not rely on these values.
+
+=cut
+
+# TODO R::R all of the below
+my $nobody_home = sub { die 404 };
+sub code {
+    $nobody_home;
+};
+
+sub path {
+    "[in pre_route]";
+};
+
+sub method {
+    '*';
+};
+
+sub where {
+    my $self = shift;
+    return $self->{where} || '[in pre_route]';
+};
+
+
 =head2 INTERNAL LOGIC METHODS
 
 The following methods are part of NEAF's core and should not be called

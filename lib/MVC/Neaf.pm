@@ -1862,7 +1862,6 @@ If C<set_forced_view> was called, return its argument instead.
 
 =cut
 
-
 =head2 get_form()
 
     $neaf->get_form( "name" )
@@ -1875,53 +1874,6 @@ Fetch form named "name". No magic here. See L</add_form>.
 sub get_form {
     my ($self, $name) = @_;
     return $self->{forms}{$name};
-};
-
-=head2 REDEFINED METHODS
-
-As a Neaf object may need to impost as L<MVC::Neaf::Route> from time to time,
-it redefines the following method as constans stubs:
-
-=over
-
-=item * parent = self, unless overridden;
-
-=item * method = C<'*'>;
-
-=item * path = C<'[in pre_route]'>
-
-=item * code = C<die 404;>
-
-=item * where = C<'[in pre_route]'>
-
-=back
-
-Do not rely on these values.
-
-=cut
-
-# TODO R::R all of the below
-my $nobody_home = sub { die 404 };
-sub code {
-    $nobody_home;
-};
-
-sub path {
-    "[in pre_route]";
-};
-
-sub method {
-    '*';
-};
-
-sub parent {
-    my $self = shift;
-    $self->{parent} || $self;
-};
-
-sub where {
-    my $self = shift;
-    return $self->{where} || '[in pre_route]';
 };
 
 # Setup default instance, no more code after this
