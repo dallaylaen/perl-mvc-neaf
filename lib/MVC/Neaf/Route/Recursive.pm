@@ -220,12 +220,34 @@ sub on_error {
 
 =head2 post_setup
 
-Currently does nothing except locking.
+This function is run after configuration has been completed,
+but before first request is served.
+
+It goes as follows:
+
+=over
+
+=item * compile all the routes into a giant regexp;
+
+=item * Add HEAD handling to where only GET exists;
+
+=item * finish set_session_handler works
+
+=item * set the lock on route;
+
+=back
+
+Despite the locking, further modifications are not prohibited.
+This MAY change in the future.
 
 =cut
 
 sub post_setup {
     my $self = shift;
+
+    # TODO 0.30 disallow calling this method twice
+    # confess "Attempt to call post_setup twice"
+    #     if $self->{lock};
 
     $self->{route_re} ||= $self->_make_route_re;
 
@@ -236,7 +258,6 @@ sub post_setup {
     };
 
     # initialize stuff if first run
-    # TODO 0.30 don't allow modification after lock
     # Please bear in mind that $_[0] in callbacks is ALWAYS the Request object
     if (!$self->{lock}) {
         if (my $engine = $self->{session_handler}) {
@@ -265,7 +286,6 @@ sub post_setup {
             }, prepend => 1);
         };
     };
-
 
     # TODO maybe compile route_rex here
     $self->{lock}++;
