@@ -24,10 +24,10 @@ and may misbehave.
 
 =cut
 
-use Scalar::Util qw(blessed);
-use Encode;
 use Carp;
-use Data::Dumper;
+use Encode;
+use Module::Load;
+use Scalar::Util qw(blessed);
 
 use parent qw(MVC::Neaf::Route);
 use MVC::Neaf::Util qw(run_all run_all_nodie http_date);
@@ -91,6 +91,73 @@ sub set_path_defaults {
         for keys %$src;
 
     return $self;
+};
+
+=head2 load_view()
+
+    load_view( "name", $view_object );  # stores object
+                                        # assuming it's an L<MVC::Neaf::View>
+    load_view( "name", $module_name, %params ); # calls new()
+    load_view( "name", $module_alias ); # ditto, see list of aliases below
+    load_view( "name", \&CODE );        # use that sub to generate
+                                        # content from hash
+
+Setup view under name C<$name>.
+Subsequent requests with C<-view = $name> would be processed by that view
+object.
+
+Use C<get_view> to fetch the object itself.
+
+=over
+
+=item * if object is given, just save it.
+
+=item * if module name + parameters is given, try to load module
+and create new() instance.
+
+Short aliases C<JS>, C<TT>, and C<Dumper> may be used
+for corresponding C<MVC::Neaf::View::*> modules.
+
+=item * if coderef is given, use it as a C<render> method.
+
+=back
+
+Returns the view object, NOT the calling Route::Recursive object.
+
+=cut
+
+my %view_alias = (
+    TT     => 'MVC::Neaf::View::TT',
+    JS     => 'MVC::Neaf::View::JS',
+    Dumper => 'MVC::Neaf::View::Dumper',
+);
+sub load_view {
+    my ($self, $name, $obj, @param) = @_;
+    $self = MVC::Neaf::neaf() unless ref $self;
+
+    $self->my_croak("At least two arguments required")
+        unless defined $name and defined $obj;
+
+    # Instantiate if needed
+    if (!ref $obj) {
+        # in case an alias is used, apply alias
+        $obj = $view_alias{ $obj } || $obj;
+
+        # Try loading...
+        if (!$obj->can("new")) {
+            eval { load $obj; 1 }
+                or $self->my_croak( "Failed to load view $name=>$obj: $@" );
+        };
+        $obj = $obj->new( @param );
+    };
+
+    $self->my_croak( "view must be a coderef or a MVC::Neaf::View object" )
+        unless blessed $obj and $obj->can("render")
+            or ref $obj eq 'CODE';
+
+    $self->{seen_view}{$name} = $obj;
+
+    return $obj;
 };
 
 =head2 set_forced_view()
@@ -297,7 +364,6 @@ Do not rely on these values.
 
 =cut
 
-# TODO R::R all of the below
 my $nobody_home = sub { die 404 };
 sub code {
     $nobody_home;

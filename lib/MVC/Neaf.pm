@@ -923,41 +923,6 @@ Returns the view object, NOT the calling Neaf object.
 
 =cut
 
-my %view_alias = (
-    TT     => 'MVC::Neaf::View::TT',
-    JS     => 'MVC::Neaf::View::JS',
-    Dumper => 'MVC::Neaf::View::Dumper',
-);
-# TODO R::R-> or Route->
-sub load_view {
-    my ($self, $name, $obj, @param) = @_;
-    $self = $Inst unless ref $self;
-
-    $self->my_croak("At least two arguments required")
-        unless defined $name and defined $obj;
-
-    # Instantiate if needed
-    if (!ref $obj) {
-        # in case an alias is used, apply alias
-        $obj = $view_alias{ $obj } || $obj;
-
-        # Try loading...
-        if (!$obj->can("new")) {
-            eval { load $obj; 1 }
-                or $self->my_croak( "Failed to load view $name=>$obj: $@" );
-        };
-        $obj = $obj->new( @param );
-    };
-
-    $self->my_croak( "view must be a coderef or a MVC::Neaf::View object" )
-        unless blessed $obj and $obj->can("render")
-            or ref $obj eq 'CODE';
-
-    $self->{seen_view}{$name} = $obj;
-
-    return $obj;
-};
-
 =head2 set_session_handler()
 
 =over
@@ -1015,7 +980,7 @@ The engine MUST provide the following methods
 
 =cut
 
-# TODO 0.25 R::R
+# TODO 0.30 use helpers when ready
 sub set_session_handler {
     my ($self, %opt) = @_;
     $self = $Inst unless ref $self;
