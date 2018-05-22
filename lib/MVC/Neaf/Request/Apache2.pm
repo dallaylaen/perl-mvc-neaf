@@ -293,7 +293,7 @@ sub handler : method {
     if (!$MVC::Neaf::Request::query_allowed{ $r->method }) {
         $r->args('');
     };
-    my $reply = MVC::Neaf->handle_request( $self );
+    my $reply = MVC::Neaf::neaf()->handle_request( $self );
 
     return Apache2::Const::OK();
 };

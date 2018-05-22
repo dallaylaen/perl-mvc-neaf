@@ -56,12 +56,13 @@ my $r = Apache2::Request->new (
         param => "foo",
     },
 );
+my $neaf = MVC::Neaf::neaf();
 
 $r->{retval}{headers_out} = $r;
 $r->{retval}{headers_in}  = $r;
 
-MVC::Neaf->load_view( TT => 'TT' );
-MVC::Neaf->route( '/foo' => sub  {
+$neaf->load_view( TT => 'TT' );
+$neaf->route( '/foo' => sub  {
     my $req = shift;
 
     local $SIG{__DIE__} = \&Carp::cluck;
@@ -73,7 +74,7 @@ MVC::Neaf->route( '/foo' => sub  {
         bar => scalar $req->get_cookie( bar => '\w+', 42 ),
     }
 }, path_info_regex => '.*' );
-my $code = MVC::Neaf->run; # PSGI mode to avoid CGI-ing
+my $code = $neaf->run; # PSGI mode to avoid CGI-ing
 
 eval {
     MVC::Neaf::Request::Apache2->handler( $r );

@@ -14,15 +14,15 @@ my $stat = MVC::Neaf::X::ServerStat->new(
     on_write => sub { push @trace, @{ +shift } },
 );
 
-MVC::Neaf->route( '/foo' => sub { +{} }, -view => 'JS' );
+neaf->route( '/foo' => sub { +{} }, -view => 'JS' );
 warnings_like {
-    MVC::Neaf->server_stat( $stat );
+    neaf->server_stat( $stat );
 } [{carped => qr/DEPRECATED/}], "is deprecated";
 
 my @warn;
 $SIG{__WARN__} = sub { push @warn, shift };
 
-my @res = MVC::Neaf->run_test( '/foo' );
+my @res = neaf->run_test( '/foo' );
 
 is (scalar @trace, 1, "Stat recorded");
 note explain $trace[0];

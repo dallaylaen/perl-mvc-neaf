@@ -32,6 +32,21 @@ use Scalar::Util qw(blessed);
 use parent qw(MVC::Neaf::Route);
 use MVC::Neaf::Util qw(run_all run_all_nodie http_date);
 
+sub _one_and_true {
+    my $self = shift;
+
+    my $method = [caller 1]->[3];
+    $method =~ s/.*:://;
+
+    if ($self eq 'MVC::Neaf') {
+        require MVC::Neaf;
+        carp "MVC::Neaf->$method() call is DEPRECATED, use neaf->$method or MVC::Neaf->new()";
+        return MVC::Neaf::neaf();
+    };
+
+    croak "Method $method called on unblessed '$self'";
+};
+
 =head2 new()
 
     new( %options )
@@ -76,7 +91,7 @@ by the controller itself override defaults.
 # TODO 0.25 better docs here
 sub set_path_defaults {
     my ($self, $path, $src) = @_;
-    $self = MVC::Neaf::neaf() unless ref $self;
+    $self = _one_and_true($self) unless ref $self;
 
     # TODO 0.30 pathspec instead
     $self->my_croak("arguments must be a scalar and a hashref")
@@ -133,7 +148,7 @@ my %view_alias = (
 );
 sub load_view {
     my ($self, $name, $obj, @param) = @_;
-    $self = MVC::Neaf::neaf() unless ref $self;
+    $self = _one_and_true($self) unless ref $self;
 
     $self->my_croak("At least two arguments required")
         unless defined $name and defined $obj;
@@ -178,7 +193,7 @@ Returns self.
 
 sub set_forced_view {
     my ($self, $view) = @_;
-    $self = MVC::Neaf::neaf() unless ref $self;
+    $self = _one_and_true($self) unless ref $self;
 
     delete $self->{force_view};
     return $self unless $view;
@@ -205,7 +220,7 @@ If it dies, only a warning is emitted.
 
 sub on_error {
     my ($self, $code) = @_;
-    $self = MVC::Neaf::neaf() unless ref $self;
+    $self = _one_and_true($self) unless ref $self;
 
     if (defined $code) {
         ref $code eq 'CODE'
@@ -432,7 +447,7 @@ If L</set_forced_view> was called, return its argument instead.
 
 sub get_view {
     my ($self, $view, $lazy) = @_;
-    $self = MVC::Neaf::neaf() unless ref $self;
+    $self = _one_and_true($self) unless ref $self;
 
     # We've been overridden!
     return $self->{force_view}
