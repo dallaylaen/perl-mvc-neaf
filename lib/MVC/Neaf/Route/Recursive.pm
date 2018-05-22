@@ -27,10 +27,10 @@ and may misbehave.
 use Carp;
 use Encode;
 use Module::Load;
-use Scalar::Util qw(blessed);
+use Scalar::Util qw( blessed looks_like_number );
 
 use parent qw(MVC::Neaf::Route);
-use MVC::Neaf::Util qw(run_all run_all_nodie http_date);
+use MVC::Neaf::Util qw( run_all run_all_nodie http_date canonize_path maybe_list );
 
 sub _one_and_true {
     my $self = shift;
@@ -76,6 +76,276 @@ sub new {
 
     return $self;
 };
+
+=head2 add_route()
+
+Define a handler for given by URI path and HTTP method(s).
+This is the backend behind NEAF's C<get + post> route specifications.
+
+    route( '/path' => CODEREF, %options )
+
+Any incoming request to uri matching C</path>
+(C</path/something/else> too, but NOT C</pathology>)
+will now be directed to CODEREF.
+
+Longer paths are GUARANTEED to be checked first.
+
+Dies if the same method and path combination is given twice
+(but see C<tentative> and C<override> below).
+Multiple methods may be given for the same path.
+
+Exactly one leading slash will be prepended no matter what you do.
+(C<path>, C</path> and C</////path> are all the same).
+
+The C<CODEREF> MUST accept exactly one argument,
+referred to as C<$request> or C<$req> hereafter,
+and return an unblessed hashref with response data.
+
+%options may include:
+
+=over
+
+=item * C<method> - list of allowed HTTP methods.
+Default is [GET, POST].
+Multiple handles can be defined for the same path, provided that
+methods do not intersect.
+HEAD method is automatically handled if GET is present, however,
+one MAY define a separate HEAD handler explicitly.
+
+=item * C<path_info_regex> => C<qr/.../> - allow URI subpaths
+to be handled by this handler.
+
+A 404 error will be generated unless C<path_info_regex> is present
+and PATH_INFO matches the regex (without the leading slashes).
+
+If path_info_regex matches, it will be available in the controller
+as C<$req-E<gt>path_info>.
+
+If capture groups are present in said regular expression,
+their content will also be available as C<$req-E<gt>path_info_split>.
+
+B<[EXPERIMENTAL]> Name and semantics MAY change in the future.
+
+=item * C<param_regex> => { name => C<qr/.../>, name2 => C<'\d+'> }
+
+Add predefined regular expression validation to certain request parameters,
+so that they can be queried by name only.
+See C<param()> in L<MVC::Neaf::Request>.
+
+B<[EXPERIMENTAL]> Name and semantics MAY change in the future.
+
+=item * C<view> - default View object for this Controller.
+Must be a name of preloaded view,
+an object with a C<render> method, or a CODEREF
+receiving hashref and returning a list of two scalars
+(content and content-type).
+
+B<[DEPRECATED]> Use C<-view> instead, meaning is exactly the same.
+
+=item * C<cache_ttl> - if set, set Expires: HTTP header accordingly.
+
+B<[EXPERIMENTAL]> Name and semantics MAY change in the future.
+
+=item * C<default> - a C<\%hash> of values that will be added to results
+EVERY time the handler returns.
+Consider using C<neaf default ...> below if you need to append
+the same values to multiple paths.
+
+=item * C<override> => 1 - replace old route even if it exists.
+If not set, route collisions causes exception.
+Use this if you know better.
+
+This still issues a warning.
+
+B<[EXPERIMENTAL]> Name and meaning may change in the future.
+
+=item * C<tentative> => 1 - if route is already defined, do nothing.
+If not, allow to redefine it later.
+
+B<[EXPERIMENTAL]> Name and meaning may change in the future.
+
+=item * C<description> - just for information, has no action on execution.
+This will be displayed if application called with --list (see L<MVC::Neaf::CLI>).
+
+=item * C<public> => 0|1 - a flag just for information.
+In theory, public endpoints should be searchable from the outside
+while non-public ones should only be reachable from other parts of application.
+This is not enforced whatsoever.
+
+=back
+
+Also, any number of dash-prefixed keys MAY be present.
+This is the same as putting them into C<default> hash.
+
+=cut
+
+my $year = 365 * 24 * 60 * 60;
+my %known_route_args;
+$known_route_args{$_}++ for qw(
+    default method view cache_ttl
+    path_info_regex param_regex
+    description caller tentative override public
+);
+
+# TODO 0.25 R::R->add_route
+sub add_route {
+    my $self = shift;
+
+    $self->my_croak( "Odd number of elements in hash assignment" )
+        if @_ % 2;
+    my ($path, $sub, %args) = @_;
+    $self = _one_and_true($self) unless ref $self;
+
+    $self->my_croak( "handler must be a coderef, not ".ref $sub )
+        unless UNIVERSAL::isa( $sub, "CODE" );
+
+    # check defaults to be a hash before accessing them
+    $self->my_croak( "default must be unblessed hash" )
+        if $args{default} and ref $args{default} ne 'HASH';
+
+    # minus-prefixed keys are typically defaults
+    $_ =~ /^-/ and $args{default}{$_} = delete $args{$_}
+        for keys %args;
+
+    # kill extra args
+    my @extra = grep { !$known_route_args{$_} } keys %args;
+    $self->my_croak( "Unexpected keys in route setup: @extra" )
+        if @extra;
+
+    $args{path} = $path = canonize_path( $path );
+
+    maybe_list( \$args{method}, qw( GET POST ) );
+    $_ = uc $_ for @{ $args{method} };
+
+    $self->my_croak("Public endpoint must have nonempty description")
+        if $args{public} and not $args{description};
+
+    $self->_detect_duplicate( \%args );
+
+    # Do the work
+    my %profile;
+    $profile{parent}    = $self;
+    $profile{code}      = $sub;
+    $profile{tentative} = $args{tentative};
+    $profile{override}  = $args{override};
+
+    # Always have regex defined to simplify routing
+    $profile{path_info_regex} = (defined $args{path_info_regex})
+        ? qr#^$args{path_info_regex}$#
+        : qr#^$#;
+
+    # Just for information
+    $profile{path}        = $path;
+    $profile{description} = $args{description};
+    $profile{public}      = $args{public} ? 1 : 0;
+    $profile{caller}      = $args{caller} || [caller(0)]; # save file,line
+
+    if (my $view = $args{view}) {
+        # TODO 0.30
+        carp "NEAF: route(): view argument is deprecated, use -view instead";
+        $args{default}{-view} = $view;
+    };
+
+    # preload view so that we can fail early
+    $args{default}{-view} = $self->get_view( $args{default}{-view} )
+        if $args{default}{-view};
+
+    # todo_default because some path-based defs will be mixed in later
+    $profile{default} = $args{default};
+
+    # preprocess regular expression for params
+    if ( my $reg = $args{param_regex} ) {
+        my %real_reg;
+        $self->my_croak("param_regex must be a hash of regular expressions")
+            if ref $reg ne 'HASH' or grep { !defined $reg->{$_} } keys %$reg;
+        $real_reg{$_} = qr(^$reg->{$_}$)s
+            for keys %$reg;
+        $profile{param_regex} = \%real_reg;
+    };
+
+    if ( $args{cache_ttl} ) {
+        $self->my_croak("cache_ttl must be a number")
+            unless looks_like_number($args{cache_ttl});
+        # as required by RFC
+        $args{cache_ttl} = -100000 if $args{cache_ttl} < 0;
+        $args{cache_ttl} = $year if $args{cache_ttl} > $year;
+        $profile{cache_ttl} = $args{cache_ttl};
+    };
+
+    # ready, shallow copy handler & burn cache
+    delete $self->{route_re};
+
+    $self->{route}{ $path }{$_} = MVC::Neaf::Route->new( %profile, method => $_ )
+        for @{ $args{method} };
+
+    # This is for get+post sugar
+    $self->{last_added} = \%profile;
+
+    return $self;
+}; # end sub route
+
+# in: { method => [...], path => '/...', tentative => 0|1, override=> 0|1 }
+# out: none
+# spoils $method if tentative
+# dies/warns if violations found
+# TODO 0.25 R::R->
+sub _detect_duplicate {
+    my ($self, $profile) = @_;
+
+    my $path = $profile->{path};
+    # Handle duplicate route definitions
+    my @dupe = grep {
+        exists $self->{route}{$path}{$_}
+        and !$self->{route}{$path}{$_}{tentative};
+    } @{ $profile->{method} };
+
+    if (@dupe) {
+        my %olddef;
+        foreach (@dupe) {
+            my $where = $self->{route}{$path}{$_}{where};
+            push @{ $olddef{$where} }, $_;
+        };
+
+        # flatten olddef hash, format list
+        my $oldwhere = join ", ", map { "$_ [@{ $olddef{$_} }]" } keys %olddef;
+        my $oldpath = $path || '/';
+
+        # Alas, must do error message by hand
+        my $caller = [caller 1]->[3];
+        $caller =~ s/.*:://;
+        if ($profile->{override}) {
+            carp( (ref $self)."->$caller: Overriding old handler for"
+                ." $oldpath defined $oldwhere");
+        } elsif( $profile->{tentative} ) {
+            # just skip duplicate methods
+            my %filter;
+            $filter{$_}++ for @{ $profile->{method} };
+            delete $filter{$_} for @dupe;
+            $profile->{method} = [keys %filter];
+        } else {
+            croak( (ref $self)."->$caller: Attempting to set duplicate handler for"
+                ." $oldpath defined $oldwhere");
+        };
+    };
+};
+
+# This is for get+post sugar
+# TODO 0.90 merge with alias, GET => implicit HEAD
+# TODO 0.25 public method
+sub _dup_route {
+    my ($self, $method, $profile) = @_;
+
+    $profile ||= $self->{last_added};
+    my $path = $profile->{path};
+
+    $self->_detect_duplicate($profile);
+
+    delete $self->{route_re};
+    $self->{route}{ $path }{$method} = MVC::Neaf::Route->new(
+        %$profile, method => $method );
+};
+
+
 
 =head2 set_path_defaults
 

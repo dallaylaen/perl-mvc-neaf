@@ -246,7 +246,8 @@ our %EXPORT_TAGS = (
     sugar => \@EXPORT_SUGAR,
 );
 
-use MVC::Neaf::Util qw(http_date canonize_path path_prefixes run_all run_all_nodie);
+use MVC::Neaf::Util qw( http_date canonize_path path_prefixes
+    run_all run_all_nodie maybe_list );
 use MVC::Neaf::Request::PSGI;
 use MVC::Neaf::Exception;
 
@@ -413,17 +414,10 @@ resulting in C<"/foo/bar" =E<gt> \&code>.
 It was never documented, will issue a warning, and will be removed for good
 it v.0.25.
 
+See L<MVC::Neaf::Route::Recursive/add_route> for implementation.
+
 =cut
 
-my $year = 365 * 24 * 60 * 60;
-my %known_route_args;
-$known_route_args{$_}++ for qw(
-    default method view cache_ttl
-    path_info_regex param_regex
-    description caller tentative override public
-);
-
-# TODO 0.25 R::R->add_route
 sub route {
     my $self = shift;
 
@@ -438,158 +432,8 @@ sub route {
         last if ref $sub;
         $path .= "/$sub";
     };
-    $self->my_croak( "Odd number of elements in hash assignment" )
-        if @_ % 2;
-    my (%args) = @_;
-    $self = $Inst unless ref $self;
 
-    $self->my_croak( "handler must be a coderef, not ".ref $sub )
-        unless UNIVERSAL::isa( $sub, "CODE" );
-
-    # check defaults to be a hash before accessing them
-    $self->my_croak( "default must be unblessed hash" )
-        if $args{default} and ref $args{default} ne 'HASH';
-
-    # minus-prefixed keys are typically defaults
-    $_ =~ /^-/ and $args{default}{$_} = delete $args{$_}
-        for keys %args;
-
-    # kill extra args
-    my @extra = grep { !$known_route_args{$_} } keys %args;
-    $self->my_croak( "Unexpected keys in route setup: @extra" )
-        if @extra;
-
-    $args{path} = $path = canonize_path( $path );
-
-    _listify( \$args{method}, qw( GET POST ) );
-    $_ = uc $_ for @{ $args{method} };
-
-    $self->my_croak("Public endpoint must have nonempty description")
-        if $args{public} and not $args{description};
-
-    $self->_detect_duplicate( \%args );
-
-    # Do the work
-    my %profile;
-    $profile{parent}    = $self;
-    $profile{code}      = $sub;
-    $profile{tentative} = $args{tentative};
-    $profile{override}  = $args{override};
-
-    # Always have regex defined to simplify routing
-    $profile{path_info_regex} = (defined $args{path_info_regex})
-        ? qr#^$args{path_info_regex}$#
-        : qr#^$#;
-
-    # Just for information
-    $profile{path}        = $path;
-    $profile{description} = $args{description};
-    $profile{public}      = $args{public} ? 1 : 0;
-    $profile{caller}      = $args{caller} || [caller(0)]; # save file,line
-
-    if (my $view = $args{view}) {
-        # TODO 0.30
-        carp "NEAF: route(): view argument is deprecated, use -view instead";
-        $args{default}{-view} = $view;
-    };
-
-    # preload view so that we can fail early
-    $args{default}{-view} = $self->get_view( $args{default}{-view} )
-        if $args{default}{-view};
-
-    # todo_default because some path-based defs will be mixed in later
-    $profile{default} = $args{default};
-
-    # preprocess regular expression for params
-    if ( my $reg = $args{param_regex} ) {
-        my %real_reg;
-        $self->my_croak("param_regex must be a hash of regular expressions")
-            if ref $reg ne 'HASH' or grep { !defined $reg->{$_} } keys %$reg;
-        $real_reg{$_} = qr(^$reg->{$_}$)s
-            for keys %$reg;
-        $profile{param_regex} = \%real_reg;
-    };
-
-    if ( $args{cache_ttl} ) {
-        $self->my_croak("cache_ttl must be a number")
-            unless looks_like_number($args{cache_ttl});
-        # as required by RFC
-        $args{cache_ttl} = -100000 if $args{cache_ttl} < 0;
-        $args{cache_ttl} = $year if $args{cache_ttl} > $year;
-        $profile{cache_ttl} = $args{cache_ttl};
-    };
-
-    # ready, shallow copy handler & burn cache
-    delete $self->{route_re};
-
-    $self->{route}{ $path }{$_} = MVC::Neaf::Route->new( %profile, method => $_ )
-        for @{ $args{method} };
-
-    # This is for get+post sugar
-    $self->{last_added} = \%profile;
-
-    return $self;
-}; # end sub route
-
-# This is for get+post sugar
-# TODO 0.90 merge with alias, GET => implicit HEAD
-# TODO 0.25 R::R->dup_route
-sub _dup_route {
-    my ($self, $method, $profile) = @_;
-
-    $profile ||= $self->{last_added};
-    my $path = $profile->{path};
-
-    $self->_detect_duplicate($profile);
-
-    delete $self->{route_re};
-    $self->{route}{ $path }{$method} = MVC::Neaf::Route->new(
-        %$profile, method => $method );
-};
-
-# in: { method => [...], path => '/...', tentative => 0|1, override=> 0|1 }
-# out: none
-# spoils $method if tentative
-# dies/warns if violations found
-# TODO 0.25 R::R->
-sub _detect_duplicate {
-    my ($self, $profile) = @_;
-
-    my $path = $profile->{path};
-    # Handle duplicate route definitions
-    my @dupe = grep {
-        exists $self->{route}{$path}{$_}
-        and !$self->{route}{$path}{$_}{tentative};
-    } @{ $profile->{method} };
-
-    if (@dupe) {
-        my %olddef;
-        foreach (@dupe) {
-            my $where = $self->{route}{$path}{$_}{where};
-            push @{ $olddef{$where} }, $_;
-        };
-
-        # flatten olddef hash, format list
-        my $oldwhere = join ", ", map { "$_ [@{ $olddef{$_} }]" } keys %olddef;
-        my $oldpath = $path || '/';
-
-        # Alas, must do error message by hand
-        my $caller = [caller 1]->[3];
-        $caller =~ s/.*:://;
-        if ($profile->{override}) {
-            carp( (ref $self)."->$caller: Overriding old handler for"
-                ." $oldpath defined $oldwhere");
-        } elsif( $profile->{tentative} ) {
-            # just skip duplicate methods
-            my %filter;
-            $filter{$_}++ for @{ $profile->{method} };
-            delete $filter{$_} for @dupe;
-            $profile->{method} = [keys %filter];
-        } else {
-            croak( (ref $self)."->$caller: Attempting to set duplicate handler for"
-                ." $oldpath defined $oldwhere");
-        };
-    };
+    $self->add_route($path, $sub, @_);
 };
 
 =head2 static()
@@ -799,7 +643,7 @@ sub add_hook {
     $self->my_croak( "illegal phase: $phase" )
         unless $hook_phases{$phase};
 
-    _listify( \$opt{method}, qw( GET HEAD POST PUT PATCH DELETE ) );
+    maybe_list( \$opt{method}, qw( GET HEAD POST PUT PATCH DELETE ) );
     if ($phase eq 'pre_route') {
         # handle pre_route separately
         $self->my_croak("cannot specify paths/excludes for $phase")
@@ -811,8 +655,8 @@ sub add_hook {
         return $self;
     };
 
-    _listify( \$opt{path}, '/' );
-    _listify( \$opt{exclude} );
+    maybe_list( \$opt{path}, '/' );
+    maybe_list( \$opt{exclude} );
     @{ $opt{path} } = map { canonize_path($_) } @{ $opt{path} };
     @{ $opt{exclude} } = map { canonize_path($_) } @{ $opt{exclude} };
 
@@ -830,20 +674,6 @@ sub add_hook {
     };
 
     return $self;
-};
-
-# TODO 0.25 util
-# usage: listify ( \$var, default1, default2... )
-# converts scalar in-place to arrayref if needed
-sub _listify {
-    my ($scalref, @default) = @_;
-
-    if (ref $$scalref ne 'ARRAY') {
-        my $array = defined $$scalref ? [ my $tmp = $$scalref ] : \@default;
-        $$scalref = $array;
-    };
-
-    return $$scalref;
 };
 
 =head2 alias()
@@ -1510,7 +1340,7 @@ foreach (keys %ALIAS) {
         # normal operation
         my ($path, $handler, @args) = @_;
 
-        return $Inst->route(
+        return neaf()->add_route(
             $path, $handler, @args, method => $method, caller => [caller(0)] );
     };
 
