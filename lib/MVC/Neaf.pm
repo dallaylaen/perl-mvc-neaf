@@ -35,7 +35,7 @@ as a L<CGI> script, L<PSGI> application, or Apache handler.
 
     use strict;
     use warnings;
-    use MVC::Neaf qw(:sugar);
+    use MVC::Neaf;
 
     get+post '/app' => sub {
         my $req = shift;
@@ -198,16 +198,16 @@ Please either avoid them, or send patches.
 
 =head1 FUNCTIONAL AND OBJECT-ORIENTED API
 
-A C<:sugar> keyword must be added to the C<use> statement
-to get access to the prototyped declarative API.
-The need to do so MAY be removed in the future.
+By default, NEAF exports a pretty standard route declaration interface
+(C<get> + C<head> + C<post> + C<put> + C<patch> + C<del> for delete)
+and a single L</neaf> function (see below) for more advanced functions.
 
 All prototyped declarative functions described below
-are really frontends to a single L<MVC::Neaf> object
-that accumulates the knowledge about your application.
+are really frontends to a single L<MVC::Neaf> instance
+which is also returned by a C<neaf> call without parameters.
 
-Though more than one such objects can be created,
-there is little use in doing that so far.
+More than one neaf application object can be created as simply
+as C<MVC::Neaf-E<gt>new> if anybody needs that.
 
 Given the above, functional and object-oriented ways
 to declare the same thing will now follow in pairs.
@@ -239,6 +239,7 @@ use Scalar::Util qw(blessed looks_like_number);
 use URI::Escape;
 use parent qw(Exporter);
 
+our @EXPORT;
 our @EXPORT_OK = qw( neaf_err );
 my  @EXPORT_SUGAR = qw( neaf ); # Will populate later - see @ALL_METHODS below
 our %EXPORT_TAGS = (
@@ -1517,7 +1518,7 @@ foreach (keys %ALIAS) {
     no strict 'refs'; ## no critic
     *{$_} = $code;
 };
-push @EXPORT_OK, @EXPORT_SUGAR;
+push @EXPORT, @EXPORT_SUGAR;
 
 =pod
 
