@@ -22,6 +22,7 @@ use parent qw(Exporter);
 our @EXPORT_OK = qw(
     canonize_path http_date path_prefixes rex run_all run_all_nodie
     JSON encode_json decode_json
+    maybe_list
 );
 
 # use JSON::MaybeXS; # not now, see JSON() below
@@ -135,6 +136,29 @@ sub run_all_nodie {
     };
 
     return $dead;
+};
+
+=head2 maybe_list
+
+    maybe_list( \$value, @defaults )
+
+If C<$value> is C<undef>, replace is with a copy of \@defaults.
+
+If C<$value> is a list, leave it as is.
+
+Otherwise, replace C<$value> with C<[ $value ]>.
+
+=cut
+
+sub maybe_list {
+    my ($scalref, @default) = @_;
+
+    if (ref $$scalref ne 'ARRAY') {
+        my $array = defined $$scalref ? [ my $tmp = $$scalref ] : \@default;
+        $$scalref = $array;
+    };
+
+    return $$scalref;
 };
 
 =head2 JSON()
