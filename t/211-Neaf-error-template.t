@@ -44,7 +44,7 @@ note "TESTING duplicate route protection";
 eval {
     $n->route( '/' => sub { +{ try => 2 } } );
 };
-like( $@, qr/^MVC::Neaf->route.*duplicat/, "Error starts with Neaf");
+like( $@, qr/^MVC::Neaf->add_route.*duplicat/, "Error starts with Neaf");
 note $@;
 
 } [], "And no warnings overall";
