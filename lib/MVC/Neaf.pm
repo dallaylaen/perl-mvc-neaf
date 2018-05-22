@@ -419,10 +419,8 @@ See L<MVC::Neaf::Route::Recursive/add_route> for implementation.
 =cut
 
 sub route {
-    my $self = shift;
+    my $self = shift; # TODO 0.25 remove, alias to add_route
 
-    # TODO 0.25 kill this for good, just
-    #     my ($path, $sub, %args) = @_;
     # HACK!! pack path components together, i.e.
     # foo => bar => \&handle eq "/foo/bar" => \&handle
     carp "NEAF: using multi-component path in route() is DEPRECATED and is to be removed in v.0.25"
@@ -514,28 +512,6 @@ Not need to set up one for merely testing icons/js/css, though.>
 
 =cut
 
-sub static {
-    my ($self, $path, $dir, %options) = @_;
-    $self = $Inst unless ref $self;
-
-    $options{caller} ||= [caller 0];
-
-    my %fwd_opt;
-    defined $options{$_} and $fwd_opt{$_} = delete $options{$_}
-        for qw( tentative override caller public );
-
-    if (ref $dir eq 'ARRAY') {
-        my $sub = $self->_static_global->preload( $path => $dir )->one_file_handler;
-        return $self->route( $path => $sub, method => 'GET', %fwd_opt,
-            , description => Carp::shortmess( "Static content from memory" ));
-    };
-
-    require MVC::Neaf::X::Files;
-    my $xfiles = MVC::Neaf::X::Files->new(
-        %options, root => $dir, base_url => $path );
-    return $self->route( $xfiles->make_route, %fwd_opt );
-};
-
 =head2 set_path_defaults()
 
 =over
@@ -624,58 +600,6 @@ Note that this does NOT override path bubbling order.
 
 =cut
 
-# TODO 0.25 this should be generic pathspec arg
-my %add_hook_args;
-$add_hook_args{$_}++ for qw(method path exclude prepend);
-
-my %hook_phases;
-$hook_phases{$_}++ for qw(pre_route
-    pre_logic pre_content pre_render pre_reply pre_cleanup);
-
-# TODO 0.25 R::R
-sub add_hook {
-    my ($self, $phase, $code, %opt) = @_;
-    $self = $Inst unless ref $self;
-
-    my @extra = grep { !$add_hook_args{$_} } keys %opt;
-    $self->my_croak( "unknown options: @extra" )
-        if @extra;
-    $self->my_croak( "illegal phase: $phase" )
-        unless $hook_phases{$phase};
-
-    maybe_list( \$opt{method}, qw( GET HEAD POST PUT PATCH DELETE ) );
-    if ($phase eq 'pre_route') {
-        # handle pre_route separately
-        $self->my_croak("cannot specify paths/excludes for $phase")
-            if defined $opt{path} || defined $opt{exclude};
-        foreach( @{ $opt{method} } ) {
-            my $where = $self->{pre_route}{$_} ||= [];
-            $opt{prepend} ? unshift @$where, $code : push @$where, $code;
-        };
-        return $self;
-    };
-
-    maybe_list( \$opt{path}, '/' );
-    maybe_list( \$opt{exclude} );
-    @{ $opt{path} } = map { canonize_path($_) } @{ $opt{path} };
-    @{ $opt{exclude} } = map { canonize_path($_) } @{ $opt{exclude} };
-
-    $opt{caller} = [ caller(0) ]; # where the hook was set
-    $opt{phase}  = $phase; # just for information
-    $opt{code}   = $code;
-
-    # hooks == {method}{path}{phase}[nnn] => { code => CODE, ... }
-
-    foreach my $method ( @{$opt{method}} ) {
-        foreach my $path ( @{$opt{path}} ) {
-            my $where = $self->{hooks}{$method}{$path}{$phase} ||= [];
-            $opt{prepend} ? unshift @$where, \%opt : push @$where, \%opt;
-        };
-    };
-
-    return $self;
-};
-
 =head2 alias()
 
 =over
@@ -695,30 +619,6 @@ B<[CAUTION]> As of 0.21, C<alias> does NOT follow tentative/override switches.
 This needs to be fixed in the future.
 
 =cut
-
-# TODO 0.25 R::R
-sub alias {
-    my ($self, $new, $old) = @_;
-    $self = $Inst unless ref $self;
-
-    $new = canonize_path( $new );
-    $old = canonize_path( $old );
-
-    $self->{route}{$old}
-        or $self->my_croak( "Cannot create alias for unknown route $old" );
-
-    # TODO 0.30 restrict methods, handle tentative/override, detect dupes
-    $self->my_croak( "Attempting to set duplicate handler for path "
-        .( length $new ? $new : "/" ) )
-            if $self->{route}{ $new };
-
-    # reset cache
-    $self->{route_re} = undef;
-
-    # FIXME clone()
-    $self->{route}{$new} = $self->{route}{$old};
-    return $self;
-};
 
 =head2 load_view()
 
@@ -811,40 +711,6 @@ The engine MUST provide the following methods
 
 =cut
 
-# TODO 0.30 use helpers when ready
-sub set_session_handler {
-    my ($self, %opt) = @_;
-    $self = $Inst unless ref $self;
-
-    my $sess = delete $opt{engine};
-    my $cook = $opt{cookie} || 'neaf.session';
-
-    $self->my_croak("engine parameter is required")
-        unless $sess;
-
-    if (!ref $sess) {
-        $opt{session_ttl} = delete $opt{ttl} || $opt{session_ttl};
-
-        my $obj = eval { load $sess; $sess->new( %opt ); }
-            or $self->my_croak("Failed to load session '$sess': $@");
-
-        $sess = $obj;
-    };
-
-    my @missing = grep { !$sess->can($_) }
-        qw(get_session_id session_id_regex session_ttl
-            create_session load_session save_session delete_session );
-    $self->my_croak("engine object does not have methods: @missing")
-        if @missing;
-
-    my $regex = $sess->session_id_regex;
-    my $ttl   = $opt{ttl} || $sess->session_ttl || 0;
-
-    $self->{session_handler} = [ $sess, $cook, $regex, $ttl ];
-    $self->{session_view_as} = $opt{view_as};
-    return $self;
-};
-
 =head2 add_form()
 
 =over
@@ -914,9 +780,9 @@ And by running this one gets
 
 =cut
 
-# TODO 0.25 Route
 sub add_form {
-    my ($self, $name, $spec, %opt) = @_;
+    my ($self, $name, $spec, %opt) = @_; # TODO 0.25 Route
+    # TODO 0.25 helper
 
     $name and $spec
         or $self->my_croak( "Form name and spec must be nonempty" );
@@ -978,29 +844,6 @@ This is a synonym to C<sub { +{ status =E<gt> $status,  ... } }>.
 
 =cut
 
-# TODO 0.25 R::R or Route
-sub set_error_handler {
-    my ($self, $status, $code) = @_;
-    $self = $Inst unless ref $self;
-
-    $status =~ /^(?:\d\d\d)$/
-        or $self->my_croak( "1st arg must be http status");
-    if (ref $code eq 'HASH') {
-        my $hash = $code;
-        $code = sub {
-            my ($req, %opt) = @_;
-
-            return { -status => $opt{status}, %opt, %$hash };
-        };
-    };
-    UNIVERSAL::isa($code, 'CODE')
-        or $self->my_croak( "2nd arg must be callback or hash");
-
-    $self->{error_template}{$status} = $code;
-
-    return $self;
-};
-
 =head2 load_resources()
 
 =over
@@ -1047,93 +890,6 @@ B<[EXPERIMENTAL]> This method and exact format of data is being worked on.
 
 =cut
 
-# TODO 0.25 R::R
-my $INLINE_SPEC = qr/^(?:\[(\w+)\]\s+)?(\S+)((?:\s+\w+=\S+)*)$/;
-sub load_resources {
-    my ($self, $file) = @_;
-
-    my $fd;
-    if (ref $file) {
-        $fd = $file;
-    } else {
-        open $fd, "<", $file
-            or $self->my_croak( "Failed to open(r) $file: $!" );
-    };
-
-    local $/;
-    my $content = <$fd>;
-    defined $content
-        or $self->my_croak( "Failed to read from $file: $!" );
-
-    my @parts = split /^@@\s+(.*\S)\s*$/m, $content, -1;
-    shift @parts;
-    die "Something went wrong" if @parts % 2;
-
-    my %templates;
-    my %static;
-    while (@parts) {
-        # parse file
-        my $spec = shift @parts;
-        my ($dest, $name, $extra) = ($spec =~ $INLINE_SPEC);
-        my %opt = $extra =~ /(\w+)=(\S+)/g;
-        $name or $self->my_croak("Bad resource spec format @@ $spec");
-
-        my $content = shift @parts;
-        if (!$opt{format}) {
-            $content =~ s/^\n+//s;
-            $content =~ s/\s+$//s;
-            $content = Encode::decode_utf8( $content, 1 );
-        } elsif ($opt{format} eq 'base64') {
-            $content = decode_base64( $content );
-        } else {
-            $self->my_croak("Unknown format $opt{format} in '@@ $spec' in $file");
-        };
-
-        if ($dest) {
-            # template
-            $self->my_croak("Duplicate template '@@ $spec' in $file")
-                if defined $templates{lc $dest}{$name};
-            $templates{$dest}{$name} = $content;
-        } else {
-            # static file
-            $self->my_croak("Duplicate static file '@@ $spec' in $file")
-                if $static{$name};
-            $static{$name} = [ $content, $opt{type} ];
-        };
-    };
-
-    # now do the loading
-    foreach my $name( keys %templates ) {
-        my $view = $self->get_view( $name, 1 ) or next;
-        $view->can("preload") or next; # TODO 0.30 warn here?
-        $view->preload( %{ $templates{$name} } );
-    };
-    if( %static ) {
-        require MVC::Neaf::X::Files;
-        my $st = $self->_static_global;
-        $st->preload( %static );
-        foreach( keys %static ) {
-            $self->route( $_ => $st->one_file_handler, method => 'GET'
-                , description => "Static resource from $file" );
-        };
-    };
-
-    return $self;
-};
-
-# Instantiate a global static handler to preload in-memory
-#    static files into.
-# TODO 0.30 lame name, find better
-# TODO 0.25 R::R
-sub _static_global {
-    my $self = shift;
-
-    return $self->{global_static} ||= do {
-        require MVC::Neaf::X::Files;
-        MVC::Neaf::X::Files->new( root => '/dev/null' );
-    };
-};
-
 =head2 run()
 
 =over
@@ -1162,32 +918,6 @@ Running under mod_perl requires setting a handler with
 L<MVC::Neaf::Request::Apache2>.
 
 =cut
-
-sub run {
-    my $self = shift;
-    $self = $Inst unless ref $self;
-
-    if (!defined wantarray) {
-        # void context - we're being called as CGI
-        if (@ARGV) {
-            require MVC::Neaf::CLI;
-            MVC::Neaf::CLI->run($self);
-        } else {
-            require Plack::Handler::CGI;
-            # Somehow this caused uninitialized warning in Plack::Handler::CGI
-            $ENV{SCRIPT_NAME} = ''
-                unless defined $ENV{SCRIPT_NAME};
-            Plack::Handler::CGI->new->run( $self->run );
-        };
-    };
-
-    $self->post_setup;
-
-    return sub {
-        $self->handle_request(
-            MVC::Neaf::Request::PSGI->new( env => $_[0], route => $self ));
-    };
-};
 
 =head1 EXPORTED HELPER FUNCTIONS
 
@@ -1297,7 +1027,7 @@ sub neaf(@) { ## no critic # DSL
         unshift @args, $action;
         $action = 'error';
     };
-    if ($hook_phases{$action}) {
+    if ($MVC::Neaf::Route::Recursive::hook_phases{$action}) {
         unshift @args, $action;
         $action = 'hook';
     };
@@ -1401,87 +1131,6 @@ Gets overridden by all of the above.
 
 =cut
 
-my %run_test_allow;
-$run_test_allow{$_}++
-    for qw( type method cookie body override secure uploads header );
-# TODO 0.25 R::R
-sub run_test {
-    my ($self, $env, %opt) = @_;
-    $self = $Inst unless ref $self;
-
-    my @extra = grep { !$run_test_allow{$_} } keys %opt;
-    $self->my_croak( "Extra keys @extra" )
-        if @extra;
-
-    if (!ref $env) {
-        $env =~ /^(.*?)(?:\?(.*))?$/;
-        $env = {
-            REQUEST_URI => $env,
-            REQUEST_METHOD => 'GET',
-            QUERY_STRING => defined $2 ? $2 : '',
-            SERVER_NAME => 'localhost',
-            SERVER_PORT => 80,
-            SCRIPT_NAME => '',
-            PATH_INFO => $1,
-            'psgi.version' => [1,1],
-            'psgi.errors' => \*STDERR,
-        }
-    };
-    # TODO 0.30 complete emulation of everything a sane person needs
-    $env->{REQUEST_METHOD} = $opt{method} if $opt{method};
-    $env->{$_} = $opt{override}{$_} for keys %{ $opt{override} };
-
-    if (my $head = $opt{header} ) {
-        foreach (keys %$head) {
-            my $name = uc $_;
-            $name =~ tr/-/_/;
-            $env->{"HTTP_$name"} = $head->{$_};
-        };
-    };
-    if (exists $opt{secure}) {
-        $env->{'psgi.url_scheme'} = $opt{secure} ? 'https' : 'http';
-    };
-    if (my $cook = $opt{cookie}) {
-        if (ref $cook eq 'HASH') {
-            $cook = join '; ', map {
-                uri_escape_utf8($_).'='.uri_escape_utf8($cook->{$_})
-            } keys %$cook;
-        };
-        $env->{HTTP_COOKIE} = $env->{HTTP_COOKIE}
-            ? "$env->{HTTP_COOKIE}; $cook"
-            : $cook;
-    };
-    if (my $body = $opt{body} ) {
-        open my $dummy, "<", \$body
-            or die ("NEAF: FATAL: Redirect failed in run_test");
-        $env->{'psgi.input'} = $dummy;
-        $env->{CONTENT_LENGTH} = length $body;
-    };
-    if (my $type = $opt{type}) {
-        $type = 'application/x-www-form-urlencoded' if $type eq '?';
-        $env->{CONTENT_TYPE} = $opt{type} eq '?' ? '' : $opt{type}
-    };
-
-    my %fake;
-    $fake{uploads} = delete $opt{uploads};
-
-    scalar $self->run; # warm up caches
-
-    my $req = MVC::Neaf::Request::PSGI->new( %fake, env => $env, route => $self );
-
-    my $ret = $self->handle_request( $req );
-    if (ref $ret eq 'CODE') {
-        # PSGI functional interface used.
-        require MVC::Neaf::Request::FakeWriter;
-        $ret = MVC::Neaf::Request::FakeWriter->new->respond( $ret );
-    };
-
-    return (
-        $ret->[0],
-        HTTP::Headers::Fast->new( @{ $ret->[1] } ),
-        join '', @{ $ret->[2] },
-    );
-};
 
 =head2 get_routes()
 
@@ -1505,32 +1154,6 @@ This SHOULD NOT be used by application itself.
 
 =cut
 
-# TODO 0.25 Route->inspect, Route::Recursive->inspect
-sub get_routes {
-    my ($self, $code) = @_;
-    $self = $Inst unless ref $self;
-
-    $code ||= sub { $_[0] };
-    scalar $self->run; # burn caches
-
-    # TODO 0.30 must do deeper copying
-    my $all = $self->{route};
-    my %ret;
-    foreach my $path ( keys %$all ) {
-        my $batch = $all->{$path};
-        foreach my $method ( keys %$batch ) {
-            my $route = $batch->{$method};
-            $route->post_setup
-                unless $route->is_locked;
-
-            my $filtered = $code->( $route->clone, $path, $method );
-            $ret{$path}{$method} = $filtered if $filtered;
-        };
-    };
-
-    return \%ret;
-};
-
 =head1 INTERNAL METHODS
 
 B<CAVEAT EMPTOR.>
@@ -1543,18 +1166,6 @@ unless you want something very strange.
 See L<MVC::Neaf::Route::Recursive> for implementation.
 
 =cut
-
-sub handle_request {
-    my ($self, $req) = @_;
-
-    if (!ref $self) {
-        $self = $Inst;
-        # TODO 0.30 forbid bareword usage
-        # croak "Bareword usage of handle_request() forbidden";
-    };
-
-    $self->SUPER::handle_request( $req );
-};
 
 =head2 get_view()
 
@@ -1573,20 +1184,6 @@ This is for internal usage, mostly.
 If C<set_forced_view> was called, return its argument instead.
 
 =cut
-
-=head2 get_form()
-
-    $neaf->get_form( "name" )
-
-Fetch form named "name". No magic here. See L</add_form>.
-
-=cut
-
-# TODO 0.25 R::R
-sub get_form {
-    my ($self, $name) = @_;
-    return $self->{forms}{$name};
-};
 
 # Setup default instance, no more code after this
 # aside from deprecated methods
@@ -1841,9 +1438,8 @@ instead.
 
 =cut
 
-# TODO 0.25 remove
 sub error_template {
-    my $self = shift;
+    my $self = shift; # TODO 0.25 remove
 
     carp "error_template() is deprecated, use set_error_handler() instead";
     return $self->set_error_handler(@_);
@@ -1857,10 +1453,9 @@ as a drop-in replacement.
 =cut
 
 sub set_default {
-    my ($self, %data) = @_;
+    my ($self, %data) = @_; # TODO 0.25 remove
     $self = $Inst unless ref $self;
 
-    # TODO 0.25 remove
     carp "DEPRECATED use set_path_defaults( '/', \%data ) instead of set_default()";
 
     return $self->set_path_defaults( '/', \%data );
@@ -1898,7 +1493,7 @@ to gather performance statistics.
 =cut
 
 sub server_stat {
-    my ($self, $obj) = @_;
+    my ($self, $obj) = @_; # TODO 0.30 remove
     $self = $Inst unless ref $self;
 
     carp( (ref $self)."->server_stat: DEPRECATED, use hooks & custom stat toolinstead" );

@@ -26,8 +26,10 @@ and may misbehave.
 
 use Carp;
 use Encode;
+use MIME::Base64;
 use Module::Load;
 use Scalar::Util qw( blessed looks_like_number );
+use URI::Escape;
 
 use parent qw(MVC::Neaf::Route);
 use MVC::Neaf::Util qw( run_all run_all_nodie http_date canonize_path maybe_list );
@@ -345,7 +347,151 @@ sub _dup_route {
         %$profile, method => $method );
 };
 
+=head2 static()
 
+    $neaf->static( '/path' => $local_path, %options );
+
+    $neaf->static( '/other/path' => [ "content", "content-type" ] );
+
+Serve static content located under C<$file_path>.
+Both directories and single files may be added.
+
+If an arrayref of C<[ $content, $content_type ]> is given as second argument,
+serve content from memory instead.
+
+%options may include:
+
+=over
+
+=item * C<buffer> => C<nnn> - buffer size for reading/writing files.
+Default is 4096. Smaller values may be set, but are NOT recommended.
+
+=item * C<cache_ttl> => C<nnn> - if given, files below the buffer size
+will be stored in memory for C<cache_ttl> seconds.
+
+B<[EXPERIMENTAL]> Cache API is not yet established.
+
+=item * allow_dots => 1|0 - if true, serve files/directories
+starting with a dot (.git etc), otherwise give a 404.
+
+B<[EXPERIMENTAL]>
+
+=item * dir_index => 1|0 - if true, generate index for a directory;
+otherwise a 404 is returned, and deliberately so, for security reasons.
+
+B<[EXPERIMENTAL]>
+
+=item * dir_template - specify template for directory listing
+(with images etc). A sane default is provided.
+
+B<[EXPERIMENTAL]>
+
+=item * view - specify view object for rendering directory template.
+By default a localized C<TT> instance is used.
+
+B<[EXPERIMENTAL]> Name MAY be changed (dir_view etc).
+
+=item * override - override the route that was here before.
+See C<route> above.
+
+=item * tentative - don't complain if replaced later.
+
+=item * description - comment. The default is "Static content at $directory"
+
+=item * public => 0|1 - a flag just for information.
+In theory, public endpoints should be searchable from the outside
+while non-public ones should only be reachable from other parts of application.
+This is not enforced whatsoever.
+
+=back
+
+See L<MVC::Meaf::X::Files> for implementation.
+
+File type detection is based on extentions so far, and the list is quite short.
+This MAY change in the future.
+Known file types are listed in C<%MVC::Neaf::X::Files::ExtType> hash.
+Patches welcome.
+
+I<It is probably a bad idea to serve files in production
+using a web application framework.
+Use a real web server instead.
+Not need to set up one for merely testing icons/js/css, though.>
+
+=cut
+
+sub static {
+    my ($self, $path, $dir, %options) = @_;
+    $self = _one_and_true($self) unless ref $self;
+
+    $options{caller} ||= [caller 0];
+
+    my %fwd_opt;
+    defined $options{$_} and $fwd_opt{$_} = delete $options{$_}
+        for qw( tentative override caller public );
+
+    if (ref $dir eq 'ARRAY') {
+        my $sub = $self->_static_global->preload( $path => $dir )->one_file_handler;
+        return $self->route( $path => $sub, method => 'GET', %fwd_opt,
+            , description => Carp::shortmess( "Static content from memory" ));
+    };
+
+    require MVC::Neaf::X::Files;
+    my $xfiles = MVC::Neaf::X::Files->new(
+        %options, root => $dir, base_url => $path );
+    return $self->route( $xfiles->make_route, %fwd_opt );
+};
+
+# Instantiate a global static handler to preload in-memory
+#    static files into.
+# TODO 0.30 lame name, find better
+# TODO 0.25 R::R
+sub _static_global {
+    my $self = shift;
+
+    return $self->{global_static} ||= do {
+        require MVC::Neaf::X::Files;
+        MVC::Neaf::X::Files->new( root => '/dev/null' );
+    };
+};
+
+
+=head2 alias()
+
+    $neaf->alias( $newpath => $oldpath )
+
+Create a new name for already registered route.
+The handler will be executed as is,
+but the hooks and defaults will be re-calculated.
+So be careful.
+
+B<[CAUTION]> As of 0.21, C<alias> does NOT adhere tentative/override switches.
+This needs to be fixed in the future.
+
+=cut
+
+# TODO 0.30 add_alias or something
+sub alias {
+    my ($self, $new, $old) = @_;
+    $self = _one_and_true($self) unless ref $self;
+
+    $new = canonize_path( $new );
+    $old = canonize_path( $old );
+
+    $self->{route}{$old}
+        or $self->my_croak( "Cannot create alias for unknown route $old" );
+
+    # TODO 0.30 restrict methods, handle tentative/override, detect dupes
+    $self->my_croak( "Attempting to set duplicate handler for path "
+        .( length $new ? $new : "/" ) )
+            if $self->{route}{ $new };
+
+    # reset cache
+    $self->{route_re} = undef;
+
+    # FIXME clone()
+    $self->{route}{$new} = $self->{route}{$old};
+    return $self;
+};
 
 =head2 set_path_defaults
 
@@ -374,6 +520,117 @@ sub set_path_defaults {
     my $dst = $self->{path_defaults}{$path} ||= {};
     $dst->{$_} = $src->{$_}
         for keys %$src;
+
+    return $self;
+};
+
+=head2 add_hook()
+
+    $neaf->add_hook ( phase => CODEREF, %options );
+
+Set hook that will be executed on a given request processing phase.
+
+Valid phases include:
+
+=over
+
+=item * pre_route [die]
+
+=item * pre_logic [die]
+
+=item * pre_content
+
+=item * pre_render [die]
+
+=item * pre_reply [reverse]
+
+=item * pre_cleanup [reverse]
+
+=back
+
+See L<MVC::Neaf/REQUEST PROCESSING PHASES AND HOOKS> below for detailed
+discussion of each phase.
+
+The CODEREF receives one and only argument - the C<$request> object.
+Return value is B<ignored>, see explanation below.
+
+Use C<$request>'s C<session>, C<reply>, and C<stash> methods
+for communication between hooks.
+
+Dying in a hook MAY cause interruption of request processing
+or merely a warning, depending on the phase.
+
+%options may include:
+
+=over
+
+=item * path => '/path' - where the hook applies. Default is '/'.
+Multiple locations may be supplied via C<[ /foo, /bar ...]>
+
+=item * exclude => '/path/skip' - don't apply to these locations,
+even if under '/path'.
+Multiple locations may be supplied via C<[ /foo, /bar ...]>
+
+=item * method => 'METHOD' || [ list ]
+List of request HTTP methods to which given hook applies.
+
+=item * prepend => 0|1 - all other parameters being equal,
+hooks will be executed in order of adding.
+This option allows to override this and run given hook first.
+Note that this does NOT override path bubbling order.
+
+=back
+
+=cut
+
+# TODO 0.25 convert to generic path specs for defaults, hooks, and helpers
+my %add_hook_args;
+$add_hook_args{$_}++ for qw(method path exclude prepend);
+
+our %hook_phases;
+$hook_phases{$_}++ for qw(pre_route
+    pre_logic pre_content pre_render pre_reply pre_cleanup);
+
+# TODO 0.25 R::R
+sub add_hook {
+    my ($self, $phase, $code, %opt) = @_;
+    $self = _one_and_true($self) unless ref $self;
+
+    my @extra = grep { !$add_hook_args{$_} } keys %opt;
+    $self->my_croak( "unknown options: @extra" )
+        if @extra;
+    $self->my_croak( "illegal phase: $phase" )
+        unless $hook_phases{$phase};
+
+    maybe_list( \$opt{method}, qw( GET HEAD POST PUT PATCH DELETE ) );
+    if ($phase eq 'pre_route') {
+        # handle pre_route separately
+        $self->my_croak("cannot specify paths/excludes for $phase")
+            if defined $opt{path} || defined $opt{exclude};
+        foreach( @{ $opt{method} } ) {
+            my $where = $self->{pre_route}{$_} ||= [];
+            $opt{prepend} ? unshift @$where, $code : push @$where, $code;
+        };
+        return $self;
+    };
+
+    maybe_list( \$opt{path}, '/' );
+    maybe_list( \$opt{exclude} );
+    @{ $opt{path} } = map { canonize_path($_) } @{ $opt{path} };
+    @{ $opt{exclude} } = map { canonize_path($_) } @{ $opt{exclude} };
+
+    $opt{caller} = [ caller(0) ]; # where the hook was set
+    $opt{phase}  = $phase; # just for information
+    $opt{code}   = $code;
+
+    # hooks == {method}{path}{phase}[nnn] => { code => CODE, ... }
+
+    foreach my $method ( @{$opt{method}} ) {
+        foreach my $path ( @{$opt{path}} ) {
+            my $where = $self->{hooks}{$method}{$path}{$phase} ||= [];
+            $opt{prepend} ? unshift @$where, \%opt : push @$where, \%opt;
+        };
+    };
 
     return $self;
 };
@@ -447,11 +704,7 @@ sub load_view {
 
 =head2 set_forced_view()
 
-=over
-
-=item * $neaf->set_forced_view( $view )
-
-=back
+    $neaf->set_forced_view( $view )
 
 If set, this view object will be user instead of ANY other view.
 
@@ -469,6 +722,260 @@ sub set_forced_view {
     return $self unless $view;
 
     $self->{force_view} = $self->get_view( $view );
+
+    return $self;
+};
+
+=head2 load_resources()
+
+    $neaf->load_resources( $file_name || \*FH )
+
+Load pseudo-files from a file, like templates or static files.
+
+The format is as follows:
+
+    @@ [TT] main.html
+
+    [% some_tt_template %]
+
+    @@ /favicon.ico format=base64 type=png
+
+    iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAABGdBTUEAAL
+    GPC/xhBQAAAAFzUkdCAK7OHOkAAAAgY0hS<....more encoded lines>
+
+I<This is obviously stolen from L<Mojolicious>,
+in a slightly incompatible way.>
+
+If view is specified in brackets, preload template.
+A missing view is skipped, no error.
+
+Otherwise file is considered a static resource.
+
+Extra options may follow file name:
+
+=over
+
+=item * C<type=ext | mime/type>
+
+=item * C<format=base64>
+
+=back
+
+Unknown options are skipped.
+Unknown format value will cause exception though.
+
+B<[EXPERIMENTAL]> This method and exact format of data is being worked on.
+
+=cut
+
+my $INLINE_SPEC = qr/^(?:\[(\w+)\]\s+)?(\S+)((?:\s+\w+=\S+)*)$/;
+sub load_resources {
+    my ($self, $file) = @_;
+
+    my $fd;
+    if (ref $file) {
+        $fd = $file;
+    } else {
+        open $fd, "<", $file
+            or $self->my_croak( "Failed to open(r) $file: $!" );
+    };
+
+    local $/;
+    my $content = <$fd>;
+    defined $content
+        or $self->my_croak( "Failed to read from $file: $!" );
+
+    my @parts = split /^@@\s+(.*\S)\s*$/m, $content, -1;
+    shift @parts;
+    die "Something went wrong" if @parts % 2;
+
+    my %templates;
+    my %static;
+    while (@parts) {
+        # parse file
+        my $spec = shift @parts;
+        my ($dest, $name, $extra) = ($spec =~ $INLINE_SPEC);
+        my %opt = $extra =~ /(\w+)=(\S+)/g;
+        $name or $self->my_croak("Bad resource spec format @@ $spec");
+
+        my $content = shift @parts;
+        if (!$opt{format}) {
+            $content =~ s/^\n+//s;
+            $content =~ s/\s+$//s;
+            $content = Encode::decode_utf8( $content, 1 );
+        } elsif ($opt{format} eq 'base64') {
+            $content = decode_base64( $content );
+        } else {
+            $self->my_croak("Unknown format $opt{format} in '@@ $spec' in $file");
+        };
+
+        if ($dest) {
+            # template
+            $self->my_croak("Duplicate template '@@ $spec' in $file")
+                if defined $templates{lc $dest}{$name};
+            $templates{$dest}{$name} = $content;
+        } else {
+            # static file
+            $self->my_croak("Duplicate static file '@@ $spec' in $file")
+                if $static{$name};
+            $static{$name} = [ $content, $opt{type} ];
+        };
+    };
+
+    # now do the loading
+    foreach my $name( keys %templates ) {
+        my $view = $self->get_view( $name, 1 ) or next;
+        $view->can("preload") or next; # TODO 0.30 warn here?
+        $view->preload( %{ $templates{$name} } );
+    };
+    if( %static ) {
+        my $st = $self->_static_global;
+        $st->preload( %static );
+        foreach( keys %static ) {
+            $self->route( $_ => $st->one_file_handler, method => 'GET'
+                , description => "Static resource from $file" );
+        };
+    };
+
+    return $self;
+};
+
+=head2 set_session_handler()
+
+    $neaf->set_session_handler( %options )
+
+Set a handler for managing sessions.
+
+If such handler is set, the request object will provide C<session()>,
+C<save_session()>, and C<delete_session()> methods to manage
+cross-request user data.
+
+% options may include:
+
+=over
+
+=item * C<engine> (required in method form, first argument in DSL form)
+- an object providing the storage primitives;
+
+=item * C<ttl> - time to live for session (default is 0, which means until
+browser is closed);
+
+=item * C<cookie> - name of cookie storing session id.
+The default is "session".
+
+=item * C<view_as> - if set, add the whole session into data hash
+under this name before view processing.
+
+=back
+
+The engine MUST provide the following methods
+(see L<MVC::Neaf::X::Session> for details):
+
+=over
+
+=item * session_ttl (implemented in MVC::Neaf::X::Session);
+
+=item * session_id_regex (implemented in MVC::Neaf::X::Session);
+
+=item * get_session_id (implemented in MVC::Neaf::X::Session);
+
+=item * create_session (implemented in MVC::Neaf::X::Session);
+
+=item * save_session (required);
+
+=item * load_session (required);
+
+=item * delete_session (implemented in MVC::Neaf::X::Session);
+
+=back
+
+=cut
+
+sub set_session_handler {
+    my ($self, %opt) = @_; # TODO 0.30 use helpers when ready
+    $self = _one_and_true($self) unless ref $self;
+
+    my $sess = delete $opt{engine};
+    my $cook = $opt{cookie} || 'neaf.session';
+
+    $self->my_croak("engine parameter is required")
+        unless $sess;
+
+    if (!ref $sess) {
+        $opt{session_ttl} = delete $opt{ttl} || $opt{session_ttl};
+
+        my $obj = eval { load $sess; $sess->new( %opt ); }
+            or $self->my_croak("Failed to load session '$sess': $@");
+
+        $sess = $obj;
+    };
+
+    my @missing = grep { !$sess->can($_) }
+        qw(get_session_id session_id_regex session_ttl
+            create_session load_session save_session delete_session );
+    $self->my_croak("engine object does not have methods: @missing")
+        if @missing;
+
+    my $regex = $sess->session_id_regex;
+    my $ttl   = $opt{ttl} || $sess->session_ttl || 0;
+
+    $self->{session_handler} = [ $sess, $cook, $regex, $ttl ];
+    $self->{session_view_as} = $opt{view_as};
+    return $self;
+};
+
+=head2 set_error_handler()
+
+    $neaf->set_error_handler ( $status => CODEREF( $request, %options ) )
+
+Set custom error handler.
+
+Status must be a 3-digit number (as in HTTP).
+Other allowed keys MAY appear in the future.
+
+The following options will be passed to coderef:
+
+=over
+
+=item * status - status being returned;
+
+=item * caller - file:line where the route was set up;
+This is DEPRECATED and will silently disappear around version 0.25
+
+=item * error - exception, an L<MVC::Neaf::Exception> object.
+
+=back
+
+The coderef MUST return an unblessed hash just like a normal controller does.
+
+In case of exception or unexpected return format
+default JSON-based error will be returned.
+
+Also available as C<set_error_handler( status =E<gt> \%hash )>.
+
+This is a synonym to C<sub { +{ status =E<gt> $status,  ... } }>.
+
+=cut
+
+# TODO 0.25 helper
+sub set_error_handler {
+    my ($self, $status, $code) = @_;
+    $self = _one_and_true($self) unless ref $self;
+
+    $status =~ /^(?:\d\d\d)$/
+        or $self->my_croak( "1st arg must be http status");
+    if (ref $code eq 'HASH') {
+        my $hash = $code;
+        $code = sub {
+            my ($req, %opt) = @_;
+
+            return { -status => $opt{status}, %opt, %$hash };
+        };
+    };
+    UNIVERSAL::isa($code, 'CODE')
+        or $self->my_croak( "2nd arg must be callback or hash");
+
+    $self->{error_template}{$status} = $code;
 
     return $self;
 };
@@ -592,6 +1099,227 @@ sub _make_route_re {
     # split into (/foo/bar)/(baz)?param=value
     return qr{^($re)(?:/*([^?]*)?)(?:\?|$)};
 };
+
+=head2 run()
+
+    $neaf->run();
+
+Run the application.
+This SHOULD be the last statement in your application's main file.
+
+If called in void context, assumes execution as C<CGI>
+and prints results to C<STDOUT>.
+If command line options are present at the moment,
+enters debug mode via L<MVC::Neaf::CLI>.
+Call C<perl yourapp.pl --help> for more.
+
+Otherwise returns a C<PSGI>-compliant coderef.
+This will also happen if you application is C<require>'d,
+meaning that it returns a true value and actually serves nothing until
+C<run()> is called again.
+
+Running under mod_perl requires setting a handler with
+L<MVC::Neaf::Request::Apache2>.
+
+=cut
+
+sub run {
+    my $self = shift;
+    $self = _one_and_true($self) unless ref $self;
+
+    if (!defined wantarray) {
+        # void context - we're being called as CGI
+        if (@ARGV) {
+            require MVC::Neaf::CLI;
+            MVC::Neaf::CLI->run($self);
+        } else {
+            require Plack::Handler::CGI;
+            # Somehow this caused uninitialized warning in Plack::Handler::CGI
+            $ENV{SCRIPT_NAME} = ''
+                unless defined $ENV{SCRIPT_NAME};
+            Plack::Handler::CGI->new->run( $self->run );
+        };
+    };
+
+    $self->post_setup;
+
+    return sub {
+        $self->handle_request(
+            MVC::Neaf::Request::PSGI->new( env => $_[0], route => $self ));
+    };
+};
+
+=head1 INTROSPECTION AND TESTING METHODS
+
+=head2 run_test()
+
+    $neaf->run_test( \%PSGI_ENV, %options )
+
+    $neaf->run_test( "/path?parameter=value", %options )
+
+Run a L<PSGI> request and return a list of
+C<($status, HTTP::Headers::Fast, $whole_content )>.
+
+Returns just the content in scalar context.
+
+Just as the name suggests, useful for testing only (it reduces boilerplate).
+
+Continuation responses are supported, but will be returned in one chunk.
+
+%options may include:
+
+=over
+
+=item * method - set method (default is GET)
+
+=item * cookie = \%hash - force HTTP_COOKIE header
+
+=item * header = \%hash - override some headers
+This gets overridden by type, cookie etc. in case of conflict
+
+=item * body = 'DATA' - force body in request
+
+=item * type - content-type of body
+
+=item * uploads - a hash of L<MVC::Neaf::Upload> objects.
+
+=item * secure = 0|1 - C<http> vs C<https>
+
+=item * override = \%hash - force certain data in C<ENV>
+Gets overridden by all of the above.
+
+=back
+
+=cut
+
+
+my %run_test_allow;
+$run_test_allow{$_}++
+    for qw( type method cookie body override secure uploads header );
+# TODO 0.25 R::R
+sub run_test {
+    my ($self, $env, %opt) = @_;
+    $self = _one_and_true($self) unless ref $self;
+
+    my @extra = grep { !$run_test_allow{$_} } keys %opt;
+    $self->my_croak( "Extra keys @extra" )
+        if @extra;
+
+    if (!ref $env) {
+        $env =~ /^(.*?)(?:\?(.*))?$/;
+        $env = {
+            REQUEST_URI => $env,
+            REQUEST_METHOD => 'GET',
+            QUERY_STRING => defined $2 ? $2 : '',
+            SERVER_NAME => 'localhost',
+            SERVER_PORT => 80,
+            SCRIPT_NAME => '',
+            PATH_INFO => $1,
+            'psgi.version' => [1,1],
+            'psgi.errors' => \*STDERR,
+        }
+    };
+    # TODO 0.30 complete emulation of everything a sane person needs
+    $env->{REQUEST_METHOD} = $opt{method} if $opt{method};
+    $env->{$_} = $opt{override}{$_} for keys %{ $opt{override} };
+
+    if (my $head = $opt{header} ) {
+        foreach (keys %$head) {
+            my $name = uc $_;
+            $name =~ tr/-/_/;
+            $env->{"HTTP_$name"} = $head->{$_};
+        };
+    };
+    if (exists $opt{secure}) {
+        $env->{'psgi.url_scheme'} = $opt{secure} ? 'https' : 'http';
+    };
+    if (my $cook = $opt{cookie}) {
+        if (ref $cook eq 'HASH') {
+            $cook = join '; ', map {
+                uri_escape_utf8($_).'='.uri_escape_utf8($cook->{$_})
+            } keys %$cook;
+        };
+        $env->{HTTP_COOKIE} = $env->{HTTP_COOKIE}
+            ? "$env->{HTTP_COOKIE}; $cook"
+            : $cook;
+    };
+    if (my $body = $opt{body} ) {
+        open my $dummy, "<", \$body
+            or die ("NEAF: FATAL: Redirect failed in run_test");
+        $env->{'psgi.input'} = $dummy;
+        $env->{CONTENT_LENGTH} = length $body;
+    };
+    if (my $type = $opt{type}) {
+        $type = 'application/x-www-form-urlencoded' if $type eq '?';
+        $env->{CONTENT_TYPE} = $opt{type} eq '?' ? '' : $opt{type}
+    };
+
+    my %fake;
+    $fake{uploads} = delete $opt{uploads};
+
+    scalar $self->run; # warm up caches
+
+    my $req = MVC::Neaf::Request::PSGI->new( %fake, env => $env, route => $self );
+
+    my $ret = $self->handle_request( $req );
+    if (ref $ret eq 'CODE') {
+        # PSGI functional interface used.
+        require MVC::Neaf::Request::FakeWriter;
+        $ret = MVC::Neaf::Request::FakeWriter->new->respond( $ret );
+    };
+
+    return (
+        $ret->[0],
+        HTTP::Headers::Fast->new( @{ $ret->[1] } ),
+        join '', @{ $ret->[2] },
+    );
+};
+
+=head2 get_routes()
+
+    $neaf->get_routes( $callback->(\%route_spec, $path, $method) )
+
+Returns a 2-level hashref with ALL routes for inspection.
+
+So C<$hash{'/path'}{'GET'} = { handler, expected params, description etc }>
+
+If callback is present, run it against route definition
+and append to hash its return value, but ONLY if it's true.
+
+As of 0.20, route definitions are only protected by shallow copy,
+so be careful with them.
+
+This SHOULD NOT be used by application itself.
+
+=cut
+
+# TODO 0.25 Route->inspect, Route::Recursive->inspect
+sub get_routes {
+    my ($self, $code) = @_;
+    $self = _one_and_true($self) unless ref $self;
+
+    $code ||= sub { $_[0] };
+    scalar $self->run; # burn caches
+
+    # TODO 0.30 must do deeper copying
+    my $all = $self->{route};
+    my %ret;
+    foreach my $path ( keys %$all ) {
+        my $batch = $all->{$path};
+        foreach my $method ( keys %$batch ) {
+            my $route = $batch->{$method};
+            $route->post_setup
+                unless $route->is_locked;
+
+            my $filtered = $code->( $route->clone, $path, $method );
+            $ret{$path}{$method} = $filtered if $filtered;
+        };
+    };
+
+    return \%ret;
+};
+
+
 
 =head1 RUN TIME METHODS
 
@@ -734,6 +1462,21 @@ sub get_view {
     # Finally, return the thing.
     return $self->{seen_view}{$view};
 };
+
+=head2 get_form()
+
+    $neaf->get_form( "name" )
+
+Fetch form named "name". No magic here. See L</add_form>.
+
+=cut
+
+# TODO 0.25 R::R
+sub get_form {
+    my ($self, $name) = @_;
+    return $self->{forms}{$name};
+};
+
 
 =head2 RUNTIME STUB METHODS
 
