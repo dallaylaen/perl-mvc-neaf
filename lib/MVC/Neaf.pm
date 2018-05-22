@@ -231,12 +231,7 @@ See complete description below.
 =cut
 
 use Carp;
-use Encode;
-use HTTP::Headers::Fast;
-use MIME::Base64;
-use Module::Load;
-use Scalar::Util qw(blessed looks_like_number);
-use URI::Escape;
+use Scalar::Util qw( blessed );
 use parent qw(Exporter);
 
 our @EXPORT;
@@ -245,11 +240,6 @@ my  @EXPORT_SUGAR = qw( neaf ); # Will populate later - see @ALL_METHODS below
 our %EXPORT_TAGS = (
     sugar => \@EXPORT_SUGAR,
 );
-
-use MVC::Neaf::Util qw( http_date canonize_path path_prefixes
-    run_all run_all_nodie maybe_list );
-use MVC::Neaf::Request::PSGI;
-use MVC::Neaf::Exception;
 
 # NOTE This is for new() only, the rest is handled by parent
 use parent qw(MVC::Neaf::Route::Recursive);

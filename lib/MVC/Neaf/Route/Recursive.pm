@@ -33,6 +33,7 @@ use URI::Escape;
 
 use parent qw(MVC::Neaf::Route);
 use MVC::Neaf::Util qw( run_all run_all_nodie http_date canonize_path maybe_list );
+use MVC::Neaf::Request::PSGI;
 
 sub _one_and_true {
     my $self = shift;
