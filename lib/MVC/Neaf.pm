@@ -251,28 +251,19 @@ use MVC::Neaf::Util qw( http_date canonize_path path_prefixes
 use MVC::Neaf::Request::PSGI;
 use MVC::Neaf::Exception;
 
-# TODO 0.25 This module must be a fronted to Recursive
+# NOTE This is for new() only, the rest is handled by parent
 use parent qw(MVC::Neaf::Route::Recursive);
-
-# TODO 0.30 Make a separate "MVC::Neaf::Route::Main" class,
-# this file should be for sugar & docs only
 
 our $Inst;
 
-my %FORM_ENGINE = (
-    neaf     => 'MVC::Neaf::X::Form',
-    livr     => 'MVC::Neaf::X::Form::LIRV',
-    wildcard => 'MVC::Neaf::X::Form::Wildcard',
-);
+=head2 add_route()
 
-=head2 route()
-
-The route() function and its numerous aliases define a handler
+The add_route() function and its numerous aliases define a handler
 for given by URI path and HTTP method(s).
 
 =over
 
-=item * $neaf->route( '/path' => CODEREF, %options )
+=item * $neaf->add_route( '/path' => CODEREF, %options )
 
 =item * get '/path' => sub { CODE; }, %options;
 
@@ -407,32 +398,9 @@ This is not enforced whatsoever.
 Also, any number of dash-prefixed keys MAY be present.
 This is the same as putting them into C<default> hash.
 
-B<[NOTE]> For some reason ability to add multicomponent paths
-like C<(foo =E<gt> bar =E<gt> \&code)> was added in the past,
-resulting in C<"/foo/bar" =E<gt> \&code>.
-
-It was never documented, will issue a warning, and will be removed for good
-it v.0.25.
-
 See L<MVC::Neaf::Route::Recursive/add_route> for implementation.
 
 =cut
-
-sub route {
-    my $self = shift; # TODO 0.25 remove, alias to add_route
-
-    # HACK!! pack path components together, i.e.
-    # foo => bar => \&handle eq "/foo/bar" => \&handle
-    carp "NEAF: using multi-component path in route() is DEPRECATED and is to be removed in v.0.25"
-        unless ref $_[1];
-    my ( $path, $sub );
-    while ($sub = shift) {
-        last if ref $sub;
-        $path .= "/$sub";
-    };
-
-    $self->add_route($path, $sub, @_);
-};
 
 =head2 static()
 
@@ -779,31 +747,6 @@ And by running this one gets
     {"error":{"foo":"BAD_FORMAT"}}
 
 =cut
-
-sub add_form {
-    my ($self, $name, $spec, %opt) = @_; # TODO 0.25 Route
-    # TODO 0.25 helper
-
-    $name and $spec
-        or $self->my_croak( "Form name and spec must be nonempty" );
-    exists $self->{forms}{$name}
-        and $self->my_croak( "Form $name redefined" );
-
-    if (!blessed $spec) {
-        my $eng = delete $opt{engine} || 'MVC::Neaf::X::Form';
-        $eng = $FORM_ENGINE{ lc $eng } || $eng;
-
-        if (!$eng->can("new")) {
-            eval { load $eng; 1 }
-                or $self->my_croak( "Failed to load form engine $eng: $@" );
-        };
-
-        $spec = $eng->new( $spec, %opt );
-    };
-
-    $self->{forms}{$name} = $spec;
-    return $self;
-};
 
 =head2 set_error_handler()
 

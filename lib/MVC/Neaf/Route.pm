@@ -22,8 +22,9 @@ It is useless in and off itself.
 
 use Carp;
 use Encode;
-use Scalar::Util qw(looks_like_number);
-use URI::Escape qw(uri_unescape);
+use Module::Load;
+use Scalar::Util qw( looks_like_number blessed );
+use URI::Escape qw( uri_unescape );
 
 use parent qw(MVC::Neaf::Util::Base);
 use MVC::Neaf::Util qw( canonize_path path_prefixes run_all run_all_nodie http_date );
@@ -188,6 +189,139 @@ sub _can_modify {
     croak "Modification of locked ".(ref $self)." attempted";
 };
 
+=head2 add_form()
+
+    add_form( name => $validator )
+
+Create a named form for future query data validation
+via C<$request-E<gt>form("name")>.
+See L<MVC::Neaf::Request/form>.
+
+The C<$validator> is one of:
+
+=over
+
+=item * An object with C<validate> method accepting one C<\%hashref>
+argument (the raw form data).
+
+=item * A CODEREF accepting the same argument.
+
+=back
+
+Whatever is returned by validator is forwarded into the controller.
+
+Neaf comes with a set of predefined validator classes that return
+a convenient object that contains collected valid data, errors (if any),
+and an is_valid flag.
+
+The C<engine> parameter of the functional form has predefined values
+C<Neaf> (the default), C<LIVR>, and C<Wildcard> (all case-insensitive)
+pointing towards L<MVC::Neaf::X::Form>, L<MVC::Neaf::X::Form::LIVR>,
+and L<MVC::Neaf::X::Form::Wildcard>, respectively.
+
+You are encouraged to use C<LIVR>
+(See L<Validator::LIVR> and L<LIVR grammar|https://github.com/koorchik/LIVR>)
+for anything except super-basic regex checks.
+
+If an arbitrary class name is given instead, C<new()> will be called
+on that class with \%spec ref as first parameter.
+
+Consider the following script:
+
+    use MVC::Neaf qw(:sugar);
+    neaf form => my => { foo => '\d+', bar => '[yn]' };
+    get '/check' => sub {
+        my $req = shift;
+        my $in = $req->form("my");
+        return $in->is_valid ? { ok => $in->data } : { error => $in->error };
+    };
+    neaf->run
+
+And by running this one gets
+
+    bash$ curl http://localhost:5000/check?bar=xxx
+    {"error":{"bar":"BAD_FORMAT"}}
+    bash$ curl http://localhost:5000/check?bar=y
+    {"ok":{"bar":"y"}}
+    bash$ curl http://localhost:5000/check?bar=yy
+    {"error":{"bar":"BAD_FORMAT"}}
+    bash$ curl http://localhost:5000/check?foo=137\&bar=n
+    {"ok":{"bar":"n","foo":"137"}}
+    bash$ curl http://localhost:5000/check?foo=leet
+    {"error":{"foo":"BAD_FORMAT"}}
+
+=cut
+
+my %FORM_ENGINE = (
+    neaf     => 'MVC::Neaf::X::Form',
+    livr     => 'MVC::Neaf::X::Form::LIRV',
+    wildcard => 'MVC::Neaf::X::Form::Wildcard',
+);
+
+sub add_form {
+    my ($self, $name, $spec, %opt) = @_;
+    # TODO 0.25 helper
+
+    $name and $spec
+        or $self->my_croak( "Form name and spec must be nonempty" );
+    exists $self->{forms}{$name}
+        and $self->my_croak( "Form $name redefined" );
+
+    if (!blessed $spec) {
+        my $eng = delete $opt{engine} || 'MVC::Neaf::X::Form';
+        $eng = $FORM_ENGINE{ lc $eng } || $eng;
+
+        if (!$eng->can("new")) {
+            eval { load $eng; 1 }
+                or $self->my_croak( "Failed to load form engine $eng: $@" );
+        };
+
+        $spec = $eng->new( $spec, %opt );
+    };
+
+    $self->{forms}{$name} = $spec;
+    return $self;
+};
+
+=head2 get_form()
+
+    $neaf->get_form( "name" )
+
+Fetch form named "name" previously added via add_form to
+this route or one of its parent routes.
+
+See L<MVC::Neaf::Request/form>.
+See also L</add_form>.
+
+=cut
+
+sub get_form {
+    my ($self, $name) = @_;
+
+    # Aggressive caching for the win
+    return $self->{forms}{$name} ||= do {
+        my $parent = $self->parent;
+        $self->my_croak("Failed to locate form named $name")
+            unless $parent;
+        $parent->get_form($name);
+    };
+};
+
+=head2 get_view
+
+=cut
+
+sub get_view {
+    my ($self, $name) = @_;
+
+    return $self->{views}{$name} ||= do {
+        my $parent = $self->parent;
+        $self->my_croak("Failed to locate view named $name")
+            unless $parent;
+        $parent->get_view($name);
+    };
+};
+
 =head2 append_defaults( \%hashref, \%hashref2 )
 
 Add more default values.
@@ -325,30 +459,6 @@ sub dispatch_logic {
 #   TODO cannot write to request until hash type-checked
 #    $req->_set_reply( $reply );
     $reply;
-};
-
-=head2 PROXY METHODS
-
-The following methods are redirected as is to 'parent'
-(presumably a L<MVC::Neaf> instance.
-
-=over
-
-=item * get_form
-
-=item * get_view
-
-=back
-
-=cut
-
-# Setup proxy methods
-foreach (qw(get_form get_view)) {
-    my $method = $_;
-    use warnings FATAL=>qw(all);
-    my $sub = sub { (shift)->parent->$method(@_) };
-    no strict 'refs'; ## no critic
-    *{$method} = $sub;
 };
 
 # Setup getters

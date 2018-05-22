@@ -1463,21 +1463,6 @@ sub get_view {
     return $self->{seen_view}{$view};
 };
 
-=head2 get_form()
-
-    $neaf->get_form( "name" )
-
-Fetch form named "name". No magic here. See L</add_form>.
-
-=cut
-
-# TODO 0.25 R::R
-sub get_form {
-    my ($self, $name) = @_;
-    return $self->{forms}{$name};
-};
-
-
 =head2 RUNTIME STUB METHODS
 
 As L<MVC::Neaf::Route::Recursive> is actually a L<MVC::Neaf::Route> instance,
@@ -1852,6 +1837,36 @@ sub server_stat {
 
     return $self;
 };
+
+=item * route
+
+Same as L</add_route>, but also supports weird multicomponent path notation.
+
+B<[NOTE]> For some reason ability to add multicomponent paths
+like C<(foo =E<gt> bar =E<gt> \&code)> was added in the past,
+resulting in C<"/foo/bar" =E<gt> \&code>.
+
+It was never documented, will issue a warning, and will be removed for good
+it v.0.25.
+
+=cut
+
+sub route {
+    my $self = shift; # TODO 0.25 remove, alias to add_route
+
+    # HACK!! pack path components together, i.e.
+    # foo => bar => \&handle eq "/foo/bar" => \&handle
+    carp "NEAF: using multi-component path in route() is DEPRECATED and is to be removed in v.0.25"
+        unless ref $_[1];
+    my ( $path, $sub );
+    while ($sub = shift) {
+        last if ref $sub;
+        $path .= "/$sub";
+    };
+
+    $self->add_route($path, $sub, @_);
+};
+
 
 =back
 
