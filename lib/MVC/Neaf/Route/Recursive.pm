@@ -1764,4 +1764,97 @@ sub mangle_headers {
     # END MANGLE HEADERS
 };
 
+=head1 DEPRECATED METHODS
+
+Some methods become obsolete during Neaf development.
+Anything that is considered deprecated will continue to be supported
+I<for at least three minor versions> after official deprecation
+and a corresponding warning being added.
+
+Please keep an eye on C<Changes> though.
+
+B<Here is the list of such methods, for the sake of completeness.>
+
+=over
+
+=item * C<$neaf-E<gt>error_template( { param =E<gt> value } )>
+
+Use L</set_error_handler> aka C<neaf \d\d\d =E<gt> sub { ... }>
+instead.
+
+=cut
+
+sub error_template {
+    my $self = shift; # TODO 0.25 remove
+
+    carp "error_template() is deprecated, use set_error_handler() instead";
+    return $self->set_error_handler(@_);
+};
+
+=item * C<$neaf-E<gt>set_default ( key =E<gt> value, ... )>
+
+Use C<MVC::Neaf-E<gt>set_path_defaults( '/', { key =E<gt> value, ... } );>
+as a drop-in replacement.
+
+=cut
+
+sub set_default {
+    my ($self, %data) = @_; # TODO 0.25 remove
+    $self = _one_and_true($self) unless ref $self;
+
+    carp "DEPRECATED use set_path_defaults( '/', \%data ) instead of set_default()";
+
+    return $self->set_path_defaults( '/', \%data );
+};
+
+=item * C<$neaf-E<gt>server_stat ( MVC::Neaf::X::ServerStat-E<gt>new( ... ) )>
+
+Record server performance statistics during run.
+
+The interface of C<MVC::Neaf::X::ServerStat> is as follows:
+
+    my $stat = MVC::Neaf::X::ServerStat->new (
+        write_threshold_count => 100,
+        write_threshold_time  => 1,
+        on_write => sub {
+            my $array_of_arrays = shift;
+
+            foreach (@$array_of_arrays) {
+                # @$_ = (script_name, http_status,
+                #       controller_duration, total_duration, start_time)
+                # do something with this data
+                warn "$_->[0] returned $_->[1] in $_->[3] sec\n";
+            };
+        },
+    );
+
+on_write will be executed as soon as either count data points are accumulated,
+or time is exceeded by difference between first and last request in batch.
+
+Returns self.
+
+B<[DEPRECATED]> Just use pre_route/pre_reply/pre_cleanup hooks if you need
+to gather performance statistics.
+
+=cut
+
+sub server_stat {
+    my ($self, $obj) = @_; # TODO 0.30 remove
+    $self = _one_and_true($self) unless ref $self;
+
+    carp( (ref $self)."->server_stat: DEPRECATED, use hooks & custom stat toolinstead" );
+
+    if ($obj) {
+        $self->{stat} = $obj;
+    } else {
+        delete $self->{stat};
+    };
+
+    return $self;
+};
+
+=back
+
+=cut
+
 1;
