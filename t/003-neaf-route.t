@@ -6,8 +6,9 @@ use Test::More tests => 1;
 
 my $sub = eval {
     require MVC::Neaf;
-    MVC::Neaf->route( '/' => sub {+{}} );
-    MVC::Neaf->run;
+    my $n = MVC::Neaf->new;
+    $n->route( '/' => sub {+{}} );
+    $n->run;
 };
 
 diag $@ if $@;
