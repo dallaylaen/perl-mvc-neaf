@@ -155,7 +155,7 @@ sub make_reply {
         -status   => $self->{-status},
         -content  => "See $self->{-location}\n",
         -type     => 'text/plain; charset=utf8',
-        -headers  => [ Location => $self->{-location}, @{ $self->{-headers} } ],
+        -headers  => [ Location => $self->{-location}, @{ $self->{-headers} || [] } ],
     } if ($self->{-location});
 
     my $req_id = $req->id;
