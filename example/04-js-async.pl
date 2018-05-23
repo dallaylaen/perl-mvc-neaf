@@ -13,7 +13,7 @@
 use strict;
 use warnings;
 use MVC::Neaf::Util qw(decode_json); # Just 'use JSON' in real code
-use MVC::Neaf qw(:sugar);
+use MVC::Neaf;
 
 # Finally an example where not everything is in one file.
 neaf static => '/04/main.js' => __FILE__.'.data/main.js';

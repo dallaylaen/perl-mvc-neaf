@@ -6,7 +6,7 @@
 use strict;
 use warnings;
 
-use MVC::Neaf qw(:sugar);
+use MVC::Neaf;
 
 # Now to the NEAF itself: set common default values
 neaf view => 'TT02' => 'TT';

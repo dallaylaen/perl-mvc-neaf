@@ -7,7 +7,7 @@
 use strict;
 use warnings;
 
-use MVC::Neaf qw(:sugar);
+use MVC::Neaf;
 use MVC::Neaf::X::Session::Cookie;
 
 # Instantiate session engine

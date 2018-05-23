@@ -6,7 +6,7 @@
 use strict;
 use warnings;
 
-use MVC::Neaf qw(:sugar);
+use MVC::Neaf;
 
 # Some HTML boilerplate
 # This is going to be a separate file in a real world app
