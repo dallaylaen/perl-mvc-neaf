@@ -896,6 +896,11 @@ sub set_session_handler {
     my ($self, %opt) = @_; # TODO 0.30 use helpers when ready
     $self = _one_and_true($self) unless ref $self;
 
+    if ($self->{session_lock}) {
+        carp "Useless set_session_handler() call after set_session_handler() and run()";
+        return $self;
+    };
+
     my $sess = delete $opt{engine};
     my $cook = $opt{cookie} || 'neaf.session';
 
@@ -1050,19 +1055,23 @@ sub post_setup {
         $node->{HEAD} ||= $node->{GET}->clone( method => 'HEAD' );
     };
 
+    # TODO 0.25 UGLY HACK - we provide special lock for session()
+    #    just in case run() was accidentally called before set_session_handler
+    if (!$self->{session_lock} and my $engine = $self->{session_handler}) {
+        $self->add_hook( pre_route => sub {
+            $_[0]->_set_session_handler( $engine );
+        }, prepend => 1 );
+        if (my $key = $self->{session_view_as}) {
+            $self->add_hook( pre_render => sub {
+                $_[0]->reply->{$key} = $_[0]->load_session;
+            }, prepend => 1 );
+        };
+        $self->{session_lock}++;
+    };
+
     # initialize stuff if first run
     # Please bear in mind that $_[0] in callbacks is ALWAYS the Request object
     if (!$self->{lock}) {
-        if (my $engine = $self->{session_handler}) {
-            $self->add_hook( pre_route => sub {
-                $_[0]->_set_session_handler( $engine );
-            }, prepend => 1 );
-            if (my $key = $self->{session_view_as}) {
-                $self->add_hook( pre_render => sub {
-                    $_[0]->reply->{$key} = $_[0]->load_session;
-                }, prepend => 1 );
-            };
-        };
         if (my $engine = $self->{stat}) {
             # TODO 0.25 remove for good
             $self->add_hook( pre_route => sub {
