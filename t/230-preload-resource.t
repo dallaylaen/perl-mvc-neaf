@@ -5,7 +5,7 @@ use warnings;
 use Test::More;
 use Test::Warn;
 
-use MVC::Neaf qw(:sugar);
+use MVC::Neaf;
 
 get '/foo' => sub {
     +{

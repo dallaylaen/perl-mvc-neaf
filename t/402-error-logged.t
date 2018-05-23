@@ -5,7 +5,7 @@ use warnings;
 use Test::More;
 use MVC::Neaf::Util qw(JSON encode_json decode_json);
 
-use MVC::Neaf qw(:sugar);
+use MVC::Neaf;
 
 my @warn;
 $SIG{__WARN__} = sub { push @warn, shift };

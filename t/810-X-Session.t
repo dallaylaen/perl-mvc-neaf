@@ -5,7 +5,7 @@ use warnings;
 use Test::More;
 use URI::Escape;
 
-use MVC::Neaf qw(:sugar);
+use MVC::Neaf;
 use MVC::Neaf::Request;
 
 {

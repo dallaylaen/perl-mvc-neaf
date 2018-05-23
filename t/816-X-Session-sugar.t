@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Test::More;
 
-use MVC::Neaf qw(:sugar);
+use MVC::Neaf;
 
 # BEGIN APP
 neaf session => 'MVC::Neaf::X::Session::Cookie', key => 'very secret key';
