@@ -1,5 +1,15 @@
 Revision history for MVC-Neaf
 
+0.23    Wed May 23 2018
+        - API Add Route class, add $req->route() call for showing current route
+        - API add prefix(), postfix(), and splat() for URI path components
+        - API Make :sugar keyword optional, export get+post & neaf by default 
+        - API BREAK deprecate MVC::Neaf->something() (expect new() of course)
+        - API BREAK Kill deprecated neaf->pre_route for good
+        - API Add -headers support to exception
+        - REF A giant refactoring of the core
+        - BUG A lot of bugs introduced & then fixed
+
 0.2203  Thu Jan 25 2018
         - AUX Add github links to Makefile.PL
 

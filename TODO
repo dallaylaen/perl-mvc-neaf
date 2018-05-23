@@ -1,32 +1,32 @@
 SINCE VERSION | TBD VERSION | COMMENT
     -- next version --
     -- todo --
-0.19    0.25    API BREAK rename script_name, path_info => smth reasonable
+0.23    0.25    API Add helpers - per-route pluggable request methods
 0.18    0.25    NET deprecate apache backend
 0.20    0.25    API body_json( validator ) - die 422 is !json || val fails
 0.17    0.25    TPL Predefined header/footer to spare user of boilerplate
 0.18    0.25    TPL variables -> js module for TT
-0.20    0.30    MOD Add json schema support to forms
-0.19    0.30    MOD Add clusterisation to wildcard form (thx @akuklev)
+0.19    0.30    COR Async support
+0.13    0.30    TPL Add XSLate support
 0.16    0.30    MOD Oauth2 example/helper
 0.16    0.30    MOD OpenAPI plugin: model+in-spec+out-spec => swagger.txt+routes
-0.19    0.30    API multiple uploads under same name, wildcard uploads
 0.14    0.30    API Add named forms to route defn JFYI
-0.13    0.30    MOD static: X-Accel-Redirect (@cono)
 0.16    0.30    API Param strict mode - die 422 if bad params
 0.12    0.30    MOD static file_regex, dir_regex
-0.20    0.30    TPL Add default favicon for neaf
     -- backlog --
+0.19    0.40    MOD Add clusterisation to wildcard form (thx @akuklev)
+0.19    0.40    API multiple uploads under same name, wildcard uploads
+0.13    0.40    MOD static: X-Accel-Redirect (@cono)
+0.20    0.40    TPL Add default favicon for neaf
+0.20    0.40    MOD Add json schema support to forms
 0.19    0.40    API Generate a catalog of public resources on 404
 0.19    0.40    REF Use Digest::SHA3 everywhere (thx @akuklev)
 0.19    0.40    MOD Session::Redis
-0.13    0.40    TPL Add XSLate support
 0.18    0.40    API neaf prefix => '/path', $req->prefix to fetch, pop on run()
 0.09    0.40    MOD Add form defaults populating BOTH raw and data
 0.02    0.40    DOC HOWTO add dumper to TT view (pre-render)
 0.17    0.40    MOD form->data_hash instead of %{ form->data }
 0.07    0.40    MOD Add "cleanup" method to X::Session - for offline cleanups
-0.19    0.40    COR Anyevent support - separate postponed actions
 0.17    0.40    MOD Add well-known regexes from Regexp::Common to default Form
 0.18    0.40    DEV last source file, complain if no run() at EOF
 0.16    0.40    MOD rewrite performance stats
