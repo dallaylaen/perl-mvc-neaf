@@ -37,7 +37,7 @@ as a L<CGI> script, L<PSGI> application, or Apache handler.
     use warnings;
     use MVC::Neaf;
 
-    get+post '/app' => sub {
+    get+post '/hello' => sub {
         my $req = shift;
 
         my $name = $req->param( name => qr/[-'\w\s]+/ ) || "Mystical stranger";
@@ -97,8 +97,8 @@ similar to that of L<CGI> or L<Plack::Request> with some minor differences:
     $req->hostname    ; # = server.name
     $req->port        ; # = 1337
     $req->path        ; # = /mathing/route/some/more/slashes
-    $req->script_name ; # = /mathing/route
-    $req->path_info   ; # = /some/more/slashes
+    $req->prefix      ; # = /mathing/route
+    $req->postfix     ; # = /some/more/slashes
 
     $req->param( foo => '\d+' ); # = 1
     $req->get_cookie( session => '.+' ); # = whatever it was set to before
@@ -278,7 +278,7 @@ but can be specified explicitly if needed
 
 =back
 
-Short aliases can be combined using the C<+> sign, as in
+HTTP method declarations can be combined using the C<+> sign, as in
 
     get + post '/submit' => sub {
         my $req = shift;
