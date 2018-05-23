@@ -85,4 +85,18 @@ L<https://github.com/dallaylaen/perl-mvc-neaf>
 
 =cut
 
+=head1 LICENSE AND COPYRIGHT
+
+This module is part of L<MVC::Neaf> suite.
+
+Copyright 2016-2018 Konstantin S. Uvarin C<khedin@cpan.org>.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of either: the GNU General Public License as published
+by the Free Software Foundation; or the Artistic License.
+
+See L<http://dev.perl.org/licenses/> for more information.
+
+=cut
+
 1;
