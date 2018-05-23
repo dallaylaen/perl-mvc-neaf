@@ -228,7 +228,7 @@ on that class with \%spec ref as first parameter.
 
 Consider the following script:
 
-    use MVC::Neaf qw(:sugar);
+    use MVC::Neaf;
     neaf form => my => { foo => '\d+', bar => '[yn]' };
     get '/check' => sub {
         my $req = shift;

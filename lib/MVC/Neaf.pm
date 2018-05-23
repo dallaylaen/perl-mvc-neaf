@@ -202,6 +202,9 @@ By default, NEAF exports a pretty standard route declaration interface
 (C<get> + C<head> + C<post> + C<put> + C<patch> + C<del> for delete)
 and a single L</neaf> function (see below) for more advanced functions.
 
+A C<:sugar> export keyword was used for it previously,
+but it is no longer needed.
+
 All prototyped declarative functions described below
 are really frontends to a single L<MVC::Neaf> instance
 which is also returned by a C<neaf> call without parameters.
@@ -714,7 +717,7 @@ on that class with \%spec ref as first parameter.
 
 Consider the following script:
 
-    use MVC::Neaf qw(:sugar);
+    use MVC::Neaf;
     neaf form => my => { foo => '\d+', bar => '[yn]' };
     get '/check' => sub {
         my $req = shift;
@@ -1268,7 +1271,7 @@ All of them are supposed to start and end with:
 
     use strict;
     use warnings;
-    use MVC::Neaf qw(:sugar);
+    use MVC::Neaf;
 
     # ... snippet here
 

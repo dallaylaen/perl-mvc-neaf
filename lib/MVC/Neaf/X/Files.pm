@@ -10,7 +10,7 @@ MVC::Neaf::X::Files - serve static content for Not Even A Framework.
 
 =head1 SYNOPSIS
 
-     use MVC::Neaf qw(:sugar);
+     use MVC::Neaf;
 
      neaf static "/path/in/url" => "/local/path", %options;
 

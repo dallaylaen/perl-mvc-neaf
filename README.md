@@ -34,7 +34,7 @@ on the `?name=` parameter.
 
     use strict;
     use warnings;
-    use MVC::Neaf qw(:sugar);
+    use MVC::Neaf;
 
     get + post "/" => sub {
 		my $req = shift;
