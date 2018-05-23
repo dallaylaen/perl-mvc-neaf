@@ -20,10 +20,10 @@ neaf->load_resources( \*DATA );
 get+post '/02/request' => sub {
     my $req = shift;
 
-    if (!$req->path_info) {
+    if (!$req->postfix) {
         # This actually dies but with a special-case exception
         # that Neaf converts into a proper redirect
-        $req->redirect( $req->script_name . "/and/beyond" );
+        $req->redirect( $req->prefix . "/and/beyond" );
     };
 
     # Just return the data
@@ -34,7 +34,7 @@ get+post '/02/request' => sub {
         -view     => $req->param(as_json => '1') ? 'JS' : 'TT02',
         map { $_  => $req->$_ }
             qw( scheme hostname port method http_version
-            path script_name path_info
+            path prefix postfix
             referer user_agent client_ip ),
     };
 }, (
@@ -74,9 +74,9 @@ __DATA__
     <span class="method" title="hostname">[% hostname | html %]</span>
     :
     <span class="method" title="port">[% port | html %]</span>
-    <span class="method" title="script_name">[% script_name | html %]</span>
+    <span class="method" title="prefix">[% prefix | html %]</span>
     /
-    <span class="method" title="path_info">[% path_info | html %]</span>
+    <span class="method" title="postfix">[% postfix | html %]</span>
 
     </div>
     <h2>Repeat</h2>
