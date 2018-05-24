@@ -340,7 +340,7 @@ sub post_setup {
     my $neaf = $self->parent;
     # CALCULATE DEFAULTS
     # merge data sources, longer paths first
-    $self->{default} = $neaf->get_defaults( $self->method, $self->path, $self->{default} );
+    $self->{default} = $neaf->get_path_defaults( $self->method, $self->path, $self->{default} );
     $self->{hooks}   = $neaf->get_hooks   ( $self->method, $self->path );
 
     $self->lock;

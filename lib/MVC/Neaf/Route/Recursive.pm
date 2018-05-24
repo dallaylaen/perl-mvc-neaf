@@ -537,6 +537,26 @@ sub set_path_defaults {
     return $self;
 };
 
+=head2 get_path_defaults
+
+    get_path_defaults ( $methods, $path, [ \%override ... ] )
+
+Fetch default values for given (path, method) combo as a single hash.
+
+=cut
+
+sub get_path_defaults {
+    my ($self, $method, $path, @override) = @_;
+
+    my @source = $self->{defaults}->fetch( method => $method, path => $path );
+    my %hash = map { %$_ } @source, grep defined, @override;
+    defined $hash{$_} or delete $hash{$_}
+        for keys %hash;
+
+    \%hash;
+};
+
+
 =head2 add_hook()
 
     $neaf->add_hook ( phase => CODEREF, %options );
@@ -681,25 +701,6 @@ sub get_hooks {
     };
 
     return \%ret;
-};
-
-=head2 get_defaults
-
-    get_defaults ( $methods, $path, [ \%override ... ] )
-
-Fetch default values for given (path, method) combo as a single hash.
-
-=cut
-
-sub get_defaults {
-    my ($self, $method, $path, @override) = @_;
-
-    my @source = $self->{defaults}->fetch( method => $method, path => $path );
-    my %hash = map { %$_ } @source, grep defined, @override;
-    defined $hash{$_} or delete $hash{$_}
-        for keys %hash;
-
-    \%hash;
 };
 
 =head2 load_view()
