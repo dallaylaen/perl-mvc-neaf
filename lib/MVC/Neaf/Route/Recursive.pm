@@ -962,11 +962,6 @@ sub set_session_handler {
     my ($self, %opt) = @_; # TODO 0.30 use helpers when ready
     $self = _one_and_true($self) unless ref $self;
 
-    if ($self->{session_lock}) {
-        carp "Useless set_session_handler() call after set_session_handler() and run()";
-        return $self;
-    };
-
     my $sess = delete $opt{engine};
     my $cook = $opt{cookie} || 'neaf.session';
 
