@@ -217,7 +217,7 @@ sub add_route {
 
     $args{path} = $path = canonize_path( $path );
 
-    maybe_list( \$args{method}, qw( GET POST ) );
+    $args{method} = maybe_list( $args{method}, qw( GET POST ) );
     $_ = uc $_ for @{ $args{method} };
 
     $self->my_croak("Public endpoint must have nonempty description")
@@ -603,7 +603,7 @@ sub add_hook {
     $self->my_croak( "illegal phase: $phase" )
         unless $hook_phases{$phase};
 
-    maybe_list( \$opt{method}, qw( GET HEAD POST PUT PATCH DELETE ) );
+    $opt{method} = maybe_list( $opt{method}, qw( GET HEAD POST PUT PATCH DELETE ) );
     if ($phase eq 'pre_route') {
         # handle pre_route separately
         $self->my_croak("cannot specify paths/excludes for $phase")
@@ -615,10 +615,8 @@ sub add_hook {
         return $self;
     };
 
-    maybe_list( \$opt{path}, '/' );
-    maybe_list( \$opt{exclude} );
-    @{ $opt{path} } = map { canonize_path($_) } @{ $opt{path} };
-    @{ $opt{exclude} } = map { canonize_path($_) } @{ $opt{exclude} };
+    $opt{path}    = [ map { canonize_path($_) } maybe_list( $opt{path}, '/' ) ];
+    $opt{exclude} = [ map { canonize_path($_) } maybe_list( $opt{exclude} ) ];
 
     $opt{caller} = [ caller(0) ]; # where the hook was set
     $opt{phase}  = $phase; # just for information

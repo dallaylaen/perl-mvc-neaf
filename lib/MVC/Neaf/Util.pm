@@ -140,25 +140,24 @@ sub run_all_nodie {
 
 =head2 maybe_list
 
-    maybe_list( \$value, @defaults )
+    maybe_list( $value, @defaults )
 
-If C<$value> is C<undef>, replace is with a copy of \@defaults.
+If C<$value> is C<undef>, return a copy of \@defaults.
 
-If C<$value> is a list, leave it as is.
+If C<$value> is a list, return a copy of it.
 
-Otherwise, replace C<$value> with C<[ $value ]>.
+Otherwise, return C<[ $value ]>.
 
 =cut
 
 sub maybe_list {
-    my ($scalref, @default) = @_;
+    my $item = shift;
 
-    if (ref $$scalref ne 'ARRAY') {
-        my $array = defined $$scalref ? [ my $tmp = $$scalref ] : \@default;
-        $$scalref = $array;
-    };
+    my @ret = defined $item ? (
+        ref $item eq 'ARRAY' ? @$item : ($item)
+    ) : @_;
 
-    return $$scalref;
+    return wantarray ? @ret : \@ret;
 };
 
 =head2 JSON()
