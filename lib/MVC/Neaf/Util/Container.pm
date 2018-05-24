@@ -34,8 +34,10 @@ and extract them in the needed order.
 
 =cut
 
+use Carp;
+
 use parent qw(MVC::Neaf::Util::Base);
-use MVC::Neaf::Util qw( maybe_list canonize_path path_prefixes );
+use MVC::Neaf::Util qw( maybe_list canonize_path path_prefixes supported_methods );
 
 =head2 store
 
@@ -48,9 +50,11 @@ Store $data in container. Spec may include:
 =item path - single path or list of paths, '/' assumed if none.
 
 =item method - name of method or array of methods.
-No restrictions assumed by default.
+By default, all methods supported by Neaf.
 
 =item exclude - single path or list of paths. None by default.
+
+=item prepend - if true, prepend to the list instead of appending.
 
 =back
 
@@ -61,19 +65,25 @@ sub store {
 
     $opt{data} = $data;
     maybe_list( \$opt{path}, '' );
-    if ($opt{method}) {
-        my %allow;
-        $allow{$_} = 1 for maybe_list( $opt{method} );
-        $opt{method} = \%allow;
-    };
+
+    my @methods = maybe_list( $opt{method}, supported_methods() );
+
+    my @todo = map { canonize_path( $_ ) } maybe_list( $opt{path}, '' );
     if ($opt{exclude}) {
         my $rex = join '|', map { quotemeta(canonize_path($_)) } maybe_list($opt{exclude} );
         $opt{exclude} = qr(^(?:$rex)(?:[/?]|$));
+        @todo = grep { $_ !~ $opt{exclude} } @todo
     };
 
-    foreach my $path ( @{ maybe_list( $opt{path}, '' ) } ) {
-        my $array = $self->{data}{canonize_path($path)} ||= [];
-        push @$array, \%opt;
+    foreach my $method ( @methods ) {
+        foreach my $path ( @todo ) {
+            my $array = $self->{data}{$method}{$path} ||= [];
+            if ( $opt{prepend} ) {
+                unshift @$array, \%opt;
+            } else {
+                push @$array, \%opt;
+            };
+        };
     };
 
     $self;
@@ -101,14 +111,19 @@ Spec may include:
 sub fetch {
     my ($self, %opt) = @_;
 
-    $opt{path} = canonize_path( $opt{path} || '' );
+    my @missing = grep { !defined $opt{$_} } qw(path method);
+    croak __PACKAGE__."->fetch: required fields missing: @missing"
+        if @missing;
+
+    my $path   = canonize_path( $opt{path} );
 
     my @ret;
-    foreach my $path ( path_prefixes( $opt{path} || '' ) ) {
-        my $list = $self->{data}{$path};
+    my $tree = $self->{data}{ $opt{method} };
+
+    foreach my $prefix ( path_prefixes( $opt{path} || '' ) ) {
+        my $list = $tree->{$prefix};
         next unless $list;
         foreach my $node( @$list ) {
-            next if $node->{method} and not $node->{method}{ $opt{method} || '' };
             next if $node->{exclude} and $opt{path} =~ $node->{exclude};
             push @ret, $node->{data};
         };

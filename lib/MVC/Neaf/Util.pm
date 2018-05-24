@@ -10,7 +10,8 @@ MVC::Neaf::Util - Some static functions for Not Even A Framework
 
 =head1 DESCRIPTION
 
-This module is probably of no use by itself. See L<MVC::Neaf>.
+This is utility class.
+Nothing to see here unless one intends to work on L<MVC::Neaf> itself.
 
 =head1 EXPORT
 
@@ -22,29 +23,12 @@ use parent qw(Exporter);
 our @EXPORT_OK = qw(
     canonize_path http_date path_prefixes rex run_all run_all_nodie
     JSON encode_json decode_json
-    maybe_list
+    maybe_list supported_methods
 );
 
 # use JSON::MaybeXS; # not now, see JSON() below
 
-=head2 http_date
-
-Return a date in format required by HTTP standard for cookies
-and cache expiration.
-
-    Expires=Wed, 13 Jan 2021 22:23:01 GMT;
-
-=cut
-
-# Yay premature optimization - use ad-hoc weekdays because locale is so botched
-my @week = qw( Sun Mon Tue Wed Thu Fri Sat );
-my @month = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
-sub http_date {
-    my $t = shift;
-    my @date = gmtime($t);
-    return sprintf( "%s, %02d %s %04d %02d:%02d:%02d GMT"
-        , $week[$date[6]], $date[3], $month[$date[4]], 1900+$date[5], @date[2,1,0]);
-};
+# Alphabetic order, please
 
 =head2 canonize_path( path, want_slash )
 
@@ -66,6 +50,49 @@ sub canonize_path {
     };
 
     return $path;
+};
+
+=head2 http_date
+
+Return a date in format required by HTTP standard for cookies
+and cache expiration.
+
+    Expires=Wed, 13 Jan 2021 22:23:01 GMT;
+
+=cut
+
+# Yay premature optimization - use ad-hoc weekdays because locale is so botched
+# The "proper" way to do it is to set locale to C, call strftime,
+#     and reset locale to whatever it was.
+my @week = qw( Sun Mon Tue Wed Thu Fri Sat );
+my @month = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
+sub http_date {
+    my $t = shift;
+    my @date = gmtime($t);
+    return sprintf( "%s, %02d %s %04d %02d:%02d:%02d GMT"
+        , $week[$date[6]], $date[3], $month[$date[4]], 1900+$date[5], @date[2,1,0]);
+};
+
+=head2 maybe_list
+
+    maybe_list( $value, @defaults )
+
+If C<$value> is C<undef>, return a copy of \@defaults.
+
+If C<$value> is a list, return a copy of it.
+
+Otherwise, return C<[ $value ]>.
+
+=cut
+
+sub maybe_list {
+    my $item = shift;
+
+    my @ret = defined $item ? (
+        ref $item eq 'ARRAY' ? @$item : ($item)
+    ) : @_;
+
+    return wantarray ? @ret : \@ret;
 };
 
 =head2 path_prefixes ($path)
@@ -138,26 +165,14 @@ sub run_all_nodie {
     return $dead;
 };
 
-=head2 maybe_list
-
-    maybe_list( $value, @defaults )
-
-If C<$value> is C<undef>, return a copy of \@defaults.
-
-If C<$value> is a list, return a copy of it.
-
-Otherwise, return C<[ $value ]>.
+=head2 supported_methods
 
 =cut
 
-sub maybe_list {
-    my $item = shift;
-
-    my @ret = defined $item ? (
-        ref $item eq 'ARRAY' ? @$item : ($item)
-    ) : @_;
-
-    return wantarray ? @ret : \@ret;
+# TODO 0.90 configurable or somthing
+@MVC::Neaf::supported_methods = qw( GET HEAD POST PATCH PUT DELETE );
+sub supported_methods {
+    return @MVC::Neaf::supported_methods;
 };
 
 =head2 JSON()
