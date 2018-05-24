@@ -63,10 +63,16 @@ By default, all methods supported by Neaf.
 sub store {
     my ($self, $data, %opt) = @_;
 
+    $self->my_croak( "'tentative' and 'override' are useless for non-exclusive container" )
+        if !$self->{exclusive} and ( $opt{tentative} or $opt{override} );
+
+    $self->my_croak( "'tentative' and 'override' are mutually exclusive" )
+        if $opt{tentative} and $opt{override};
+
     $opt{data} = $data;
     maybe_list( \$opt{path}, '' );
 
-    my @methods = maybe_list( $opt{method}, supported_methods() );
+    my @methods = map { uc $_ } maybe_list( $opt{method}, supported_methods() );
 
     my @todo = map { canonize_path( $_ ) } maybe_list( $opt{path}, '' );
     if ($opt{exclude}) {
@@ -75,10 +81,32 @@ sub store {
         @todo = grep { $_ !~ $opt{exclude} } @todo
     };
 
+    if ($self->{exclusive} and !$opt{tentative} and !$opt{override}) {
+        # Check for conflicts before changing anything
+        my %conflict;
+        foreach my $method ( @methods ) {
+            foreach my $path ( @todo ) {
+                my $existing = $self->{data}{$method}{$path};
+                next unless $existing && $existing->[0];
+                next if $existing->[0]->{tentative};
+                push @{ $conflict{$path} }, $method;
+            };
+        };
+
+        my @list =
+            map { $_."[".(join ",", sort @{ $conflict{$_} })."]" }
+            sort keys %conflict;
+        croak "Conflicting path spec: ".join ", ", @list
+            if @list;
+    };
+
     foreach my $method ( @methods ) {
         foreach my $path ( @todo ) {
             my $array = $self->{data}{$method}{$path} ||= [];
-            if ( $opt{prepend} ) {
+            if ( $self->{exclusive} ) {
+                @$array = (\%opt)
+                    unless $array->[0] and $opt{tentative} and !$array->[0]{tentative};
+            } elsif ( $opt{prepend} ) {
                 unshift @$array, \%opt;
             } else {
                 push @$array, \%opt;
