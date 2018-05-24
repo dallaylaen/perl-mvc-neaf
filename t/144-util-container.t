@@ -11,7 +11,25 @@ note "NORMAL CONTAINER";
 my $c = MVC::Neaf::Util::Container->new;
 
 $c->store( "first", path => "/foo", method => "GET" );
+is_deeply
+      [ sort $c->list_methods ]
+    , [ 'GET' ]
+    , "list_methods only get";
+
 $c->store( "second", path => "/foo/bar", exclude => "/foo/bar/baz" );
+is_deeply
+      [ sort $c->list_methods ]
+    , [ 'DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT' ]
+    , "All methods now seen";
+
+is_deeply
+      [ sort $c->list_paths ]
+    , [ '/foo', '/foo/bar' ]
+    , "Paths explored";
+is_deeply
+      [ sort $c->list_paths('PUT', 'DELETE') ]
+    , [ '/foo/bar' ]
+    , "Paths explored for given methods";
 
 is_deeply
       [ $c->fetch( method => 'GET', path => '/foo/bar' ) ]

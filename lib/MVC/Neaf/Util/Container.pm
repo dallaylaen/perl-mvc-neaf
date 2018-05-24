@@ -153,6 +153,37 @@ sub store_check_conflict {
     return ();
 };
 
+=head2 list_methods
+
+Returns methods currently in the storage.
+
+=cut
+
+sub list_methods {
+    my $self = shift;
+
+    return keys %{ $self->{data} };
+};
+
+=head2 list_paths
+
+Returns paths for given method, or all if no method given.
+
+=cut
+
+sub list_paths {
+    my ($self, @methods) = @_;
+
+    @methods = $self->list_methods
+        unless @methods;
+
+    my %uniq;
+    foreach my $method (@methods) {
+        $uniq{$_}++ for keys %{ $self->{data}{$method} };
+    };
+    return keys %uniq;
+};
+
 =head2 fetch
 
     fetch( %spec )
