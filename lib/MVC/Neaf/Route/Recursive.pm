@@ -608,13 +608,9 @@ sub add_hook {
         # handle pre_route separately
         $self->my_croak("cannot specify paths/excludes for $phase")
             if defined $opt{path} || defined $opt{exclude};
-        foreach( @{ $opt{method} } ) {
-            my $where = $self->{pre_route}{$_} ||= [];
-            $opt{prepend} ? unshift @$where, $code : push @$where, $code;
-        };
-        return $self;
     };
 
+    $opt{path}      = maybe_list( $opt{path}, '' );
     $opt{caller}  ||= [ caller(0) ]; # where the hook was set
 
     $self->{hook}{$phase} ||= MVC::Neaf::Util::Container->new;
@@ -640,8 +636,38 @@ sub get_hooks {
         $ret{$phase} = [ $self->{hook}{$phase}->fetch( method => $method, path => $path ) ];
     };
 
+    # Some hooks to be executed in reverse order
     $ret{$_} and @{ $ret{$_} } = reverse @{ $ret{$_} }
         for qw( pre_reply pre_cleanup );
+
+    # Prepend session handler unconditionally, if present
+    if (my $engine = $self->{session_handler}) {
+        unshift @{ $ret{pre_route} }, sub {
+            $_[0]->_set_session_handler( $engine );
+        };
+        if (my $key = $self->{session_view_as}) {
+            unshift @{ $ret{pre_render} }, sub {
+                $_[0]->reply->{$key} = $_[0]->load_session;
+            };
+        };
+    };
+
+    # Also prepend performance stat gatherer
+    # TODO 0.25 remove for good
+    if (my $engine = $self->{stat}) {
+        unshift @{ $ret{pre_route} }, sub {
+            $engine->record_start;
+        };
+        unshift @{ $ret{pre_content} }, sub {
+            $engine->record_controller( $_[0]->prefix );
+        };
+        # Should've switched to pre_cleanup, but we cannot
+        # guarrantee another request doesn't get mixed in
+        # in the meantime, as X::ServerStat is sequential.
+        push @{ $ret{pre_reply} }, sub {
+            $engine->record_finish($_[0]->reply->{-status}, $_[0]);
+        };
+    };
 
     return \%ret;
 };
@@ -1065,41 +1091,12 @@ sub post_setup {
         $node->{HEAD} ||= $node->{GET}->clone( method => 'HEAD' );
     };
 
-    # TODO 0.25 UGLY HACK - we provide special lock for session()
-    #    just in case run() was accidentally called before set_session_handler
-    if (!$self->{session_lock} and my $engine = $self->{session_handler}) {
-        $self->add_hook( pre_route => sub {
-            $_[0]->_set_session_handler( $engine );
-        }, prepend => 1 );
-        if (my $key = $self->{session_view_as}) {
-            $self->add_hook( pre_render => sub {
-                $_[0]->reply->{$key} = $_[0]->load_session;
-            }, prepend => 1 );
-        };
-        $self->{session_lock}++;
+    # pre_route gets *special* handling
+    # TODO 0.90 This is awkward, redo better
+    foreach my $method( supported_methods() ) {
+        $self->{pre_route}{$method} = $self->get_hooks( $method, '' )->{pre_route};
     };
 
-    # initialize stuff if first run
-    # Please bear in mind that $_[0] in callbacks is ALWAYS the Request object
-    if (!$self->{lock}) {
-        if (my $engine = $self->{stat}) {
-            # TODO 0.25 remove for good
-            $self->add_hook( pre_route => sub {
-                $engine->record_start;
-            }, prepend => 1);
-            $self->add_hook( pre_content => sub {
-                $engine->record_controller( $_[0]->script_name );
-            }, prepend => 1);
-            # Should've switched to pre_cleanup, but we cannot
-            # guarrantee another request doesn't get mixed in
-            # in the meantime, as X::ServerStat is sequential.
-            $self->add_hook( pre_reply => sub {
-                $engine->record_finish($_[0]->reply->{-status}, $_[0]);
-            }, prepend => 1);
-        };
-    };
-
-    # TODO maybe compile route_rex here
     $self->{lock}++;
 };
 

@@ -57,6 +57,6 @@ neaf->run_test( { REQUEST_URI => '/foo/bar/baz' } );
 is ($trace, $order, "Hooks not reinstalled" );
 
 my $data = neaf->get_routes;
-note explain [values %$data]->[0]{GET};
+# note explain [values %$data]->[0]{GET};
 
 done_testing;
