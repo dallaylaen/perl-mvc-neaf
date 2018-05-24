@@ -30,14 +30,20 @@ and extract them in the needed order.
     $c->fetch( path => "/foo/bar/baz", method => 'GET' );
             # qw(foo) - 'bar' excluded
 
-=head1 METHODS
-
 =cut
 
 use Carp;
 
 use parent qw(MVC::Neaf::Util::Base);
 use MVC::Neaf::Util qw( maybe_list canonize_path path_prefixes supported_methods );
+
+=head1 ATTRIBUTES
+
+=head2 exclusive
+
+Only store one item per (path,method) pair, and fail loudly in case of conflicts.
+
+=head1 METHODS
 
 =head2 store
 
@@ -55,6 +61,12 @@ By default, all methods supported by Neaf.
 =item exclude - single path or list of paths. None by default.
 
 =item prepend - if true, prepend to the list instead of appending.
+
+=item tentative (exclusive container only) - if true, don't override existing
+declarations, and don't complain when overridden.
+
+=item override (exclusive container only) - if true, override
+any preexisting content.
 
 =back
 
@@ -81,22 +93,9 @@ sub store {
         @todo = grep { $_ !~ $opt{exclude} } @todo
     };
 
-    if ($self->{exclusive} and !$opt{tentative} and !$opt{override}) {
-        # Check for conflicts before changing anything
-        my %conflict;
-        foreach my $method ( @methods ) {
-            foreach my $path ( @todo ) {
-                my $existing = $self->{data}{$method}{$path};
-                next unless $existing && $existing->[0];
-                next if $existing->[0]->{tentative};
-                push @{ $conflict{$path} }, $method;
-            };
-        };
-
-        my @list =
-            map { $_."[".(join ",", sort @{ $conflict{$_} })."]" }
-            sort keys %conflict;
-        croak "Conflicting path spec: ".join ", ", @list
+    if ($self->{exclusive}) {
+        my @list = $self->store_check_conflict( %opt, method => \@methods, path => \@todo );
+        $self->my_croak( "Conflicting path spec: ".join ", ", @list )
             if @list;
     };
 
@@ -115,6 +114,43 @@ sub store {
     };
 
     $self;
+};
+
+=head2 store_check_conflict
+
+    store_check_conflict( path => ..., method => ... )
+
+Check that no previous declarations conflict with the new one.
+
+This is only if exclusive was specified.
+
+=cut
+
+sub store_check_conflict {
+    my ($self, %opt) = @_;
+
+    $self->my_croak( "useless call for non-exclusive container" )
+        unless $self->{exclusive};
+
+    if (!$opt{tentative} and !$opt{override}) {
+        # Check for conflicts before changing anything
+        my %conflict;
+        foreach my $method ( @{ $opt{method} } ) {
+            foreach my $path ( @{ $opt{path} } ) {
+                my $existing = $self->{data}{$method}{$path};
+                next unless $existing && $existing->[0];
+                next if $existing->[0]->{tentative};
+                push @{ $conflict{$path} }, $method;
+            };
+        };
+
+        my @list =
+            map { $_."[".(join ",", sort @{ $conflict{$_} })."]" }
+            sort keys %conflict;
+        return @list;
+    };
+
+    return ();
 };
 
 =head2 fetch
@@ -137,6 +173,35 @@ Spec may include:
 =cut
 
 sub fetch {
+    my $self = shift;
+    return map { $_->{data} } $self->fetch_raw(@_);
+};
+
+=head2 fetch_last
+
+Same as fetch(), but only return the last (last added & longest path) element.
+
+=cut
+
+sub fetch_last {
+    my $self = shift;
+    return [ $self->fetch_raw(@_) ]->[-1]{data};
+};
+
+=head2 fetch_raw
+
+Same as fetch(), but return additional info instead of just stored item:
+
+    {
+        data   => $your_item_here,
+        path   => $all_the_paths,
+        method => $list_of_methods,
+        ...
+    }
+
+=cut
+
+sub fetch_raw {
     my ($self, %opt) = @_;
 
     my @missing = grep { !defined $opt{$_} } qw(path method);
@@ -153,7 +218,7 @@ sub fetch {
         next unless $list;
         foreach my $node( @$list ) {
             next if $node->{exclude} and $opt{path} =~ $node->{exclude};
-            push @ret, $node->{data};
+            push @ret, $node;
         };
     };
 
