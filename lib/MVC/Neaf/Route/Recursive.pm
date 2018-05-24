@@ -32,7 +32,8 @@ use Scalar::Util qw( blessed looks_like_number );
 use URI::Escape;
 
 use parent qw(MVC::Neaf::Route);
-use MVC::Neaf::Util qw( run_all run_all_nodie http_date canonize_path maybe_list );
+use MVC::Neaf::Util qw( run_all run_all_nodie http_date canonize_path maybe_list supported_methods );
+use MVC::Neaf::Util::Container;
 use MVC::Neaf::Request::PSGI;
 
 sub _one_and_true {
@@ -592,7 +593,6 @@ our %hook_phases;
 $hook_phases{$_}++ for qw(pre_route
     pre_logic pre_content pre_render pre_reply pre_cleanup);
 
-# TODO 0.25 R::R
 sub add_hook {
     my ($self, $phase, $code, %opt) = @_;
     $self = _one_and_true($self) unless ref $self;
@@ -603,7 +603,7 @@ sub add_hook {
     $self->my_croak( "illegal phase: $phase" )
         unless $hook_phases{$phase};
 
-    $opt{method} = maybe_list( $opt{method}, qw( GET HEAD POST PUT PATCH DELETE ) );
+    $opt{method} = maybe_list( $opt{method}, supported_methods() );
     if ($phase eq 'pre_route') {
         # handle pre_route separately
         $self->my_croak("cannot specify paths/excludes for $phase")
@@ -615,23 +615,35 @@ sub add_hook {
         return $self;
     };
 
-    $opt{path}    = [ map { canonize_path($_) } maybe_list( $opt{path}, '/' ) ];
-    $opt{exclude} = [ map { canonize_path($_) } maybe_list( $opt{exclude} ) ];
+    $opt{caller}  ||= [ caller(0) ]; # where the hook was set
 
-    $opt{caller} = [ caller(0) ]; # where the hook was set
-    $opt{phase}  = $phase; # just for information
-    $opt{code}   = $code;
-
-    # hooks == {method}{path}{phase}[nnn] => { code => CODE, ... }
-
-    foreach my $method ( @{$opt{method}} ) {
-        foreach my $path ( @{$opt{path}} ) {
-            my $where = $self->{hooks}{$method}{$path}{$phase} ||= [];
-            $opt{prepend} ? unshift @$where, \%opt : push @$where, \%opt;
-        };
-    };
+    $self->{hook}{$phase} ||= MVC::Neaf::Util::Container->new;
+    $self->{hook}{$phase}->store( $code, %opt );
 
     return $self;
+};
+
+=head2 get_hooks
+
+    get_hooks( $method, $path )
+
+Fetch all hooks previously set for given path as a { phase => [ list ] } hash.
+
+=cut
+
+sub get_hooks {
+    my ($self, $method, $path) = @_;
+
+    my %ret;
+
+    foreach my $phase ( keys %{ $self->{hook} } ) {
+        $ret{$phase} = [ $self->{hook}{$phase}->fetch( method => $method, path => $path ) ];
+    };
+
+    $ret{$_} and @{ $ret{$_} } = reverse @{ $ret{$_} }
+        for qw( pre_reply pre_cleanup );
+
+    return \%ret;
 };
 
 =head2 load_view()

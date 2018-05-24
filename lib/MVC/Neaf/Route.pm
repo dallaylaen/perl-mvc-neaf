@@ -345,19 +345,6 @@ sub append_defaults {
     return $self;
 };
 
-=head2 set_hooks(\%phases)
-
-Install hooks. Currently no preprocessing is done.
-
-=cut
-
-sub set_hooks {
-    my ($self, $hooks) = @_;
-
-    # TODO 0.00 filter must be here
-    $self->{hooks} = $hooks;
-};
-
 =head2 post_setup
 
 Calculate hooks and path-based defaults.
@@ -380,40 +367,8 @@ sub post_setup {
         reverse path_prefixes( $self->path );
     $self->append_defaults( @sources );
 
-    # CALCULATE HOOKS
-    # select ALL hooks prepared for upper paths
-    my $hook_tree = $neaf->{hooks}{ $self->method };
-    my @hook_by_path =
-        map { $hook_tree->{$_} || () } path_prefixes( $self->path );
+    $self->{hooks} = $neaf->get_hooks( $self->method, $self->path );
 
-    # Merge callback stacks into one hash, in order
-    # hook = {method}{path}{phase}[nnn] => { code => sub{}, ... }
-    # We need to extract that sub {}
-    # We do so in a rather clumsy way that would short cirtuit
-    #     at all possibilities
-    # Premature optimization FTW!
-    my %phases;
-    foreach my $hook_by_phase (@hook_by_path) {
-        foreach my $phase ( keys %$hook_by_phase ) {
-            my $hook_list = $hook_by_phase->{$phase};
-            foreach my $hook (@$hook_list) {
-                # process excludes - if path starts with any, no go!
-                grep { $self->path =~ m#^\Q$_\E(?:/|$)# }
-                    @{ $hook->{exclude} }
-                        and next;
-                # TODO 0.90 filter out repetition
-                push @{ $phases{$phase} }, $hook->{code};
-                # TODO 0.30 also store hook info somewhere for better error logging
-            };
-        };
-    };
-
-    # the pre-reply, pre-cleanup should go in backward direction
-    # those are for cleaning up stuff
-    $phases{$_} and @{ $phases{$_} } = reverse @{ $phases{$_} }
-        for qw(pre_cleanup pre_reply);
-
-    $self->set_hooks( \%phases );
     $self->lock;
 
     return;
