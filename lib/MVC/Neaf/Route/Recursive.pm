@@ -32,7 +32,8 @@ use Scalar::Util qw( blessed looks_like_number );
 use URI::Escape;
 
 use parent qw(MVC::Neaf::Route);
-use MVC::Neaf::Util qw( run_all run_all_nodie http_date canonize_path maybe_list supported_methods );
+use MVC::Neaf::Util qw( run_all run_all_nodie http_date canonize_path
+     maybe_list supported_methods extra_missing );
 use MVC::Neaf::Util::Container;
 use MVC::Neaf::Request::PSGI;
 
@@ -75,7 +76,10 @@ sub new {
         if $force;
 
     # TODO 0.20 set default (-view => JS)
-    $self->set_path_defaults( '/' => { -status => 200 } );
+    $self->set_path_defaults( { -status => 200 } );
+
+    # This is required for $self->hooks to produce something.
+    # See also todo_hooks where the real hooks sit.
     $self->{hooks} = {};
 
     return $self;
@@ -497,31 +501,38 @@ sub alias {
 
 =head2 set_path_defaults
 
-    set_path_defaults( "/path" => { js => 42.137 });
+    set_path_defaults( { value => 42 }, path => [ '/foo', '/bar' ], method => 'PUT' )
 
-Append the given values to the hash returned by any route under the given path.
+    set_path_defaults( "/api" => { version => 0.99 });
 
-Longer paths take over the shorter ones, and values returned
-by the controller itself override defaults.
+Append the given values to the hash returned by I<any> route
+under the given path(s) and method(s).
+
+Longer paths take over the shorter ones, route's own values take over in turn,
+and values returned explicitly by the controller have the highest priority.
 
 =cut
 
-# TODO 0.25 better docs here
+# TODO 0.25 rename defaults => [something]
 sub set_path_defaults {
-    my ($self, $path, $src) = @_;
+    my $self = shift;
     $self = _one_and_true($self) unless ref $self;
 
-    # TODO 0.30 pathspec instead
-    $self->my_croak("arguments must be a scalar and a hashref")
-        unless defined $path and !ref $path and ref $src eq 'HASH';
+    # Old form - path => \%hash
+    # TODO 0.25 deprecate
+    if (@_ == 2) {
+        push @_, path => shift;
+    };
 
-    # CANONIZE
-    $path =~ s#/+#/#;
-    $path =~ s#^/*#/#;
-    $path =~ s#/$##;
-    my $dst = $self->{path_defaults}{$path} ||= {};
-    $dst->{$_} = $src->{$_}
-        for keys %$src;
+    my ($values, %opt) = @_;
+
+    $self->my_croak( "values must be a \%hash" )
+        unless ref $values eq 'HASH';
+
+    extra_missing( \%opt, { path => 1, method => 1 } );
+
+    $self->{defaults} ||= MVC::Neaf::Util::Container->new;
+    $self->{defaults}->store( $values, %opt );
 
     return $self;
 };
@@ -613,8 +624,8 @@ sub add_hook {
     $opt{path}      = maybe_list( $opt{path}, '' );
     $opt{caller}  ||= [ caller(0) ]; # where the hook was set
 
-    $self->{hook}{$phase} ||= MVC::Neaf::Util::Container->new;
-    $self->{hook}{$phase}->store( $code, %opt );
+    $self->{todo_hooks}{$phase} ||= MVC::Neaf::Util::Container->new;
+    $self->{todo_hooks}{$phase}->store( $code, %opt );
 
     return $self;
 };
@@ -632,8 +643,8 @@ sub get_hooks {
 
     my %ret;
 
-    foreach my $phase ( keys %{ $self->{hook} } ) {
-        $ret{$phase} = [ $self->{hook}{$phase}->fetch( method => $method, path => $path ) ];
+    foreach my $phase ( keys %{ $self->{todo_hooks} } ) {
+        $ret{$phase} = [ $self->{todo_hooks}{$phase}->fetch( method => $method, path => $path ) ];
     };
 
     # Some hooks to be executed in reverse order
@@ -670,6 +681,25 @@ sub get_hooks {
     };
 
     return \%ret;
+};
+
+=head2 get_defaults
+
+    get_defaults ( $methods, $path, [ \%override ... ] )
+
+Fetch default values for given (path, method) combo as a single hash.
+
+=cut
+
+sub get_defaults {
+    my ($self, $method, $path, @override) = @_;
+
+    my @source = $self->{defaults}->fetch( method => $method, path => $path );
+    my %hash = map { %$_ } @source, grep defined, @override;
+    defined $hash{$_} or delete $hash{$_}
+        for keys %hash;
+
+    \%hash;
 };
 
 =head2 load_view()
@@ -1094,7 +1124,7 @@ sub post_setup {
     # pre_route gets *special* handling
     # TODO 0.90 This is awkward, redo better
     foreach my $method( supported_methods() ) {
-        $self->{pre_route}{$method} = $self->get_hooks( $method, '' )->{pre_route};
+        $self->{hooks}{pre_route}{$method} = $self->get_hooks( $method, '' )->{pre_route};
     };
 
     $self->{lock}++;
@@ -1594,8 +1624,8 @@ sub dispatch_logic {
     my $method = $req->method;
 
     # run pre_route hooks if any
-    run_all( $self->{pre_route}{$method}, $req )
-        if (exists $self->{pre_route}{$method});
+    run_all( $self->{hooks}{pre_route}{$method}, $req )
+        if (exists $self->{hooks}{pre_route}{$method});
 
     my ($route, $new_stem, $new_suffix) = $self->find_route( $method, $suffix );
 

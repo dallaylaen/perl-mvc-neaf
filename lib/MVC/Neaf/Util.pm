@@ -19,12 +19,14 @@ This module optionally exports anything it has.
 
 =cut
 
+use Carp;
 use parent qw(Exporter);
 our @EXPORT_OK = qw(
     canonize_path http_date path_prefixes rex run_all run_all_nodie
     JSON encode_json decode_json
-    maybe_list supported_methods
+    maybe_list supported_methods extra_missing
 );
+our @CARP_NOT;
 
 # use JSON::MaybeXS; # not now, see JSON() below
 
@@ -50,6 +52,38 @@ sub canonize_path {
     };
 
     return $path;
+};
+
+=head2 extra_missing
+
+    extra_missing( \%input, \%allowed, \@required )
+
+Dies if %input doesn't pass validation.
+Only definedness is checked.
+
+=cut
+
+# Now this MUST be an existing module, right?
+sub extra_missing {
+    my ($input, $allowed, $required) = @_;
+
+    my @extra   = $allowed  ? grep { !$allowed->{$_} } keys %$input : ();
+    my @missing = $required ? grep { !defined $input->{$_} } @$required : ();
+
+    if (@extra+@missing) {
+        my @stack = caller(1);
+        my @msg;
+        push @msg, "missing required fields: ".join ",", @missing
+            if @missing;
+        push @msg, "unknown fields present: ".join ",", @extra
+            if @extra;
+
+        my $fun = $stack[3];
+        $fun =~ s/^(.*)::/$1->/;
+
+        local @CARP_NOT = $stack[0];
+        croak "$fun: ".join "; ", @msg;
+    };
 };
 
 =head2 http_date

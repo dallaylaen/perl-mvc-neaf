@@ -322,29 +322,6 @@ sub get_view {
     };
 };
 
-=head2 append_defaults( \%hashref, \%hashref2 )
-
-Add more default values.
-
-=cut
-
-sub append_defaults {
-    my ($self, @hashes) = @_;
-
-    $self->_can_modify;
-
-    # merge hashes, older override newer
-    my %data = map { %$_ } grep { defined $_ }
-        ((reverse @hashes), $self->{default});
-
-    # kill undefs
-    defined $data{$_} or delete $data{$_}
-        for keys %data;
-
-    $self->{default} = \%data;
-    return $self;
-};
-
 =head2 post_setup
 
 Calculate hooks and path-based defaults.
@@ -363,11 +340,8 @@ sub post_setup {
     my $neaf = $self->parent;
     # CALCULATE DEFAULTS
     # merge data sources, longer paths first
-    my @sources = map { $neaf->{path_defaults}{$_} }
-        reverse path_prefixes( $self->path );
-    $self->append_defaults( @sources );
-
-    $self->{hooks} = $neaf->get_hooks( $self->method, $self->path );
+    $self->{default} = $neaf->get_defaults( $self->method, $self->path, $self->{default} );
+    $self->{hooks}   = $neaf->get_hooks   ( $self->method, $self->path );
 
     $self->lock;
 
