@@ -1,7 +1,8 @@
 package MVC::Neaf::Route::Recursive;
 
 use strict;
-use warnings FATAL => qw(all);
+use warnings;
+our $VERSION = 0.23;
 
 =head1 NAME
 
@@ -698,6 +699,73 @@ sub get_hooks {
         push @{ $ret{pre_reply} }, sub {
             $engine->record_finish($_[0]->reply->{-status}, $_[0]);
         };
+    };
+
+    return \%ret;
+};
+
+=head2 set_helper
+
+    set_helper( name => \&code, %options )
+
+=cut
+
+sub set_helper {
+    my ($self, $name, $code, %opt) = @_;
+
+    $self->my_croak( "inappropriate helper name '$name'" )
+        if $name !~ /^[a-z][a-z_0-9]*/ or $name =~ /^(?:do|neaf)/;
+
+    $self->my_croak( "helper must be a CODEREF, not ".ref $code )
+        unless ref $code and UNIVERSAL::isa( $code, 'CODE' );
+
+    $self->{todo_helpers}{$name} ||= MVC::Neaf::Util::Container->new( exclusive => 1 );
+    $self->{todo_helpers}{$name}->store( $code, %opt );
+
+    _install_helper( $name );
+};
+
+my %global_helper_list;
+sub _install_helper {
+    my $name = shift;
+
+    return if $global_helper_list{$name};
+    croak "Cannot override existing method '$name' with a helper"
+        if MVC::Neaf::Request->can( $name );
+
+    my $sub = sub {
+        my $req = shift;
+
+        my $code = $req->route->helpers->{$name};
+        croak ("Helper '$name' is not defined for ".$req->method." ".$req->route->path)
+            unless $code;
+
+        $code->( $req, @_ );
+    };
+
+    # HACK magic here - plant method into request
+    {
+        no strict 'refs'; ## no critic
+        use warnings FATAL => qw(all);
+        *{"MVC::Neaf::Request::$name"} = $sub;
+    };
+
+    $global_helper_list{$name}++;
+};
+
+=head2 get_helpers
+
+=cut
+
+sub get_helpers {
+    my ($self, $method, $path) = @_;
+
+    my $todo = $self->{todo_helpers};
+
+    my %ret;
+    foreach my $name( keys %$todo ) {
+        my ($last) = reverse $todo->{$name}->fetch( method => $method, path => $path );
+        $ret{$name} = $last if $last;
     };
 
     return \%ret;

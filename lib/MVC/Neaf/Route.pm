@@ -67,6 +67,8 @@ Route has the following read-only attributes:
 
 =item * hooks
 
+=item * helpers
+
 =back
 
 =cut
@@ -75,7 +77,7 @@ Route has the following read-only attributes:
 my @ESSENTIAL = qw( parent method path code );
 my @OPTIONAL  = qw(
     default cache_ttl
-    path_info_regex param_regex hooks
+    path_info_regex param_regex hooks helpers
     description public caller where tentative
     override
 );
@@ -340,8 +342,9 @@ sub post_setup {
     my $neaf = $self->parent;
     # CALCULATE DEFAULTS
     # merge data sources, longer paths first
-    $self->{default} = $neaf->get_path_defaults( $self->method, $self->path, $self->{default} );
+    $self->{default} = $neaf->get_path_defaults ( $self->method, $self->path, $self->{default} );
     $self->{hooks}   = $neaf->get_hooks   ( $self->method, $self->path );
+    $self->{helpers} = $neaf->get_helpers ( $self->method, $self->path );
 
     $self->lock;
 
