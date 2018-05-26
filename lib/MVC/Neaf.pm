@@ -20,10 +20,13 @@ no restrictions are imposed on it.
 The B<View> is an object with one method, C<render>, receiving a hashref
 and returning rendered content as string plus optional content-type header.
 
-The B<Controller> is broken down into handlers associated with URI paths.
+The B<Controller> is a prefix tree of subroutines called I<handlers>.
 Each such handler receives a L<MVC::Neaf::Request> object
 containing I<all> it needs to know about the outside world,
 and returns a simple C<\%hashref> which is forwarded to View.
+
+Alternatively, it can die. C<die 404> is a valid way to return
+a customizable "404 Not Found" page.
 
 Please see the C<example> directory in this distribution
 that demonstrates the features of Neaf.
@@ -80,7 +83,7 @@ in which case this is considered the return status.
 E.g. C<die 404;> is a valid method to return
 a configurable "Not Found" page right away.
 
-Handlers are set using the L</route> method discussed below.
+Handlers are set up using the L</add_route> method discussed below.
 
 =head2 THE REQUEST
 
@@ -198,9 +201,10 @@ Please either avoid them, or send patches.
 
 =head1 FUNCTIONAL AND OBJECT-ORIENTED API
 
-By default, NEAF exports a pretty standard route declaration interface
-(C<get> + C<head> + C<post> + C<put> + C<patch> + C<del> for delete)
-and a single L</neaf> function (see below) for more advanced functions.
+By default, NEAF exports a pretty standard route declaration interface:
+C<get> + C<head> + C<post> + C<put> + C<patch> + C<del> for delete,
+C<any> for setting up custom method combinations,
+and a single L</neaf> function (see below) for configuring the application.
 
 A C<:sugar> export keyword was used for it previously,
 but it is no longer needed.
@@ -214,22 +218,10 @@ as C<MVC::Neaf-E<gt>new> if anybody needs that.
 
 Given the above, functional and object-oriented ways
 to declare the same thing will now follow in pairs.
+See L<MVC::Neaf::Route::Main> for implementation details.
 
-Returned value, if unspecified, is always the Neaf object
-(but who cares).
-
-=head2 neaf()
-
-Without arguments, returns the default Neaf instance
-that is also used to handle all the prototyped calls.
-As in
-
-    neaf->oo_method_without_shortcut(...);
-
-Just in case you're curious, the default instance is C<$MVC::Neaf::Inst>.
-This name MAY change in the future.
-
-See complete description below.
+Returned value, unless specified otherwise,
+is always the Neaf application itself (but who cares).
 
 =cut
 
@@ -254,15 +246,13 @@ our $Inst;
 The add_route() function and its numerous aliases define a handler
 for given by URI path and HTTP method(s).
 
+    $neaf->add_route( '/path' => CODEREF, %options )
+
+is equivalent to
+
+    get+post '/path' => sub { CODE; }, %options;
+
 =over
-
-=item * $neaf->add_route( '/path' => CODEREF, %options )
-
-=item * get '/path' => sub { CODE; }, %options;
-
-I<Equivalent> to
-
-    neaf->route( '/path' => sub { CODE; }, method => 'GET', %options );
 
 =item * post '/path' => sub { CODE; }, %options;
 
@@ -333,7 +323,7 @@ A 404 error will be generated unless C<path_info_regex> is present
 and PATH_INFO matches the regex (without the leading slashes).
 
 If path_info_regex matches, it will be available in the controller
-as C<$req-E<gt>path_info>.
+as C<$req-E<gt>postfix>.
 
 If capture groups are present in said regular expression,
 their content will also be available as C<$req-E<gt>path_info_split>.
@@ -344,7 +334,7 @@ B<[EXPERIMENTAL]> Name and semantics MAY change in the future.
 
 Add predefined regular expression validation to certain request parameters,
 so that they can be queried by name only.
-See C<param()> in L<MVC::Neaf::Request>.
+See L<MVC::Neaf::Request/param>.
 
 B<[EXPERIMENTAL]> Name and semantics MAY change in the future.
 
@@ -360,10 +350,10 @@ B<[DEPRECATED]> Use C<-view> instead, meaning is exactly the same.
 
 B<[EXPERIMENTAL]> Name and semantics MAY change in the future.
 
-=item * C<default> - a C<\%hash> of values that will be added to results
-EVERY time the handler returns.
+=item * C<default> - a C<\%hash> of fallback values to be added to hash
+returned by the handler.
 Consider using C<neaf default ...> below if you need to append
-the same values to multiple paths.
+the same values to multiple handlers.
 
 =item * C<override> => 1 - replace old route even if it exists.
 If not set, route collisions causes exception.
@@ -397,15 +387,11 @@ See L<MVC::Neaf::Route::Main/add_route> for implementation.
 
 =head2 static()
 
-=over
+    neaf static => '/path' => $local_path, %options;
 
-=item * neaf static => '/path' => $local_path, %options;
+    neaf static => '/other/path' => [ "content", "content-type" ];
 
-=item * neaf static => '/other/path' => [ "content", "content-type" ];
-
-=item * $neaf->static( $req_path => $file_path, %options )
-
-=back
+    $neaf->static( $req_path => $file_path, %options )
 
 Serve static content located under C<$file_path>.
 Both directories and single files may be added.
@@ -475,36 +461,28 @@ Not need to set up one for merely testing icons/js/css, though.>
 
 =head2 set_path_defaults()
 
-=over
+    neaf default => \%values, path => '/prefix', method => [ 'GET', 'POST' ];
 
-=item * neaf default => '/path' => \%values;
+    $neaf->set_path_defaults ( \%values, path => [ '/other', '/prefixes' ] );
 
-=item * $neaf->set_path_defaults ( '/path' => \%values );
-
-=back
-
-Use given values as defaults for ANY handler below given path.
-A value of '/' means global.
+Append these values to ANY controller return under given path(s),
+unless overridden by return from handler.
 
 Longer paths override shorter ones;
-route-specific defaults override path-base defaults;
+route-specific defaults override path-based defaults;
 explicit values returned from handler override all or the above.
 
 For example,
 
-    neaf default '/api' => { view => 'JS', version => My::Model->VERSION };
+    neaf default '/api' => { -view => 'JS', version => My::Model->VERSION };
 
 =cut
 
 =head2 add_hook()
 
-=over
+    neaf "phase" => sub { ... }, path => [ ... ], exclude => [ ... ];
 
-=item * neaf "phase" => sub { ... }, path => [ ... ], exclude => [ ... ];
-
-=item * $neaf->add_hook ( phase => CODEREF, %options );
-
-=back
+    $neaf->add_hook ( phase => CODEREF, %options );
 
 Set hook that will be executed on a given request processing phase.
 
@@ -563,13 +541,9 @@ Note that this does NOT override path bubbling order.
 
 =head2 alias()
 
-=over
+    neaf alias $newpath => $oldpath
 
-=item * neaf alias $newpath => $oldpath
-
-=item * $neaf->alias( $newpath => $oldpath )
-
-=back
+    $neaf->alias( $newpath => $oldpath )
 
 Create a new name for already registered route.
 The handler will be executed as is,
@@ -583,13 +557,9 @@ This needs to be fixed in the future.
 
 =head2 load_view()
 
-=over
+    neaf view => 'name' => 'Driver::Class' => %options;
 
-=item * neaf view => 'name' => 'Driver::Class' => %options;
-
-=item * $neaf->load_view( $name, $object || coderef || ($module_name, %options) )
-
-=back
+    $neaf->load_view( $name, $object || coderef || ($module_name, %options) )
 
 Setup view under name C<$name>.
 Subsequent requests with C<-view = $name> would be processed by that view
@@ -601,13 +571,15 @@ Use C<get_view> to fetch the object itself.
 
 =item * if object is given, just save it.
 
-=item * if module name + parameters is given, try to load module
-and create new() instance.
+=item * if module name + parameters are given, try to load module
+and create a new() instance.
 
 Short aliases C<JS>, C<TT>, and C<Dumper> may be used
 for corresponding C<MVC::Neaf::View::*> modules.
 
 =item * if coderef is given, use it as a C<render> method.
+The coderef must take 1 argument - the hash returned from application -
+and return a string + optional content-type.
 
 =back
 
@@ -617,13 +589,9 @@ Returns the view object, NOT the calling Neaf object.
 
 =head2 set_session_handler()
 
-=over
+    neaf session => $engine => %options
 
-=item * neaf session => $engine => %options
-
-=item * $neaf->set_session_handler( %options )
-
-=back
+    $neaf->set_session_handler( %options )
 
 Set a handler for managing sessions.
 
@@ -674,13 +642,9 @@ The engine MUST provide the following methods
 
 =head2 add_form()
 
-=over
+    neaf form => name => \%spec, engine => ...
 
-=item * neaf form => name => \%spec, engine => ...
-
-=item * add_form( name => $validator )
-
-=back
+    $neaf->add_form( name => $validator )
 
 Create a named form for future query data validation
 via C<$request-E<gt>form("name")>.
@@ -743,13 +707,9 @@ And by running this one gets
 
 =head2 set_error_handler()
 
-=over
+    neaf 403 => sub { ... }
 
-=item * neaf 403 => sub { ... }
-
-=item * $neaf->set_error_handler ( $status => CODEREF( $request, %options ) )
-
-=back
+    $neaf->set_error_handler ( $status => CODEREF( $request, %options ) )
 
 Set custom error handler.
 
@@ -782,11 +742,7 @@ This is a synonym to C<sub { +{ status =E<gt> $status,  ... } }>.
 
 =head2 load_resources()
 
-=over
-
-=item * $neaf->load_resources( $file_name || \*FH )
-
-=back
+    $neaf->load_resources( $file_name || \*FH )
 
 Load pseudo-files from a file, like templates or static files.
 
@@ -826,17 +782,44 @@ B<[EXPERIMENTAL]> This method and exact format of data is being worked on.
 
 =cut
 
-=head2 run()
+=head2 set_helper
+
+    neaf helper "name" => sub { ... }, %options;
+
+    neaf->set_helper( "name" => \&coderef, ... );
+
+Create a method in L<MVC::Neaf::Request> package that is only visible
+in the current application.
+
+Options may include:
 
 =over
 
-=item * neaf->run;
+=item * path => C<[ '/foo', '/bar' ]> - restrict the helper
+to given prefix(es) only.
+Helpers with the same name may be created for different paths.
+In such case, longer paths take over as usual.
 
-=item * $neaf->run();
+Colliding prefixes will cause an error, but see below.
+
+=item * method => C<[ 'GET', 'POST' ]> - restrict the helper to given methods only.
+
+=item * exclude => C<[ '/foo/bar' ]> - do NOT provide this helper for
+given prefixes.
+
+=item * tentative - allow to override this helper later.
+
+=item * override - override the existing helper, no matter what.
 
 =back
 
-Run the application.
+B<[EXPERIMENTAL]>. Name and meaning may change in the future.
+
+=head2 run()
+
+    neaf->run();
+
+Start the application.
 This SHOULD be the last statement in your application's main file.
 
 If called in void context, assumes execution as C<CGI>
@@ -905,34 +888,39 @@ sub neaf_err(;$) { ## no critic # prototype it for less typing on user's part
     return;
 };
 
-=head2 neaf action => @options;
+=head2 neaf()
 
-Forward C<@options> to the underlying method of the default instance.
+If called without arguments, returns the default C<MVC::Neaf> instance.
+
+If arguments are given, works as described above:
+
+    neaf $action => @options;
+
 Possible actions include:
 
 =over
 
-=item * view - C<load_view>
+=item * view - L<load_view>
 
-=item * session - C<set_session_handler>
+=item * session - L<set_session_handler>
 
-=item * default - C<set_path_defaults>
+=item * default - L<set_path_defaults>
 
-=item * helper - C<set_helper>
+=item * helper - L<set_helper>
 
-=item * alias   - C<alias>
+=item * alias   - L<alias>
 
-=item * static  - C<static>
+=item * static  - L<static>
 
-=item * route - C<route>
+=item * route - L<add_route>
 
 Don't do this, use C<any> or C<get + post + ...> instead.
 
-=item * hook - C<add_hook>
+=item * hook - L<add_hook>
 
 Don't do this, use phase name instead.
 
-=item * error - C<set_error_handler>
+=item * error - L<set_error_handler>
 
 Don't do this, use 3-digit error code instead.
 
@@ -1027,13 +1015,9 @@ No more prototyped/exported functions below here.
 
 =head2 run_test()
 
-=over
+    neaf->run_test( \%PSGI_ENV, %options )
 
-=item * $neaf->run_test( \%PSGI_ENV, %options )
-
-=item * $neaf->run_test( "/path?parameter=value", %options )
-
-=back
+    neaf->run_test( "/path?parameter=value", %options )
 
 Run a L<PSGI> request and return a list of
 C<($status, HTTP::Headers::Fast, $whole_content )>.
@@ -1068,16 +1052,13 @@ Gets overridden by all of the above.
 
 =back
 
-=cut
+See also L<Plack::Test> which author of this writing has overlooked.
 
+=cut
 
 =head2 get_routes()
 
-=over
-
-=item * $neaf->get_routes( $callback->(\%route_spec, $path, $method) )
-
-=back
+    neaf->get_routes( $callback->(\%route_spec, $path, $method) )
 
 Returns a 2-level hashref with ALL routes for inspection.
 
@@ -1089,38 +1070,7 @@ and append to hash its return value, but ONLY if it's true.
 As of 0.20, route definitions are only protected by shallow copy,
 so be careful with them.
 
-This SHOULD NOT be used by application itself.
-
-=cut
-
-=head1 INTERNAL METHODS
-
-B<CAVEAT EMPTOR.>
-
-The following methods are generally not to be used,
-unless you want something very strange.
-
-=head2 handle_request
-
-See L<MVC::Neaf::Route::Main> for implementation.
-
-=cut
-
-=head2 get_view()
-
-=over
-
-=item * $neaf->get_view( "name", $lazy )
-
-=back
-
-Fetch view object by name.
-
-Uses C<load_view> ( name => name ) if needed, unless $lazy flag is on.
-
-This is for internal usage, mostly.
-
-If C<set_forced_view> was called, return its argument instead.
+B<[EXPERIMENTAL]>. Name and meaning MAY change in the future.
 
 =cut
 
