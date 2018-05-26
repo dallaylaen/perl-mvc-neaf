@@ -1,4 +1,4 @@
-package MVC::Neaf::Route::Recursive;
+package MVC::Neaf::Route::Main;
 
 use strict;
 use warnings;
@@ -6,7 +6,7 @@ our $VERSION = 0.23;
 
 =head1 NAME
 
-MVC::Neaf::Route::Recursive - route resolution class for Not Even A Framework.
+MVC::Neaf::Route::Main - main application class for Not Even A Framework.
 
 =head1 DESCRIPTION
 
@@ -15,13 +15,8 @@ and implements the core of Neaf logic.
 
 It is a L<MVC::Neaf::Route> object itself,
 containing a hash of other routes designated by their path prefixes.
-Hence the name.
 
-B<[NOTE]> It is not truly recursive as of yet.
-A Neaf application within a Neaf application is not tested
-and may misbehave.
-
-=head1 SETUP TIME METHODS
+=head1 APPLICATION SETUP METHODS
 
 =cut
 
@@ -58,12 +53,19 @@ sub _one_and_true {
 
     new( %options )
 
-Create a new Route::Recursive instance.
 This is also called by C<MVC::Neaf-E<gt>new>,
 in case one wants to instantiate a Neaf application object
 instead of using the default L<MVC::Neaf/neaf>.
 
-Options are not checked whatsoever.
+Options may include:
+
+=over
+
+=item force_view - use that view instead of anything specified by controller.
+See L</load_view> for details about how view is declared.
+Useful for debugging.
+
+=back
 
 =cut
 
@@ -801,7 +803,7 @@ for corresponding C<MVC::Neaf::View::*> modules.
 
 =back
 
-Returns the view object, NOT the calling Route::Recursive object.
+Returns the view object, NOT the object this method was called on.
 
 =cut
 
@@ -1399,7 +1401,7 @@ This SHOULD NOT be used by application itself.
 
 =cut
 
-# TODO 0.25 Route->inspect, Route::Recursive->inspect
+# TODO 0.25 Route->inspect, Route::Main->inspect
 sub get_routes {
     my ($self, $code) = @_;
     $self = _one_and_true($self) unless ref $self;

@@ -245,7 +245,7 @@ our %EXPORT_TAGS = (
 );
 
 # NOTE This is for new() only, the rest is handled by parent
-use parent qw(MVC::Neaf::Route::Recursive);
+use parent qw(MVC::Neaf::Route::Main);
 
 our $Inst;
 
@@ -391,7 +391,7 @@ This is not enforced whatsoever.
 Also, any number of dash-prefixed keys MAY be present.
 This is the same as putting them into C<default> hash.
 
-See L<MVC::Neaf::Route::Recursive/add_route> for implementation.
+See L<MVC::Neaf::Route::Main/add_route> for implementation.
 
 =cut
 
@@ -966,7 +966,7 @@ sub neaf(@) { ## no critic # DSL
         unshift @args, $action;
         $action = 'error';
     };
-    if ($MVC::Neaf::Route::Recursive::hook_phases{$action}) {
+    if ($MVC::Neaf::Route::Main::hook_phases{$action}) {
         unshift @args, $action;
         $action = 'hook';
     };
@@ -1102,7 +1102,7 @@ unless you want something very strange.
 
 =head2 handle_request
 
-See L<MVC::Neaf::Route::Recursive> for implementation.
+See L<MVC::Neaf::Route::Main> for implementation.
 
 =cut
 

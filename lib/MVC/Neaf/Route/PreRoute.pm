@@ -26,9 +26,9 @@ use Carp;
 
 use parent qw(MVC::Neaf::Route);
 
-=head1 new
+=head2 new
 
-Method is required.
+'method' parameter is required.
 
 =cut
 
@@ -45,9 +45,6 @@ sub new {
 
 
 =head2 RUNTIME STUB METHODS
-
-As L<MVC::Neaf::Route::Recursive> is actually a L<MVC::Neaf::Route> instance,
-it has to provide some of route's accessors in a strange way.
 
 =over
 
