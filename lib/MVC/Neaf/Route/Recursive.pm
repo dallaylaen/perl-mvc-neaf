@@ -37,6 +37,7 @@ use MVC::Neaf::Util qw( run_all run_all_nodie http_date canonize_path
      maybe_list supported_methods extra_missing );
 use MVC::Neaf::Util::Container;
 use MVC::Neaf::Request::PSGI;
+use MVC::Neaf::Route::PreRoute;
 
 sub _one_and_true {
     my $self = shift;
@@ -1468,11 +1469,6 @@ sub handle_request {
     confess "Bareword usage forbidden"
         unless blessed $self;
 
-    # We MUST now ensure that $req->route is avail at any time
-    # so add self to route
-    # but maybe this whould be in dispatch_logic
-    $req->_import_route( $self );
-
     my $data = eval {
         my $hash = $self->dispatch_logic( $req, '', $req->path );
 
@@ -1574,46 +1570,6 @@ sub get_view {
     return $self->{seen_view}{$view};
 };
 
-=head2 RUNTIME STUB METHODS
-
-As L<MVC::Neaf::Route::Recursive> is actually a L<MVC::Neaf::Route> instance,
-it has to provide some of route's accessors in a strange way.
-
-=over
-
-=item * method = C<'*'>;
-
-=item * path = C<'[in pre_route]'>
-
-=item * code = C<die 404;>
-
-=item * where = C<'[in pre_route]'>
-
-=back
-
-Do not rely on these values.
-
-=cut
-
-my $nobody_home = sub { die 404 };
-sub code {
-    $nobody_home;
-};
-
-sub path {
-    "[in pre_route]";
-};
-
-sub method {
-    '*';
-};
-
-sub where {
-    my $self = shift;
-    return $self->{where} || '[in pre_route]';
-};
-
-
 =head2 INTERNAL LOGIC METHODS
 
 The following methods are part of NEAF's core and should not be called
@@ -1686,6 +1642,14 @@ sub dispatch_logic {
         unless $self->{lock};
 
     my $method = $req->method;
+
+    # We MUST now ensure that $req->route is avail at any time
+    # so add self to route
+    # but maybe this whould be in dispatch_logic
+    my $stub = $self->{pre_route_stub}{ $method }
+        ||= MVC::Neaf::Route::PreRoute->new(
+             method => $method, parent => $self );
+    $req->_import_route( $stub );
 
     # run pre_route hooks if any
     run_all( $self->{hooks}{pre_route}{$method}, $req )
