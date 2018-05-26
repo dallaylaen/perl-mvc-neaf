@@ -1698,7 +1698,7 @@ sub do_close { return 1 };
 sub do_log_error {
     my ($self, $msg) = @_;
 
-    warn "ERROR $msg\n";
+    warn "NEAF: ERROR: $msg\n";
 };
 
 sub _croak {
