@@ -918,6 +918,8 @@ Possible actions include:
 
 =item * default - C<set_path_defaults>
 
+=item * helper - C<set_helper>
+
 =item * alias   - C<alias>
 
 =item * static  - C<static>
@@ -943,6 +945,7 @@ my %method_shortcut = (
     error    => 'set_error_handler',
     view     => 'load_view',
     hook     => 'add_hook',
+    helper   => 'set_helper',
     session  => 'set_session_handler',
     default  => 'set_path_defaults',
     alias    => 'alias',
