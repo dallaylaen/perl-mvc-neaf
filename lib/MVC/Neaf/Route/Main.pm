@@ -79,8 +79,7 @@ sub new {
     $self->set_forced_view( $force )
         if $force;
 
-    # TODO 0.20 set default (-view => JS)
-    $self->set_path_defaults( { -status => 200 } );
+    $self->set_path_defaults( { -status => 200, -view => 'JS' } );
 
     # This is required for $self->hooks to produce something.
     # See also todo_hooks where the real hooks sit.
@@ -199,7 +198,6 @@ $known_route_args{$_}++ for qw(
     description caller tentative override public
 );
 
-# TODO 0.25 R::R->add_route
 sub add_route {
     my $self = shift;
 
@@ -300,7 +298,6 @@ sub add_route {
 # out: none
 # spoils $method if tentative
 # dies/warns if violations found
-# TODO 0.25 R::R->
 sub _detect_duplicate {
     my ($self, $profile) = @_;
 
@@ -343,7 +340,7 @@ sub _detect_duplicate {
 
 # This is for get+post sugar
 # TODO 0.90 merge with alias, GET => implicit HEAD
-# TODO 0.25 public method
+# TODO 0.30 public method
 sub _dup_route {
     my ($self, $method, $profile) = @_;
 
@@ -454,7 +451,6 @@ sub static {
 # Instantiate a global static handler to preload in-memory
 #    static files into.
 # TODO 0.30 lame name, find better
-# TODO 0.25 R::R
 sub _static_global {
     my $self = shift;
 
@@ -505,26 +501,38 @@ sub alias {
 
 =head2 set_path_defaults
 
-    set_path_defaults( { value => 42 }, path => [ '/foo', '/bar' ], method => 'PUT' )
+    set_path_defaults( { version => 0.99 }, path => '/api', %options );
 
-    set_path_defaults( "/api" => { version => 0.99 });
+%options may include:
+
+=over
+
+=item * path - restrict this set of defaults to given prefix(es);
+
+=item * method - restrict this set of defaults to given method(s);
+
+=item * exclude - exclude some prefixes;
+
+=back
 
 Append the given values to the hash returned by I<any> route
 under the given path(s) and method(s).
 
-Longer paths take over the shorter ones, route's own values take over in turn,
-and values returned explicitly by the controller have the highest priority.
+Longer paths take over the shorter ones.
+Route's own default values take over any path-based defaults.
+Whatever the controller returns overrides all of these.
 
 =cut
 
-# TODO 0.25 rename defaults => [something]
+# TODO 0.30 rename defaults => [something]
 sub set_path_defaults {
     my $self = shift;
     $self = _one_and_true($self) unless ref $self;
 
     # Old form - path => \%hash
-    # TODO 0.25 deprecate
+    # TODO 0.30 kill
     if (@_ == 2) {
+        carp "set_path_defaults(): '/prefix' => \%values form is DEPRECATED, use \%values, path => '/prefix' instead";
         push @_, path => shift;
     };
 
@@ -620,7 +628,6 @@ Note that this does NOT override path bubbling order.
 
 =cut
 
-# TODO 0.25 convert to generic path specs for defaults, hooks, and helpers
 my %add_hook_args;
 $add_hook_args{$_}++ for qw(method path exclude prepend);
 
@@ -632,9 +639,7 @@ sub add_hook {
     my ($self, $phase, $code, %opt) = @_;
     $self = _one_and_true($self) unless ref $self;
 
-    my @extra = grep { !$add_hook_args{$_} } keys %opt;
-    $self->my_croak( "unknown options: @extra" )
-        if @extra;
+    extra_missing( \%opt, \%add_hook_args );
     $self->my_croak( "illegal phase: $phase" )
         unless $hook_phases{$phase};
 
@@ -684,23 +689,6 @@ sub get_hooks {
             unshift @{ $ret{pre_render} }, sub {
                 $_[0]->reply->{$key} = $_[0]->load_session;
             };
-        };
-    };
-
-    # Also prepend performance stat gatherer
-    # TODO 0.25 remove for good
-    if (my $engine = $self->{stat}) {
-        unshift @{ $ret{pre_route} }, sub {
-            $engine->record_start;
-        };
-        unshift @{ $ret{pre_content} }, sub {
-            $engine->record_controller( $_[0]->prefix );
-        };
-        # Should've switched to pre_cleanup, but we cannot
-        # guarrantee another request doesn't get mixed in
-        # in the meantime, as X::ServerStat is sequential.
-        push @{ $ret{pre_reply} }, sub {
-            $engine->record_finish($_[0]->reply->{-status}, $_[0]);
         };
     };
 
@@ -1096,7 +1084,7 @@ This is a synonym to C<sub { +{ status =E<gt> $status,  ... } }>.
 
 =cut
 
-# TODO 0.25 helper
+# TODO 0.30 helper
 sub set_error_handler {
     my ($self, $status, $code) = @_;
     $self = _one_and_true($self) unless ref $self;
@@ -1304,7 +1292,6 @@ Gets overridden by all of the above.
 my %run_test_allow;
 $run_test_allow{$_}++
     for qw( type method cookie body override secure uploads header );
-# TODO 0.25 R::R
 sub run_test {
     my ($self, $env, %opt) = @_;
     $self = _one_and_true($self) unless ref $self;
@@ -1401,7 +1388,7 @@ This SHOULD NOT be used by application itself.
 
 =cut
 
-# TODO 0.25 Route->inspect, Route::Main->inspect
+# TODO 0.30 Route->inspect, Route::Main->inspect
 sub get_routes {
     my ($self, $code) = @_;
     $self = _one_and_true($self) unless ref $self;
@@ -1671,16 +1658,6 @@ sub dispatch_view {
 
     my $content;
 
-    # TODO 0.25 remove, set default( -view => JS ) instead
-    if (!$data->{-view}) {
-        if ($data->{-template}) {
-            $data->{-view} = 'TT';
-            warn $req->_message( "default -view=TT is DEPRECATED, will switch to JS in 0.25" );
-        } else {
-            $data->{-view} = 'JS';
-        };
-    };
-
     my $view = $self->get_view( $data->{-view} );
     eval {
         run_all( $route->hooks->{pre_render}, $req )
@@ -1741,7 +1718,6 @@ sub error_to_reply {
         my $ret = eval {
             my $data = $tpl->( $req,
                 status => $err->status,
-                caller => $req->endpoint_origin, # TODO 0.25 kill this
                 error => $err,
             );
             $data->{-status}  ||= $err->status;
@@ -1773,7 +1749,7 @@ sub mangle_headers {
     my $data = $req->reply;
     my $content = \$data->{-content};
 
-    # TODO 0.25 Make sure content & status are ALWAYS there
+    $$content = '' unless defined $$content;
 
     # Process user-supplied headers
     if (my $append = $data->{-headers}) {
@@ -1834,111 +1810,19 @@ B<Here is the list of such methods, for the sake of completeness.>
 
 =over
 
-=item * C<$neaf-E<gt>error_template( { param =E<gt> value } )>
-
-Use L</set_error_handler> aka C<neaf \d\d\d =E<gt> sub { ... }>
-instead.
-
-=cut
-
-sub error_template {
-    my $self = shift; # TODO 0.25 remove
-
-    carp "error_template() is deprecated, use set_error_handler() instead";
-    return $self->set_error_handler(@_);
-};
-
-=item * C<$neaf-E<gt>set_default ( key =E<gt> value, ... )>
-
-Use C<MVC::Neaf-E<gt>set_path_defaults( '/', { key =E<gt> value, ... } );>
-as a drop-in replacement.
-
-=cut
-
-sub set_default {
-    my ($self, %data) = @_; # TODO 0.25 remove
-    $self = _one_and_true($self) unless ref $self;
-
-    carp "DEPRECATED use set_path_defaults( '/', \%data ) instead of set_default()";
-
-    return $self->set_path_defaults( '/', \%data );
-};
-
-=item * C<$neaf-E<gt>server_stat ( MVC::Neaf::X::ServerStat-E<gt>new( ... ) )>
-
-Record server performance statistics during run.
-
-The interface of C<MVC::Neaf::X::ServerStat> is as follows:
-
-    my $stat = MVC::Neaf::X::ServerStat->new (
-        write_threshold_count => 100,
-        write_threshold_time  => 1,
-        on_write => sub {
-            my $array_of_arrays = shift;
-
-            foreach (@$array_of_arrays) {
-                # @$_ = (script_name, http_status,
-                #       controller_duration, total_duration, start_time)
-                # do something with this data
-                warn "$_->[0] returned $_->[1] in $_->[3] sec\n";
-            };
-        },
-    );
-
-on_write will be executed as soon as either count data points are accumulated,
-or time is exceeded by difference between first and last request in batch.
-
-Returns self.
-
-B<[DEPRECATED]> Just use pre_route/pre_reply/pre_cleanup hooks if you need
-to gather performance statistics.
-
-=cut
-
-sub server_stat {
-    my ($self, $obj) = @_; # TODO 0.30 remove
-    $self = _one_and_true($self) unless ref $self;
-
-    carp( (ref $self)."->server_stat: DEPRECATED, use hooks & custom stat toolinstead" );
-
-    if ($obj) {
-        $self->{stat} = $obj;
-    } else {
-        delete $self->{stat};
-    };
-
-    return $self;
-};
-
 =item * route
 
-Same as L</add_route>, but also supports weird multicomponent path notation.
-
-B<[NOTE]> For some reason ability to add multicomponent paths
-like C<(foo =E<gt> bar =E<gt> \&code)> was added in the past,
-resulting in C<"/foo/bar" =E<gt> \&code>.
-
-It was never documented, will issue a warning, and will be removed for good
-it v.0.25.
+Old alias for L</add_route>.
 
 =cut
 
 sub route {
-    my $self = shift; # TODO 0.25 remove, alias to add_route
+    my $self = shift;
 
-    # HACK!! pack path components together, i.e.
-    # foo => bar => \&handle eq "/foo/bar" => \&handle
-    carp "NEAF: using multi-component path in route() is DEPRECATED and is to be removed in v.0.25"
-        unless ref $_[1];
-    my ( $path, $sub );
-    while ($sub = shift) {
-        last if ref $sub;
-        $path .= "/$sub";
-    };
+    # TODO 0.30 deprecate
 
-    $self->add_route($path, $sub, @_);
+    $self->add_route(@_);
 };
-
 
 =back
 
