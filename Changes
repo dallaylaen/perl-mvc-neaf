@@ -1,5 +1,13 @@
 Revision history for MVC-Neaf
 
+0.24    Sat May 26 2018
+        - API Add 'helper' subs - user-defined, path-restricted $req methods 
+        - API BREAK Rename -serial => -payload in app response
+        - API set_path_defaults can be restricetd on path + method
+        - REF Rename MVC::Neaf::Route::{Recursive=>Main}
+        - REF Util::Container - path&method based container util
+        - REF Add Route::PreRoute stub class for hooks & helpers
+
 0.23    Wed May 23 2018
         - API Add Route class, add $req->route() call for showing current route
         - API add prefix(), postfix(), and splat() for URI path components

@@ -33,10 +33,12 @@ lib/MVC/Neaf/Request/Apache2.pm
 lib/MVC/Neaf/Request/FakeWriter.pm
 lib/MVC/Neaf/Request/PSGI.pm
 lib/MVC/Neaf/Route.pm
-lib/MVC/Neaf/Route/Recursive.pm
+lib/MVC/Neaf/Route/Main.pm
+lib/MVC/Neaf/Route/PreRoute.pm
 lib/MVC/Neaf/Upload.pm
 lib/MVC/Neaf/Util.pm
 lib/MVC/Neaf/Util/Base.pm
+lib/MVC/Neaf/Util/Container.pm
 lib/MVC/Neaf/View.pm
 lib/MVC/Neaf/View/Dumper.pm
 lib/MVC/Neaf/View/JS.pm
@@ -86,6 +88,8 @@ t/139-upload-diamond.t
 t/140-tt-preload.t
 t/141-tt-loadfile.t
 t/143-static-cache.t
+t/144-util-container.t
+t/145-set_path_defaults.t
 t/201-Neaf.t
 t/202-Neaf-content-length.t
 t/203-Neaf-alias.t
@@ -119,12 +123,13 @@ t/233-tentative-override.t
 t/234-public-flag.t
 t/235-any-is-any.t
 t/236-redirect.t
+t/237-helper.t
+t/238-helper-pre.t
 t/301-default-view.t
 t/401-pre-logic-403-tpl.t
 t/402-error-logged.t
 t/403-non-hash-return.t
 t/404-exception-in-hook.t
-t/405-session-after-lock.t
 t/801-cli.t
 t/802-X-Form.t
 t/803-X-Form-LIVR.t

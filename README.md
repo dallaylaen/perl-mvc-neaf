@@ -60,7 +60,7 @@ Not quite impressive, but it's 95% of what's needed 95% of the time.
 
 * can serve raw content (e.g. generated images);
 
-* can serve static files.
+* can serve static files from disk or from memory.
 No need for separate web server to test your CSS/images.
 
 * sanitized query parameters and cookies out of the box.
@@ -69,9 +69,8 @@ No need for separate web server to test your CSS/images.
 
 # NOT SO BORING FEATURES
 
-* Fine-grained hooks and path-based default values;
-
-* Delayed and/or unspecified length replies supported;
+* Fine-grained hooks, helpers, and fallback values
+restrictable to specific paths/methods;
 
 * Form validation with resubmission ability.
 [Validator::LIVR](https://metacpan.org/pod/Validator::LIVR)

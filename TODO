@@ -1,14 +1,15 @@
 SINCE VERSION | TBD VERSION | COMMENT
     -- next version --
     -- todo --
+0.19    0.25    COR Async support via $req->future
+0.16    0.25    API Param strict mode - die 422 if bad params
+0.13    0.25    TPL Add XSLate support
 0.18    0.25    NET deprecate apache backend
 0.18    0.25    TPL variables -> js module for TT
-0.19    0.25    COR Async support via $req->future
-0.13    0.30    TPL Add XSLate support
+0.24    0.25    REF Use same encoding methods everywhere via ::Util
 0.16    0.30    MOD Oauth2 example/helper
 0.16    0.30    MOD OpenAPI plugin: model+in-spec+out-spec => swagger.txt+routes
 0.14    0.30    API Add named forms to route defn JFYI
-0.16    0.30    API Param strict mode - die 422 if bad params
 0.20    0.30    API body_json( validator ) - die 422 is !json || val fails
 0.17    0.30    TPL Predefined header/footer to spare user of boilerplate
 0.12    0.30    MOD static file_regex, dir_regex
