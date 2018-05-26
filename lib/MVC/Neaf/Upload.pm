@@ -39,7 +39,7 @@ use PerlIO::encoding;
 
 =cut
 
-# TODO 0.25 figure out if GLOBs are worth the hassle
+# TODO 0.30 figure out if GLOBs are worth the hassle
 # We use GLOB objects so that <$upload> works as expected.
 # This may turn out to be not worth it, so it's not even in the docs yet.
 # See also t/*diamond*.t
@@ -50,7 +50,7 @@ $new_opt{$_}++ for @copy_fields, "handle";
 sub new {
     my ($class, %args) = @_;
 
-    # TODO 0.19 add "unicode" flag to open & slurp in utf8 mode
+    # TODO 0.30 add "unicode" flag to open & slurp in utf8 mode
 
     my @extra = grep { !$new_opt{$_} } keys %args;
     croak( "$class->new(): unknown options @extra" )
