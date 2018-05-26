@@ -1465,7 +1465,7 @@ sub handle_request {
 
         # Apply path-based defaults
         my $def = $req->route->default;
-        exists $hash->{$_} or $hash->{$_} = $def->{$_} for keys %$def;
+        %$hash = ( %$def, %$hash );
 
         $req->_set_reply( $hash );
 
