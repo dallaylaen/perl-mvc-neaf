@@ -92,8 +92,8 @@ sub render {
     my $callback = $data->{-jsonp};
     my $type = $data->{-type};
 
-    if( exists $data->{-serial} ) {
-        $data = $data->{-serial};
+    if( exists $data->{-payload} || exists $data->{-serial} ) {
+        $data = $data->{-payload} || $data->{-serial};
     }
     elsif ( !$self->{preserve_dash} ) {
         # This is the default - get rid of control keys, but

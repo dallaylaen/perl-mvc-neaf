@@ -165,9 +165,11 @@ This is set by C<$request-E<gt>redirect(...)>.
 B<[DEPRECATED]> This will be phased out at some point,
 use C<-header =E<gt> [ location =E<gt> ... ]> instead.
 
-=item * -serial - if present, the C<JS> view will render this instead of
+=item * -payload - if present, the C<JS> view will render this instead of
 the whole response hash.
 This can be used, for instance, to return non-hash data in a REST API.
+
+Also used to be C<-serial> which is now deprecated.
 
 B<[EXPERIMENTAL]> Name and meaning may change in the future.
 
