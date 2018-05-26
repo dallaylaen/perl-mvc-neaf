@@ -13,9 +13,9 @@ neaf->route( '/foo/bar' => sub { +{} }
     , -type => 'x-text/jason'
 );
 
-neaf->set_path_defaults( '/foo' => { answer => 42 } );
-neaf->set_path_defaults( '/foo' => { fine => 137 } );
-neaf->set_path_defaults( '/f' => { rubbish => 314 } );
+neaf->set_path_defaults( { answer => 42 }, path => '/foo' );
+neaf->set_path_defaults( { fine => 137 }, path => '/foo' );
+neaf->set_path_defaults( { rubbish => 314 }, path => '/f' );
 
 my ($status, $head, $result)
     = neaf->run_test( { REQUEST_URI => '/foo/bar' } );

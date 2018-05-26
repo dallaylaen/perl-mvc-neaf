@@ -10,8 +10,9 @@ use MVC::Neaf;
 
 # Now to the NEAF itself: set common default values
 neaf view => 'TT02' => 'TT';
-neaf default => '/02' =>
-    { -view => 'TT02', file => 'example/02 NEAF '.MVC::Neaf->VERSION };
+neaf default =>
+    { -view => 'TT02', file => 'example/02 NEAF '.MVC::Neaf->VERSION },
+    path => '/02';
 
 # So far we have to specify \*DATA manually, no magic yet
 neaf->load_resources( \*DATA );
