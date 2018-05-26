@@ -1186,12 +1186,6 @@ sub post_setup {
         $node->{HEAD} ||= $node->{GET}->clone( method => 'HEAD' );
     };
 
-    # pre_route gets *special* handling
-    # TODO 0.90 This is awkward, redo better
-    foreach my $method( supported_methods() ) {
-        $self->{hooks}{pre_route}{$method} = $self->get_hooks( $method, '' )->{pre_route};
-    };
-
     $self->{lock}++;
 };
 
@@ -1652,8 +1646,9 @@ sub dispatch_logic {
     $req->_import_route( $stub );
 
     # run pre_route hooks if any
-    run_all( $self->{hooks}{pre_route}{$method}, $req )
-        if (exists $self->{hooks}{pre_route}{$method});
+    my $pre_route_hooks = $stub->hooks->{pre_route};
+    run_all( $pre_route_hooks, $req )
+        if $pre_route_hooks;
 
     my ($route, $new_stem, $new_suffix) = $self->find_route( $method, $suffix );
 
