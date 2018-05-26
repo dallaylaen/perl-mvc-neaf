@@ -70,7 +70,7 @@ Restrictions MAY BE added in the future though.
 sub new {
     my ($class, %args) = @_;
 
-    # TODO 0.20 restrict params
+    # TODO 0.30 restrict params
     return bless \%args, $class;
 };
 
@@ -1763,21 +1763,6 @@ sub header_in_keys {
     $head->header_field_names;
 };
 
-=head2 upload( ... )
-
-B<[DEPRECATED]> Same as upload_raw, but issues a warning.
-Use upload_utf8() for text files, or upload_raw() for binary ones.
-
-=cut
-
-# TODO 0.25 kill
-sub upload {
-    my ($self, $name) = @_;
-
-    carp "NEAF: req->upload() is DEPRECATED, use upload_utf8 or upload_raw instead";
-    return $self->_upload( id => $name, utf8 => 0 );
-};
-
 =head2 endpoint_origin
 
 Returns file:line where controller was defined.
@@ -1791,60 +1776,6 @@ sub endpoint_origin {
 
     return '(unspecified file):0' unless $self->{route}{caller};
     return join " line ", @{ $self->{route}{caller} }[1,2];
-};
-
-=head2 set_full_path( ... )
-
-=over
-
-=item * C<$req-E<gt>set_full_path( $path )>
-
-=item * C<$req-E<gt>set_full_path( $script_name, $path_info )>
-
-=back
-
-Set new path elements which will be returned from this point onward.
-
-Also updates path() value so that path = script_name + path_info
-still holds.
-
-C<set_full_path(undef)> resets C<script_name> to whatever returned
-by the underlying driver.
-
-Returns self.
-
-B<[DEPRECATED]> Use C<set_path()> and C<set_path_info()> instead.
-
-=cut
-
-# TODO 0.25 kill it
-sub set_full_path {
-    my ($self, $script_name, $path_info) = @_;
-
-    carp "NEAF: set_full_path() is DEPRECATED and will be removed in 0.25";
-
-    if (!defined $script_name) {
-        $script_name = $self->do_get_path;
-    };
-
-    # CANONIZE
-    $script_name =~ s#^/*#/#;
-    $self->{prefix} = $script_name;
-
-    if (defined $path_info) {
-        # Make sure path_info always has a slash if nonempty
-        $path_info =~ s#^/+##;
-        $self->{postfix} = Encode::is_utf8($path_info)
-                ? $path_info
-                : decode_utf8(uri_unescape($path_info));
-    } elsif (!defined $self->{postfix}) {
-        $self->{postfix} = '';
-    };
-    # assert $self->{postfix} is defined by now
-
-    $self->{path} = "$self->{prefix}"
-        .(length $self->{postfix} ? "/$self->{postfix}" : '');
-    return $self;
 };
 
 =head2 get_form_as_hash( ... )
