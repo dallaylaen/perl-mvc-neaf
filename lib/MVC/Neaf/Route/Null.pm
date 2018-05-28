@@ -25,8 +25,22 @@ But for the sake of completeness, it is here.
 
 =cut
 
-use parent qw(MVC::Neaf::Util::Base);
 use Carp;
+
+use parent qw(MVC::Neaf::Util::Base);
+use MVC::Neaf::Util qw(make_getters);
+
+=head2 new
+
+=cut
+
+my $nobody_home = sub { die 404 };
+sub new {
+    my $class = shift;
+
+    return $class->SUPER::new(
+        method => 'GET', path => '/', code => $nobody_home, @_ );
+};
 
 =head2 post_setup
 
@@ -41,23 +55,30 @@ sub post_setup {
 
 Returns C<path> argument given to C<new()>, defaults to C<'/'>.
 
-=cut
-
-sub path {
-    my $self = shift;
-    $self->{path} || '/';
-};
-
 =head2 path
 
 Returns C<method> argument given to C<new()>, defaults to C<'GET'>.
 
+=head2 code
+
+Returns function that dies with 404.
+
+=head2 strict
+
+returns "strict" parameter.
+
+=head2 code
+
+Returns a "die 404" function by default.
+
 =cut
 
-sub method {
-    my $self = shift;
-    $self->{method} || 'GET';
-};
+make_getters (
+    path     => 1,
+    method   => 1,
+    code     => 1,
+    strict   => 1,
+);
 
 =head2 get_form
 

@@ -478,7 +478,9 @@ sub param {
     return $default if !defined $value;
     return $value   if  $value =~ /^(?:$regex)$/s;
 
-    # TODO 0.30 die 422 if strict mode on
+    if ($self->route->strict) {
+        die 422; # TODO 0.30 configurable die message
+    };
     return $default;
 };
 
@@ -633,11 +635,11 @@ sub form {
             || $self->_croak("Unknown form name $validator");
     };
 
-    if (ref $validator eq 'CODE') {
-        return $validator->( $self->_all_params );
-    } else {
-        return $validator->validate( $self->_all_params );
-    };
+    my $result = (ref $validator eq 'CODE')
+        ? $validator->( $self->_all_params )
+        : $validator->validate( $self->_all_params );
+
+    return $result;
 };
 
 =head2 get_form_as_list( ... )
@@ -812,7 +814,12 @@ sub get_cookie {
     my $value = $self->{neaf_cookie_in}{ $name };
     return $default unless defined $value;
 
-    return $value =~ /^$regex$/ ? $value : $default;
+    return $value if $value =~ /^$regex$/;
+
+    if ($self->route->strict) {
+        die 422; # TODO 0.30 configurable die message
+    };
+    return $default;
 };
 
 =head2 set_cookie( ... )

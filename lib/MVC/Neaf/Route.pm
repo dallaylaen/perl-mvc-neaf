@@ -27,7 +27,7 @@ use Scalar::Util qw( looks_like_number blessed );
 use URI::Escape qw( uri_unescape );
 
 use parent qw(MVC::Neaf::Util::Base);
-use MVC::Neaf::Util qw( canonize_path path_prefixes run_all run_all_nodie http_date );
+use MVC::Neaf::Util qw( canonize_path path_prefixes run_all run_all_nodie http_date make_getters );
 
 our @CARP_NOT = qw(MVC::Neaf MVC::Neaf::Request);
 
@@ -76,10 +76,11 @@ Route has the following read-only attributes:
 # Should just Moo here but we already have a BIG dependency footprint
 my @ESSENTIAL = qw( parent method path code );
 my @OPTIONAL  = qw(
-    default cache_ttl
-    path_info_regex param_regex hooks helpers
-    description public caller where tentative
-    override
+    param_regex path_info_regex strict
+    default helpers hooks
+    caller description public where
+    override tentative
+    cache_ttl
 );
 my %RO_FIELDS;
 $RO_FIELDS{$_}++ for @ESSENTIAL, @OPTIONAL;
@@ -394,13 +395,7 @@ sub dispatch_logic {
 };
 
 # Setup getters
-# TODO 0.30 Class::XSAccessors or smth
-foreach (keys %RO_FIELDS) {
-    my $method = $_;
-    my $sub = sub { $_[0]->{$method} };
-    no strict 'refs'; ## no critic
-    *{$method} = $sub;
-};
+make_getters( %RO_FIELDS );
 
 =head1 LICENSE AND COPYRIGHT
 

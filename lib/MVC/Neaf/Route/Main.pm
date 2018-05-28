@@ -145,6 +145,17 @@ See C<param()> in L<MVC::Neaf::Request>.
 
 B<[EXPERIMENTAL]> Name and semantics MAY change in the future.
 
+=item * strict => 1|0
+
+If true, request's C<param()> and C<get_cookie()>
+will emit HTTP error 422
+whenever mandatory validation fails.
+
+If parameter or cookie is missing, just return default.
+This MAY change in the future.
+
+B<[EXPERIMENTAL]> Name and meaning MAY change in the future.
+
 =item * C<view> - default View object for this Controller.
 Must be a name of preloaded view,
 an object with a C<render> method, or a CODEREF
@@ -194,7 +205,7 @@ my $year = 365 * 24 * 60 * 60;
 my %known_route_args;
 $known_route_args{$_}++ for qw(
     default method view cache_ttl
-    path_info_regex param_regex
+    path_info_regex param_regex strict
     description caller tentative override public
 );
 
@@ -238,6 +249,7 @@ sub add_route {
     $profile{code}      = $sub;
     $profile{tentative} = $args{tentative};
     $profile{override}  = $args{override};
+    $profile{strict}    = $args{strict};
 
     # Always have regex defined to simplify routing
     $profile{path_info_regex} = (defined $args{path_info_regex})
