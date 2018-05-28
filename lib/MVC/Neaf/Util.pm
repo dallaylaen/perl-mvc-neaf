@@ -24,7 +24,8 @@ use parent qw(Exporter);
 our @EXPORT_OK = qw(
     canonize_path http_date path_prefixes rex run_all run_all_nodie
     JSON encode_json decode_json
-    maybe_list supported_methods extra_missing
+    extra_missing make_getters maybe_list
+    supported_methods
 );
 our @CARP_NOT;
 
@@ -105,6 +106,55 @@ sub http_date {
     my @date = gmtime($t);
     return sprintf( "%s, %02d %s %04d %02d:%02d:%02d GMT"
         , $week[$date[6]], $date[3], $month[$date[4]], 1900+$date[5], @date[2,1,0]);
+};
+
+=head2 make_getters
+
+Create dumb accessors in the calling class from hash.
+Keys are method names.
+
+Key in the object is hash value if it's an identifier,
+or just method name otherwise:
+
+    package My::Class;
+
+    # (declare constructor somehow)
+    make_getters (
+        foo => bar,
+        baz => 1,
+        quux => '',
+    );
+
+    # ...
+
+    my $obj = My::Class->new;
+
+    $obj->foo;  # {bar}
+    $obj->baz;  # {baz}
+    $obj->quux; # {quux}
+
+=cut
+
+# TODO 0.30 use Class::XSAccessor or smth
+sub make_getters {
+    my %which = @_;
+
+    my $pkg = caller;
+
+    foreach (keys %which) {
+        my $method = $_;
+        my $key = $which{$method};
+        $key = $method unless defined $key and $key =~ /^[a-z_][a-z_0-9]*$/i;
+
+        my $sub = sub {
+            $_[0]->{$key};
+        };
+
+        use warnings FATAL => 'all';
+        no strict 'refs'; ## no critic
+
+        *{ $pkg."::".$method } = $sub;
+    };
 };
 
 =head2 maybe_list
