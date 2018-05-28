@@ -716,11 +716,10 @@ sub set_helper {
     _install_helper( $name );
 };
 
-my %global_helper_list;
 sub _install_helper {
     my $name = shift;
 
-    return if $global_helper_list{$name};
+    return if $MVC::Neaf::Request::allow_helper{$name};
     croak "Cannot override existing method '$name' with a helper"
         if MVC::Neaf::Request->can( $name );
 
@@ -741,7 +740,7 @@ sub _install_helper {
         *{"MVC::Neaf::Request::$name"} = $sub;
     };
 
-    $global_helper_list{$name}++;
+    $MVC::Neaf::Request::allow_helper{$name}++;
 };
 
 =head2 get_helpers

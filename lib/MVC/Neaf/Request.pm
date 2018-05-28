@@ -55,6 +55,8 @@ use MVC::Neaf::Util qw(http_date run_all_nodie canonize_path);
 use MVC::Neaf::Upload;
 use MVC::Neaf::Exception;
 
+our %allow_helper;
+
 =head2 new()
 
     MVC::Neaf::Request->new( %arguments )
@@ -1486,19 +1488,17 @@ sub clear {
 
 =head2 id()
 
-Lazily fetch unique request id. These are guaranteed to be unique
-on a given machine within a reasonable timeframe.
+Fetch unique request id. If none has been set yet (see L</set_id>),
+use L</make_id> method to create one.
 
-Current id-generation mechanism involves URI-safe md5_base64 C<[-_]>,
-but this MAY change in the future.
+The request id is present in both log messages from Neaf
+and default error pages, making it easier to establish link
+between the two.
 
-B<[CAUTION]> Don't use this id for anything secure.
-Use L<MVC::Neaf::X::Session>'s ids instead.
-This one is just for information.
+Custom ids can be provided, see L</make_id> below.
 
 =cut
 
-# TODO 0.30 provide a configurable mechanism to generate ids
 my $host = Sys::Hostname::hostname();
 my $lastid = 0;
 sub id {
@@ -1506,12 +1506,7 @@ sub id {
 
     # We don't really need to protect anything here
     # Just avoid accidental matches for which md5 seems good enough
-    return $self->{id} ||= do {
-        my $str = md5_base64( join ".", $host, $$, Time::HiRes::time, ++$lastid );
-        $lastid = 0 unless $lastid < 4_000_000_000;
-        $str =~ tr/+\//-_/;
-        $str;
-    };
+    return $self->{id} ||= $self->make_id;
 };
 
 =head2 set_id( ... )
@@ -1628,6 +1623,79 @@ sub DESTROY {
     $self->execute_postponed
         if (exists $self->{response}{postponed});
 };
+
+=head1 METHODS THAT CAN BE OVERRIDDEN
+
+Generally Neaf allows to define custom Request methods restricted to certain
+path & method combinations.
+
+The following methods are available by default, but can be overridden
+via the helper mechanism.
+
+For instance,
+
+    use MVC::Neaf;
+
+    my $id;
+    neaf helper => make_id => sub { $$ . "_" . ++$id };
+    neaf helper => make_id => \&unique_secure_base64, path => '/admin';
+
+=cut
+
+sub _helper_fallback {
+    my ($name, $impl) = @_;
+
+    my $code = sub {
+        my $self = shift;
+        my $todo = $self->route && $self->route->helpers->{$name} || $impl;
+        $todo->( $self, @_ );
+    };
+
+    $allow_helper{$name}++;
+
+    no strict 'refs'; ## no critic
+    use warnings FATAL => qw(all);
+    *$name = $code;
+};
+
+=head2 make_id
+
+Create unique request id, e.g. for logging context.
+This is called by L</id> if the id has not yet been set.
+
+By default, generates md5_base64 based on time, hostname, process id, and a
+sequential number.
+
+B<[CAUTION]> This should be unique, but may not be secure.
+Use L<MVC::Neaf::X::Session> if you need something to rely upon.
+
+=cut
+
+_helper_fallback( make_id => sub {
+    my $str = md5_base64( join "#", $host, $$, Time::HiRes::time, ++$lastid );
+    $lastid = 0 unless $lastid < 4_000_000_000;
+    $str =~ tr/+\//-_/;
+    $str;
+} );
+
+=head2 log_message
+
+    $req->log_message( $level => $message );
+
+By default would print uppercased level, $request->id, route,
+and the message itself.
+
+Levels are not restricted whatsoever.
+Suggested values are "fatal", "error", "warn", "debug".
+
+=cut
+
+_helper_fallback( log_message => sub {
+    my ($req, $level, @mess) = @_;
+
+    warn sprintf "%s req_id=%s [%s]: %s"
+        , uc $level, $req->id, $req->_where, join " ", @mess;
+});
 
 =head1 DRIVER METHODS
 
