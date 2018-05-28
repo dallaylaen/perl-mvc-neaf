@@ -54,6 +54,7 @@ use Digest::MD5 qw(md5_base64);
 use MVC::Neaf::Util qw(http_date run_all_nodie canonize_path);
 use MVC::Neaf::Upload;
 use MVC::Neaf::Exception;
+use MVC::Neaf::Route::Null;
 
 our %allow_helper;
 
@@ -209,14 +210,16 @@ sub path {
 
 =head2 route()
 
-A L<MVC::Neaf::Route> object that this request is being dispatched to,
-or the root of the routing tree if none yet.
+A L<MVC::Neaf::Route> object that this request is being dispatched to.
+
+If request is not inside an application, returns a L<MVC::Neaf::Route::Null>
+instead.
 
 =cut
 
 sub route {
     my $self = shift;
-    return $self->{route};
+    return $self->{route} || MVC::Neaf::Route::Null->new;
 };
 
 =head2 set_path()

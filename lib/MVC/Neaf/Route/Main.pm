@@ -1240,7 +1240,7 @@ sub run {
 
     return sub {
         $self->handle_request(
-            MVC::Neaf::Request::PSGI->new( env => $_[0], route => $self ));
+            MVC::Neaf::Request::PSGI->new( env => $_[0] ));
     };
 };
 
@@ -1353,7 +1353,7 @@ sub run_test {
 
     scalar $self->run; # warm up caches
 
-    my $req = MVC::Neaf::Request::PSGI->new( %fake, env => $env, route => $self );
+    my $req = MVC::Neaf::Request::PSGI->new( %fake, env => $env );
 
     my $ret = $self->handle_request( $req );
     if (ref $ret eq 'CODE') {
