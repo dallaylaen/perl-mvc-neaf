@@ -49,9 +49,9 @@ use Encode;
 use HTTP::Headers::Fast;
 use Time::HiRes ();
 use Sys::Hostname ();
-use Digest::MD5 qw(md5_base64);
+use Digest::MD5 qw(md5);
 
-use MVC::Neaf::Util qw(http_date run_all_nodie canonize_path);
+use MVC::Neaf::Util qw( http_date run_all_nodie canonize_path encode_b64 );
 use MVC::Neaf::Upload;
 use MVC::Neaf::Exception;
 use MVC::Neaf::Route::Null;
@@ -1509,8 +1509,6 @@ Custom ids can be provided, see L</make_id> below.
 
 =cut
 
-my $host = Sys::Hostname::hostname();
-my $lastid = 0;
 sub id {
     my $self = shift;
 
@@ -1673,19 +1671,19 @@ sub _helper_fallback {
 Create unique request id, e.g. for logging context.
 This is called by L</id> if the id has not yet been set.
 
-By default, generates md5_base64 based on time, hostname, process id, and a
-sequential number.
+By default, generates MD5 checksum based on time, hostname, process id, and a
+sequential number and encodes as URL-friendly base64.
 
 B<[CAUTION]> This should be unique, but may not be secure.
 Use L<MVC::Neaf::X::Session> if you need something to rely upon.
 
 =cut
 
+my $host = Sys::Hostname::hostname();
+my $lastid = 0;
 _helper_fallback( make_id => sub {
-    my $str = md5_base64( join "#", $host, $$, Time::HiRes::time, ++$lastid );
-    $lastid = 0 unless $lastid < 4_000_000_000;
-    $str =~ tr/+\//-_/;
-    $str;
+    $lastid = 0 if $lastid > 4_000_000_000;
+    encode_b64( md5( join "#", $host, $$, Time::HiRes::time, ++$lastid ) );
 } );
 
 =head2 log_message

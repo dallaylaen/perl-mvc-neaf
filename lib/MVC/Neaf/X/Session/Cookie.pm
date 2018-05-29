@@ -22,8 +22,8 @@ Please take these concern into account, or better use server-side storage.
 
 =cut
 
-use MIME::Base64 qw( encode_base64 decode_base64 );
-use Digest::SHA;
+use MVC::Neaf::Util qw( encode_b64 decode_b64 );
+use Digest::SHA qw( hmac_sha224 );
 
 use parent qw( MVC::Neaf::X::Session::Base );
 
@@ -47,7 +47,7 @@ sub new {
 
     $opt{key} or $class->my_croak( "key option is required" );
 
-    $opt{hmac_function} ||= \&Digest::SHA::hmac_sha224_base64;
+    $opt{hmac_function} ||= sub { encode_b64( hmac_sha224( @_ ) ) };
 
     return $class->SUPER::new( %opt );
 };
@@ -62,7 +62,7 @@ sub store {
     my ($self, $id, $data) = @_;
 
     # TODO 0.90 Make universal HMAC mechanism for ALL cookies
-    my $str = encode_base64($data);
+    my $str = encode_b64($data);
     $str =~ s/\s//gs;
     $str .= "~".$self->get_expire;
     my $sum = $self->{hmac_function}->( $str, $self->{key} );
@@ -84,7 +84,7 @@ sub fetch {
     return unless $key;
     return unless $self->{hmac_function}->( "$str~$time", $self->{key} ) eq $key;
 
-    return { strfy => decode_base64($str), expire => $time };
+    return { strfy => decode_b64($str), expire => $time };
 };
 
 =head2 get_session_id

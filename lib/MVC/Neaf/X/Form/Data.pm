@@ -25,7 +25,8 @@ This class is not expected to be created and used directly.
 
 =cut
 
-use Digest::SHA qw(sha1_base64);
+use Digest::SHA qw(sha1);
+use MVC::Neaf::Util qw( encode_b64 );
 use URI::Escape;
 
 use parent qw(MVC::Neaf::X);
@@ -198,7 +199,7 @@ sub sign {
 # A weak ad-hoc HMAC. Use a better one...
 sub _default_sign {
     my ($data, $key) = @_;
-    return sha1_base64( join "?", $key, $data, $key );
+    return encode_b64( sha1( join "?", $key, $data, $key ) );
 };
 
 =head1 LICENSE AND COPYRIGHT

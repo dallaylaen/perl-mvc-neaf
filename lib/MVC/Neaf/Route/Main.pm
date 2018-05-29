@@ -22,14 +22,13 @@ containing a hash of other routes designated by their path prefixes.
 
 use Carp;
 use Encode;
-use MIME::Base64;
 use Module::Load;
 use Scalar::Util qw( blessed looks_like_number );
 use URI::Escape;
 
 use parent qw(MVC::Neaf::Route);
 use MVC::Neaf::Util qw( run_all run_all_nodie http_date canonize_path
-     maybe_list supported_methods extra_missing );
+     maybe_list supported_methods extra_missing encode_b64 decode_b64 );
 use MVC::Neaf::Util::Container;
 use MVC::Neaf::Request::PSGI;
 use MVC::Neaf::Route::PreRoute;
@@ -942,7 +941,7 @@ sub load_resources {
             $content =~ s/\s+$//s;
             $content = Encode::decode_utf8( $content, 1 );
         } elsif ($opt{format} eq 'base64') {
-            $content = decode_base64( $content );
+            $content = decode_b64( $content );
         } else {
             $self->my_croak("Unknown format $opt{format} in '@@ $spec' in $file");
         };

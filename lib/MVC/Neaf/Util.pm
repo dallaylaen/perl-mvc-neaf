@@ -20,10 +20,12 @@ This module optionally exports anything it has.
 =cut
 
 use Carp;
+use MIME::Base64 3.11;
+
 use parent qw(Exporter);
 our @EXPORT_OK = qw(
     canonize_path http_date path_prefixes rex run_all run_all_nodie
-    JSON encode_json decode_json
+    JSON encode_json decode_json encode_b64 decode_b64
     extra_missing make_getters maybe_list
     supported_methods
 );
@@ -43,7 +45,7 @@ Convert '////fooo//bar/' to '/foo/bar' and '//////' to either '' or '/'.
 sub canonize_path {
     my ($path, $want_slash) = @_;
 
-    $path =~ s#/+#/#g;
+    $path =~ s#//+#/#g;
     if ($want_slash) {
         $path =~ s#/$##;
         $path =~ s#^/*#/#;
@@ -54,6 +56,34 @@ sub canonize_path {
 
     return $path;
 };
+
+=head2 decode_b64
+
+Decode unpadded URL-friendly base64.
+Also works on normal one.
+
+See L<MIME::Base64/decode_base64url>.
+
+=cut
+
+sub decode_b64 {
+    my $str = shift;
+
+    $str =~ tr#-_#+/#;
+    return MIME::Base64::decode_base64($str);
+};
+
+=head2 encode_b64
+
+Encode data as unpadded URL-friendly base64 - with C<-> for 62 and C<_> for 63.
+C<=> signs are removed.
+
+See L<MIME::Base64/encode_base64url>.
+
+=cut
+
+sub encode_b64;
+*encode_b64 = \&MIME::Base64::encode_base64url;
 
 =head2 extra_missing
 

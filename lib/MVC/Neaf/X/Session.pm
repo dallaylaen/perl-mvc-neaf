@@ -72,7 +72,7 @@ This of course is only going to work as a standalone application server
 use Digest::MD5;
 use Time::HiRes qw(gettimeofday);
 use Sys::Hostname qw(hostname);
-use MIME::Base64 qw(encode_base64);
+use MVC::Neaf::Util qw(encode_b64);
 
 use parent qw(MVC::Neaf::X);
 
@@ -160,7 +160,7 @@ sub get_session_id {
     # salt before second round of hashing
     # public data (session_id) should NOT be used for generation
     $old_rand = int (rand() * $max );
-    my $ret = encode_base64( $Hash->( pack "a*L", $old_mix, $old_rand ) );
+    my $ret = encode_b64( $Hash->( pack "a*L", $old_mix, $old_rand ) );
     $ret =~ s/[\s=]+//gs;
     $ret = substr( $ret, 0, $Truncate )
         if $Truncate and $Truncate < length $ret;
