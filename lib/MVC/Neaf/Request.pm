@@ -438,6 +438,8 @@ The regular expression is applied to the WHOLE string,
 from beginning to end, not just the middle.
 Use '.*' if you really trust the data.
 
+Dies if regular expression didn't match and the route has the C<strict> flag.
+
 B<[EXPERIMENTAL]> If C<param_regex> hash was given during route definition,
 C<$regex> MAY be omitted for params that were listed there.
 This feature is not stable yet, though. Use with care.
@@ -497,6 +499,8 @@ If method is GET or HEAD, identical to C<param>.
 Otherwise would return the parameter from query string,
 AS IF it was a GET request.
 
+Dies if regular expression didn't match and the route has the C<strict> flag.
+
 Multiple values are deliberately ignored.
 
 See L<CGI>.
@@ -527,9 +531,13 @@ sub url_param {
     my $value = $self->{url_param_hash}{$name};
 
     # this is copypaste from param(), do something (or don't)
-    return (defined $value and $value =~ /^(?:$regex)$/s)
-        ? $value
-        : $default;
+    return $default if !defined $value;
+    return $value   if  $value =~ /^(?:$regex)$/s;
+
+    if ($self->route->strict) {
+        die 422; # TODO 0.30 configurable die message
+    };
+    return $default;
 };
 
 =head2 multi_param( ... )
@@ -544,6 +552,7 @@ Get a multiple value GET/POST parameter as a C<@list>.
 The name generally follows that of newer L<CGI> (4.08+).
 
 ALL values must match the regex, or an empty list is returned.
+Dies if strict mode if enabled for route and there is a mismatch.
 
 B<[EXPERIMENTAL]> If C<param_regex> hash was given during route definition,
 C<$regex> MAY be omitted for params that were listed there.
@@ -569,7 +578,12 @@ sub multi_param {
     ];
 
     # ANY mismatch = no go. Replace with simple grep if want filter EVER.
-    return (grep { !/^(?:$regex)$/s } @$ret) ? () : @$ret;
+    if (grep { !/^(?:$regex)$/s } @$ret) {
+        die 422 if $self->route->strict;
+        return ();
+    } else {
+        return @$ret;
+    };
 };
 
 =head2 set_param( ... )
@@ -792,6 +806,8 @@ The cookie MUST be sanitized by regular expression.
 The regular expression is applied to the WHOLE string,
 from beginning to end, not just the middle.
 Use '.*' if you really need none.
+
+Dies if regular expression didn't match and the route has the C<strict> flag.
 
 =cut
 
