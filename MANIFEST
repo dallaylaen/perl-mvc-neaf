@@ -74,7 +74,6 @@ t/106-Neaf-Exception.t
 t/107-Neaf-Util-date.t
 t/108-Exception-new.t
 t/112-Neaf-Request-PSGI.t
-t/113-Neaf-Request-Apache.t
 t/115-Neaf-Request-header-out.t
 t/116-Neaf-Request-multi.t
 t/117-Neaf-Request-post-raw.t
@@ -150,6 +149,7 @@ t/903-Request-get-form-as.0.25.t
 t/907-header_in_keys.0.25.t
 t/909-unblessed-no-more-0.30.t
 t/910-default-args-0.30.t
+t/911-Apache2-0.30.t
 t/README
 t/todo.t
 TODO

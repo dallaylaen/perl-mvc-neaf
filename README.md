@@ -16,16 +16,13 @@ It has a lot of similarities to
 **View** is assumed to have just one method, `render()`,
 which receives a hashref and returns a pair of (content, content-type).
 
-**Controller** is reduced to just one function, which gets a request object
-and is expected to return a hashref.
+**Controller** is a function that takes one argument (the request)
+and either returns a hash for rendering, or dies.
 
-A pre-defined set of dash-prefixed control keys allows to control the
-framework's behaviour while all other keys are just sent to the view.
+`die 403;` is a valid way to generate a configurable error page.
 
-**Request** object will depend on the underlying web-server.
-The same app, verbatim, should be able to run as PSGI app, CGI script, or
-Apache handler.
-Request knows all you need to know about the outside world.
+**Request** contains everything the application needs to know
+about the outside world. 
 
 # EXAMPLE
 
@@ -56,25 +53,25 @@ Not quite impressive, but it's 95% of what's needed 95% of the time.
 
 * Template::Toolkit view out of the box;
 
-* json/jsonp view out of the box (with sanitized callbacks);
+* json/jsonp view out of the box;
 
 * can serve raw content (e.g. generated images);
 
 * can serve static files from disk or from memory.
-No need for separate web server to test your CSS/images.
+No need for separate web server to test CSS and/or images.
 
-* sanitized query parameters and cookies out of the box.
+* regex-checked query parameters and cookies out of the box.
 
 * Easy to develop RESTful web-services.
 
 # NOT SO BORING FEATURES
 
-* Fine-grained hooks, helpers, and fallback values
-restrictable to specific paths/methods;
+* Fine-grained hooks, helpers, and fallback return values
+that may be restricted to specific routes;
 
-* Form validation with resubmission ability.
+* Powerful form validation tooling.
 [Validator::LIVR](https://metacpan.org/pod/Validator::LIVR)
-supported, but not requires.
+supported, but not required.
 
 * CLI-based debugging via `perl <your_app.pl> --help|--list|--method GET`
 

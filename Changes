@@ -1,5 +1,14 @@
 Revision history for MVC-Neaf
 
+0.25    Sat Jun 2 2018
+        - API Add 'strict' flag that makes controller emit error 422 if params/cookies pass validation
+        - API Add overridable log_message, make_id to Request class
+        - API BREAK Remove deprecated error_template, set_default, server_stat
+        - API BREAK Remove Request->upload (use utf8/raw), Request->set_full_path (use set_path)
+        - REF Use base64url instead of base64 everywhere
+        - NET BREAK Deprecate Apache2 backend in favor of Plack::Handler::Apache2
+        - MOD BREAK Remove ServerStat
+
 0.24    Sat May 26 2018
         - API Add 'helper' subs - user-defined, path-restricted $req methods 
         - API BREAK Rename -serial => -payload in app response
