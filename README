@@ -1,10 +1,8 @@
 MVC-Neaf
 
-MVC::Neaf [ni:f] stands for Not Even An (MVC) Framework.
+MVC::Neaf [ni:f] stands for Not Even A (Web) Framework.
 
-It allows to build simple web apps followin simple rules.
-
-See README.md
+See README.md or `perldoc lib/MVC/Neaf.pm` for feature discussion.
 
 INSTALLATION
 
@@ -39,7 +37,7 @@ You can also look for information at:
 
 LICENSE AND COPYRIGHT
 
-Copyright (C) 2016 Konstantin S. Uvarin
+Copyright (C) 2016-2018 Konstantin S. Uvarin <khedin@cpan.org>
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
