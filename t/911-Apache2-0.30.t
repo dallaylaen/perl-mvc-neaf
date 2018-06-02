@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 use Test::More;
+use Test::Warn;
 
 BEGIN {
     # Avoid loading REAL modules - fake everything
@@ -46,7 +47,10 @@ BEGIN {
 
 };
 
-use MVC::Neaf::Request::Apache2;
+warnings_like {
+    $ENV{MOD_PERL} = 2;
+    require MVC::Neaf::Request::Apache2;
+} qr#DEPRECATED.*Plack::Handler::Apache#, "Warning issued and alternative suggested";
 ok (!MVC::Neaf::Request::Apache2->failed_startup, "Monkey patching worked")
     or die "Failed to mock apache, bailing out";
 

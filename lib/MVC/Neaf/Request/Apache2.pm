@@ -9,14 +9,15 @@ our $VERSION = 0.24;
 
 MVC::Neaf::Request::Apache2 - Apache2 (mod_perl) driver for Not Even A Framework.
 
-=head1 DESCRIPTION
+=head1 WARNING
 
-Apache2 request that will invoke MVC::Neaf core functions from under mod_perl.
+B<This module is DEPRECATED and will be removed in Neaf 0.30.>
 
-Much to the author's disgrace, this module currently uses
-BOTH Apache2::RequestRec and Apache2::Request from libapreq.
+Use L<Plack::Handler::Apache2> instead.
 
 =head1 SYNOPSIS
+
+Apache2 request that will invoke MVC::Neaf core functions from under mod_perl.
 
 The following apache configuration should work with this module:
 
@@ -67,6 +68,10 @@ BEGIN {
         Apache2::Const->import( -compile => 'OK' );
     };
 };
+
+# TODO 0.30 remove the whole module
+carp __PACKAGE__." is DEPRECATED and will be REMOVED in 0.30. Use Plack::Handler::Apache2 instead."
+    if $ENV{MOD_PERL};
 
 use MVC::Neaf;
 use parent qw(MVC::Neaf::Request);
@@ -269,8 +274,6 @@ sub do_write {
     my ($self, $data) = @_;
     return $self->{driver_raw}->print( $data );
 };
-
-# TODO implement do_close, too!
 
 =head2 handler( $apache_request )
 
