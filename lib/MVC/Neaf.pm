@@ -340,6 +340,17 @@ See L<MVC::Neaf::Request/param>.
 
 B<[EXPERIMENTAL]> Name and semantics MAY change in the future.
 
+=item * strict => 1|0
+
+If true, request's C<param()> and C<get_cookie()>
+will emit HTTP error 422
+whenever mandatory validation fails.
+
+If parameter or cookie is missing, just return default.
+This MAY change in the future.
+
+B<[EXPERIMENTAL]> Name and meaning MAY change in the future.
+
 =item * C<view> - default View object for this Controller.
 Must be a name of preloaded view,
 an object with a C<render> method, or a CODEREF
