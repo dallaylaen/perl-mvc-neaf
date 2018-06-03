@@ -39,7 +39,12 @@ sub new {
     my $class = shift;
 
     return $class->SUPER::new(
-        method => 'GET', path => '/', code => $nobody_home, @_ );
+        method => 'GET',
+        path => '/',
+        code => $nobody_home,
+        default => {},
+        @_
+    );
 };
 
 =head2 post_setup
@@ -78,6 +83,7 @@ make_getters (
     method   => 1,
     code     => 1,
     strict   => 1,
+    default  => 1,
 );
 
 =head2 get_form
