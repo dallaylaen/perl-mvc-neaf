@@ -8,26 +8,34 @@ use MVC::Neaf::Request;
 
 my $req = MVC::Neaf::Request->new( method => 'GET', path => '/foo' );
 
-ok !$req->{is_async}, "Not async yet";
-
-subtest "Future first, timeout" => sub {
+subtest "No promise at all" => sub {
     my @trace;
-    my $future = $req->async;
+    ok !$req->is_async, "Not async yet";
+
+    $req->_set_callback( sub { push @trace, [@_] }, "foobar" );
+    is scalar @trace, 1, "1 action recorded";
+    is $trace[0][0], $req, "Self";
+    is $trace[0][1], "foobar", "data round-trip";
+};
+
+subtest "Promise first, timeout" => sub {
+    my @trace;
+    my $promise = $req->async;
     ok $req->is_async, "Async mode on";
-    is $future->method, "GET", "Proxy method works";
-    undef $future; # TODO test leak
+    is $promise->method, "GET", "Proxy method works";
+    undef $promise; # TODO test leak
 
     $req->_set_callback( sub { push @trace, [@_] } );
 
     is scalar @trace, 1, "1 call logged";
     is $trace[0][0], $req, "Continue fired";
-    is $trace[0][1], "510 Timeout", "Undef future = timeout recorded";
+    is $trace[0][1], "510 Timeout", "Undef promise = timeout recorded";
     ok !$req->is_async, "No more async mode";
 };
 
 subtest "Code first, return" => sub {
     my @trace;
-    my $future = $req->async;
+    my $promise = $req->async;
     ok $req->is_async, "Async mode on";
 
     $req->_set_callback( sub { push @trace, [@_] } );
@@ -35,7 +43,7 @@ subtest "Code first, return" => sub {
     is scalar @trace, 0, "Nothing executed yet";
     ok $req->is_async, "Async mode still on";
 
-    $future->return( { foo => 42 } );
+    $promise->return( { foo => 42 } );
 
     ok !$req->is_async, "Async no more";
     is scalar @trace, 1, "1 call recorded";
