@@ -50,11 +50,13 @@ use HTTP::Headers::Fast;
 use Time::HiRes ();
 use Sys::Hostname ();
 use Digest::MD5 qw(md5);
+use Scalar::Util qw(weaken);
 
 use MVC::Neaf::Util qw( http_date run_all_nodie canonize_path encode_b64 );
 use MVC::Neaf::Upload;
 use MVC::Neaf::Exception;
 use MVC::Neaf::Route::Null;
+use MVC::Neaf::Request::Promise;
 
 our %allow_helper;
 
@@ -1646,6 +1648,9 @@ sub DESTROY {
     # In this case we're gonna fail silently with cryptic warnings. :(
     $self->execute_postponed
         if (exists $self->{response}{postponed});
+
+    Carp::cluck "Request destroyed while in async mode, file a bug in NEAF"
+        if $self->is_async;
 };
 
 =head1 METHODS THAT CAN BE OVERRIDDEN
@@ -1800,6 +1805,100 @@ sub _croak {
     $where =~ s/.*:://;
     croak( (ref $self || $self)."->$where: $msg" );
 };
+
+=head1 ASYNCHRONOUS METHODS
+
+=cut
+
+sub _set_ready {
+    my ($self, $error) = @_;
+
+    $self->_croak("Double future")
+        if exists $self->{neaf_async_arg};
+
+    $self->{neaf_async_arg} = $error;
+    if ($self->{neaf_async_todo} && exists $self->{neaf_async_arg}) {
+        my ($code, $arg) = $self->_async_reset;
+        $code->($self, $arg);
+    };
+};
+
+sub _maybe_continue {
+    my ($self, $code) = @_;
+
+    confess "Duplicate _maybe_continue, file a bug in NEAF"
+        if $self->{neaf_async_todo};
+
+    $self->{neaf_async_todo} = $code;
+
+    if ($self->{neaf_async_todo} && exists $self->{neaf_async_arg}) {
+        my ($code, $arg) = $self->_async_reset;
+        $code->($self, $arg);
+    };
+};
+
+sub _async_reset {
+    my $self = shift;
+    delete $self->{neaf_async};
+    delete $self->{neaf_async_promise};
+
+    return ( delete $self->{neaf_async_todo}, delete $self->{neaf_async_arg} );
+};
+
+=head2 async
+
+Puts request in asynchronous mode and returns a C<$promise> object.
+
+From now on, returning from the current subroutine does not matter.
+
+Instead, the following ways of advancing with request processing exist:
+
+=over
+
+=item * $promise->return would be regarded as returning normally;
+
+=item * $promise->error would be regarded as calling $request->error,
+but will NOT cause an exception whatsoever.
+
+=item * $promise leaving scope will be regarded as unexpected timeout error.
+
+=back
+
+Additionally, any public method of $request may also be called on $promise,
+with exactly the same effect.
+
+B<[EXPERIMENTAL]>. Name and meaning MAY change in the future.
+
+=cut
+
+sub async {
+    my $self = shift;
+
+    my $hold;
+    if (!$self->{neaf_async}) {
+        $self->{neaf_async} = 1;
+        $self->{neaf_async_promise} = $hold = MVC::Neaf::Request::Promise->new(
+            backend => $self,
+        );
+        weaken $self->{neaf_async_promise};
+    };
+
+    return $self->{neaf_async_promise};
+};
+
+=head2 is_async
+
+True if request is in async mode, false otherwise (currently undefined).
+
+B<[EXPERIMENTAL]>. May be removed in the future if L</async>
+is removed or changed.
+
+=cut
+
+sub is_async {
+    return $_[0]->{neaf_async};
+};
+
 
 =head1 DEPRECATED METHODS
 
