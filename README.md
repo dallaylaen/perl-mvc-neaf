@@ -11,14 +11,14 @@ The following code can be run as a PSGI application or CGI script:
     use MVC::Neaf;
 
     get + post "/" => sub {
-		my $req = shift;
+        my $req = shift;
 
-		return {
+        return {
             -view     => 'TT',
-			-template => \'Hello, [% name %]!',
-			-type     => 'text/plain',
-			name      => $req->param( name => qr/\w+/, "Stranger" ),
-		};
+            -template => \'Hello, [% name %]!',
+            -type     => 'text/plain',
+            name      => $req->param( name => qr/\w+/, "Stranger" ),
+        };
     };
 
     neaf->run;
@@ -67,10 +67,10 @@ See [examples](example/) for more.
 
 To install this module, run the following commands:
 
-	perl Makefile.PL
-	make
-	make test
-	make install
+    perl Makefile.PL
+    make
+    make test
+    make install
 
 # BUGS
 
