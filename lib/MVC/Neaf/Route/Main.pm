@@ -1469,26 +1469,11 @@ are for running callbacks, handling corner cases, and substituting sane defaults
 
 sub handle_request {
     my ($self, $req) = @_;
-
-    confess "Bareword usage forbidden"
-        unless blessed $self;
+    $self = _one_and_true($self) unless ref $self;
 
     my $data = eval {
         my $hash = $self->dispatch_logic( $req, '', $req->path );
-
-        # TODO 0.30 More suitable error message, force logging error
-        die "NEAF: FATAL: Controller must return hash at ".$req->endpoint_origin."\n"
-            unless ref $hash and UNIVERSAL::isa($hash, 'HASH');
-        # TODO 0.30 Also accept (&convert) hash headers
-        die "NEAF: FATAL: '-headers' must be an even-sized array at ".$req->endpoint_origin."\n"
-            if defined $hash->{-headers}
-                and (ref $hash->{-headers} ne 'ARRAY' or @{ $hash->{-headers} } % 2);
-
-        # Apply path-based defaults
-        my $def = $req->route->default;
-        %$hash = ( %$def, %$hash );
-
-        $req->_set_reply( $hash );
+        $hash = $req->_set_reply( $hash );
 
         if (my $hooks = $req->route->hooks->{pre_content}) {
             run_all_nodie( $hooks, sub {
@@ -1496,9 +1481,6 @@ sub handle_request {
             }, $req );
         };
 
-        # TODO 0.90 dispatch_view must belong to req->route
-        warn "DEBUG data is ".((ref $hash) || (defined $hash ? 'scalar' : 'undef'))
-            unless ref $hash eq 'HASH';
         $hash->{-content} = $self->dispatch_view( $req )
             unless defined $hash->{-content};
         $hash;

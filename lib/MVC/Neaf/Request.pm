@@ -1354,11 +1354,18 @@ sub reply {
 sub _set_reply {
     my ($self, $data) = @_;
 
-    croak "Bareword forbidden in reply"
+    # Cannot croak because it may point at wrong location
+    # TODO 0.30 More suitable error message, force logging error
+    die "NEAF: FATAL: Controller must return hash at ".$self->endpoint_origin."\n"
         unless ref $data and UNIVERSAL::isa($data, 'HASH');
+    # TODO 0.30 Also accept (&convert) hash headers
+    die "NEAF: FATAL: '-headers' must be an even-sized array at ".$self->endpoint_origin."\n"
+        if defined $data->{-headers}
+            and (ref $data->{-headers} ne 'ARRAY' or @{ $data->{-headers} } % 2);
+    my $def = $self->route->default || {};
 
-    $self->{response}{ret} = $data;
-    return $self;
+    # Return the resulting hash
+    $self->{response}{ret} = +{ %$def, %$data };
 }
 
 =head2 stash( ... )
