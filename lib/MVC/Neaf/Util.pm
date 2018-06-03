@@ -24,9 +24,10 @@ use MIME::Base64 3.11;
 
 use parent qw(Exporter);
 our @EXPORT_OK = qw(
-    canonize_path http_date path_prefixes rex run_all run_all_nodie
+    canonize_path check_path path_prefixes
+    run_all run_all_nodie
     JSON encode_json decode_json encode_b64 decode_b64
-    extra_missing make_getters maybe_list
+    extra_missing make_getters maybe_list http_date rex
     supported_methods
 );
 our @CARP_NOT;
@@ -55,6 +56,29 @@ sub canonize_path {
     };
 
     return $path;
+};
+
+=head2 check_path
+
+    @array = check_path @array
+
+Check a list of path for bad characters in path spec.
+Will issue a warning if something strange is present.
+Most notably, forbids C<:> in order to allow for future C</my/path/:param>
+
+Returns unmodified list.
+This as well as prototype is done so for simpler integration with map.
+
+=cut
+
+my $path_allow = q{-/A-Za-z_0-9~.,!+'()*@};
+my $re_path_not = qr#[^$path_allow]#;
+sub check_path(@) { ## no critic # need proto for simpler wrapping around map
+    if ( grep { $_ =~ $re_path_not } @_ ) {
+        local @CARP_NOT = caller;
+        carp "NEAF Characters outside [$path_allow] in path are DEPRECATED until 0.30";
+    };
+    return wantarray ? @_ : shift;
 };
 
 =head2 decode_b64
@@ -201,6 +225,9 @@ Otherwise, return C<[ $value ]>.
 
 sub maybe_list {
     my $item = shift;
+
+    confess "Useless use of maybe_list in void context, file a bug in NEAF"
+        unless defined wantarray;
 
     my @ret = defined $item ? (
         ref $item eq 'ARRAY' ? @$item : ($item)

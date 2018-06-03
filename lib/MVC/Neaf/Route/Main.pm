@@ -27,7 +27,7 @@ use Scalar::Util qw( blessed looks_like_number );
 use URI::Escape;
 
 use parent qw(MVC::Neaf::Route);
-use MVC::Neaf::Util qw( run_all run_all_nodie http_date canonize_path
+use MVC::Neaf::Util qw( run_all run_all_nodie http_date canonize_path check_path
      maybe_list supported_methods extra_missing encode_b64 decode_b64 );
 use MVC::Neaf::Util::Container;
 use MVC::Neaf::Request::PSGI;
@@ -232,7 +232,7 @@ sub add_route {
     $self->my_croak( "Unexpected keys in route setup: @extra" )
         if @extra;
 
-    $args{path} = $path = canonize_path( $path );
+    $args{path} = $path = check_path canonize_path( $path );
 
     $args{method} = maybe_list( $args{method}, qw( GET POST ) );
     $_ = uc $_ for @{ $args{method} };
@@ -493,6 +493,8 @@ sub alias {
 
     $new = canonize_path( $new );
     $old = canonize_path( $old );
+
+    check_path( $old, $new );
 
     $self->{route}{$old}
         or $self->my_croak( "Cannot create alias for unknown route $old" );

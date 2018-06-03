@@ -35,7 +35,8 @@ and extract them in the needed order.
 use Carp;
 
 use parent qw(MVC::Neaf::Util::Base);
-use MVC::Neaf::Util qw( maybe_list canonize_path path_prefixes supported_methods );
+use MVC::Neaf::Util qw( maybe_list canonize_path path_prefixes supported_methods check_path );
+our @CARP_NOT = qw(MVC::Neaf::Route);
 
 =head1 ATTRIBUTES
 
@@ -82,13 +83,13 @@ sub store {
         if $opt{tentative} and $opt{override};
 
     $opt{data} = $data;
-    maybe_list( \$opt{path}, '' );
 
     my @methods = map { uc $_ } maybe_list( $opt{method}, supported_methods() );
 
-    my @todo = map { canonize_path( $_ ) } maybe_list( $opt{path}, '' );
+    my @todo = check_path map { canonize_path( $_ ) } maybe_list( $opt{path}, '' );
     if ($opt{exclude}) {
-        my $rex = join '|', map { quotemeta(canonize_path($_)) } maybe_list($opt{exclude} );
+        my $rex = join '|', map { quotemeta(canonize_path($_)) }
+            check_path maybe_list( $opt{exclude} );
         $opt{exclude} = qr(^(?:$rex)(?:[/?]|$));
         @todo = grep { $_ !~ $opt{exclude} } @todo
     };
