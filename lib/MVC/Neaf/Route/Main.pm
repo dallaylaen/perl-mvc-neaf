@@ -505,7 +505,7 @@ sub alias {
             if $self->{route}{ $new };
 
     # reset cache
-    $self->{route_re} = undef;
+    delete $self->{route_re};
 
     # FIXME clone()
     $self->{route}{$new} = $self->{route}{$old};
@@ -1201,11 +1201,20 @@ sub _make_route_re {
 
     $hash ||= $self->{route};
 
-    my $re = join "|", map { quotemeta } reverse sort keys %$hash;
+    # Make longest paths come first
+    my @path_list = reverse sort keys %$hash;
 
-    # make $1, $2 always defined
-    # split into (/foo/bar)/(baz)?param=value
-    return qr{^($re)(?:/*([^?]*)?)(?:\?|$)};
+    # escape all metacharacters except /
+    # which is converted to '/+' so that foo///bar is also matched
+    my $re = join "|", map {
+        join '/+', map {
+            quotemeta
+        } split /\/+/, $_
+    } @path_list;
+
+    # split path into (/foo/bar)/(baz)?param=value
+    # return prefix as $1 and postfix as $2, if present
+    return qr{^($re)(?:/+([^?]*))?(?:\?|$)};
 };
 
 =head2 run()
@@ -1490,9 +1499,8 @@ sub handle_request {
         # TODO 0.90 dispatch_view must belong to req->route
         warn "DEBUG data is ".((ref $hash) || (defined $hash ? 'scalar' : 'undef'))
             unless ref $hash eq 'HASH';
-        $hash->{-content} ||= $self->dispatch_view( $req );
-        confess "No content after render"
-            unless $hash->{-content};
+        $hash->{-content} = $self->dispatch_view( $req )
+            unless defined $hash->{-content};
         $hash;
     };
 
@@ -1574,9 +1582,7 @@ The following terminology is used hereafter:
 
 =over
 
-=item * prefix - part of URI path preceding what's currently being processed;
-
-=item * stem - part of URI that matched given NEAF route;
+=item * prefix - part of URI that matched given NEAF route;
 
 =item * suffix - anything after the matching part
 but before query parameters (the infamous C<path_info>).
@@ -1603,9 +1609,15 @@ sub find_route {
     my ($self, $method, $path) = @_;
 
     # Lookup the rules for the given path
-    $path =~ $self->{route_re} and my $node = $self->{route}{$1}
+    $path =~ $self->{route_re}
         or die "404\n";
-    my ($stem, $suffix) = ($1, $2);
+
+    my ($prefix, $postfix) = ($1, $2);
+    $prefix =~ s#//+#/#g; # CANONIZE
+
+    my $node = $self->{route}{$prefix}
+        or die "404\n";
+
     my $route = $node->{ $method };
     unless ($route) {
         die MVC::Neaf::Exception->new(
@@ -1614,7 +1626,8 @@ sub find_route {
         );
     };
 
-    return ($route, $stem, $suffix);
+    $postfix = '' unless defined $postfix;
+    return ($route, $prefix, $postfix);
 };
 
 =head2 dispatch_logic
