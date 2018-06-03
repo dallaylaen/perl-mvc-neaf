@@ -1817,32 +1817,35 @@ sub _set_ready {
         if exists $self->{neaf_async_arg};
 
     $self->{neaf_async_arg} = $error;
-    if ($self->{neaf_async_todo} && exists $self->{neaf_async_arg}) {
-        my ($code, $arg) = $self->_async_reset;
-        $code->($self, $arg);
-    };
+    $self->_maybe_continue;
+};
+
+sub _set_callback {
+    my ($self, $code, $maybe_arg) = @_;
+
+    confess "NEAF Duplicate _set_callback, file a bug in MVC::Neaf"
+        if $self->{neaf_async_todo};
+
+    return $code->($self, $maybe_arg)
+        unless $self->{neaf_async};
+
+    $self->{neaf_async_todo} = $code;
+    $self->_maybe_continue;
 };
 
 sub _maybe_continue {
-    my ($self, $code) = @_;
-
-    confess "Duplicate _maybe_continue, file a bug in NEAF"
-        if $self->{neaf_async_todo};
-
-    $self->{neaf_async_todo} = $code;
-
-    if ($self->{neaf_async_todo} && exists $self->{neaf_async_arg}) {
-        my ($code, $arg) = $self->_async_reset;
-        $code->($self, $arg);
-    };
-};
-
-sub _async_reset {
     my $self = shift;
+
+    return unless $self->{neaf_async_todo} && exists $self->{neaf_async_arg};
+
     delete $self->{neaf_async};
     delete $self->{neaf_async_promise};
 
-    return ( delete $self->{neaf_async_todo}, delete $self->{neaf_async_arg} );
+    my $code = delete $self->{neaf_async_todo};
+    my $arg  = delete $self->{neaf_async_arg};
+
+    $code->($self, $arg);
+    return 1;
 };
 
 =head2 async

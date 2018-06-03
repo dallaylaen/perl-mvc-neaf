@@ -1508,7 +1508,7 @@ sub handle_request {
         # Failed. TODO 0.30: do it better, still convoluted logic
         $data = $self->error_to_reply( $req, $@ );
         $req->_set_reply( $data );
-        confess "No content after error"
+        confess "NEAF No content after error, file a bug in MVC::Neaf"
             unless $data->{-content};
     };
 

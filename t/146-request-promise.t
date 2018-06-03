@@ -17,7 +17,7 @@ subtest "Future first, timeout" => sub {
     is $future->method, "GET", "Proxy method works";
     undef $future; # TODO test leak
 
-    $req->_maybe_continue( sub { push @trace, [@_] } );
+    $req->_set_callback( sub { push @trace, [@_] } );
 
     is scalar @trace, 1, "1 call logged";
     is $trace[0][0], $req, "Continue fired";
@@ -30,7 +30,7 @@ subtest "Code first, return" => sub {
     my $future = $req->async;
     ok $req->is_async, "Async mode on";
 
-    $req->_maybe_continue( sub { push @trace, [@_] } );
+    $req->_set_callback( sub { push @trace, [@_] } );
 
     is scalar @trace, 0, "Nothing executed yet";
     ok $req->is_async, "Async mode still on";
