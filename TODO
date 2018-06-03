@@ -1,5 +1,7 @@
 SINCE VERSION | TBD VERSION | COMMENT
     -- next version --
+0.25    0.26    BUG fix // in path
+0.25    0.26    BUG Restrict route path symbols
     -- todo --
 0.24    0.30    DOC Big rewrite of docs
 0.24    0.30    API Add regex-check for http headers, too
@@ -8,6 +10,7 @@ SINCE VERSION | TBD VERSION | COMMENT
 0.24    0.30    API load_resources() automagically
 0.13    0.30    TPL Add XSLate support
 0.18    0.30    TPL variables -> js module for TT
+0.25    0.30    API Add /foo/:bar with mandatory param_regex{bar}
 0.16    0.30    MOD Oauth2 example/helper
 0.20    0.30    API body_json( validator ) - die 422 is !json || val fails
 0.17    0.30    TPL Predefined header/footer to spare user of boilerplate

@@ -1,33 +1,10 @@
 # NAME
 
-MVC::Neaf [ni:f] stands for Not Even A Framework.
+MVC::Neaf `[ni:f]` stands for **Not Even A Framework**.
 
 # OVERVIEW
 
-Neaf offers a simple, yet powerful way to create simple web-applications.
-By the lazy, for the lazy.
-
-It has a lot of similarities to
-[Dancer](https://metacpan.org/pod/Dancer2) and
-[Kelp](https://metacpan.org/pod/Kelp).
-
-**Model** is assumed to be a regular Perl module, and is totally out of scope.
-
-**View** is assumed to have just one method, `render()`,
-which receives a hashref and returns a pair of (content, content-type).
-
-**Controller** is a function that takes one argument (the request)
-and either returns a hash for rendering, or dies.
-
-`die 403;` is a valid way to generate a configurable error page.
-
-**Request** contains everything the application needs to know
-about the outside world. 
-
-# EXAMPLE
-
-The following would produce a greeting message depending
-on the `?name=` parameter.
+The following code can be run as a PSGI application or CGI script:
 
     use strict;
     use warnings;
@@ -37,71 +14,63 @@ on the `?name=` parameter.
 		my $req = shift;
 
 		return {
+            -view     => 'TT',
 			-template => \'Hello, [% name %]!',
 			-type     => 'text/plain',
 			name      => $req->param( name => qr/\w+/, "Stranger" ),
-		},
+		};
     };
 
     neaf->run;
 
-# FEATURES
+Just like many other frameworks, Neaf organises an application
+into a *prefix tree* of routes. Each *route* has a *handler* `sub`
+which receives one and only argument - a *request* object.
 
-* GET, POST, and HEAD requests; uploads; redirects; and cookies
-are supported.
-Not quite impressive, but it's 95% of what's needed 95% of the time.
+The *request* contains *everything* the application needs to know
+about the outside world.
 
-* Template::Toolkit view out of the box;
+The *handler* must either *return* a hash for rendering, or *die*.
+A 3-digit exception is a valid way of returning a configurable error page.
 
-* json/jsonp view out of the box;
+The *return hash* may contain dash-prefixed keys to control Neaf itself.
+For instance, the default view is JSON-based but adding 
 
-* can serve raw content (e.g. generated images);
+    -view => 'TT', -template => 'my.tpl'
 
-* can serve static files from disk or from memory.
-No need for separate web server to test CSS and/or images.
+to the hash would result in using `Template::Toolkit` instead.
 
-* regex-checked query parameters and cookies out of the box.
+# NOTABLE FEATURES
 
-* Easy to develop RESTful web-services.
+* **Mandatory validation** - parameters and cookies are always regex-checked.
 
-# NOT SO BORING FEATURES
+* **Forms** that validate a bunch of input parameters, additionally
+producing hashes of errors and raw values for resubmission.
 
-* Fine-grained hooks, helpers, and fallback return values
-that may be restricted to specific routes;
+* **Path-based defaults** that can be overridden in route definition or
+by controller itself:
 
-* Powerful form validation tooling.
-[Validator::LIVR](https://metacpan.org/pod/Validator::LIVR)
-supported, but not required.
+    neaf default => { -view => 'JS', version => $VERSION }, path => '/api';
 
-* CLI-based debugging via `perl <your_app.pl> --help|--list|--method GET`
+* **Hooks** that may be executed at different stages:
 
-* Sessions supported out of the box with cookie-based and SQL-based backends.
+    neaf pre_logic => sub {
+        my $req = shift;
+        die 403 unless $req->session->{is_admin};
+    }, path => '/admin';
 
-* Fancy error templates supported.
+* **Easy CLI debugging** - see `perl myapp.pl --help`
 
-# MORE EXAMPLES
+See [examples](example/) for more.
 
-See [example](example/).
+# INSTALLATION
 
-Neaf uses examples as an additional test suite.
+To install this module, run the following commands:
 
-No feature is considered complete until half a page code snipped is written
-to demonstrate it.
-
-# PHILOSOPHY
-
-* Start out simple, then grow up.
-
-* Data in, data out. A *function* should receive and *argument* and return
-a *value* or *die*.
-
-* Sane defaults. Everything can be configured, nothing needs to be.
-
-* It's not software unless you can run it.
-
-* Trust nobody. Validate the data.
-
-* Force UTF8 where possible. It's 21st century.
+	perl Makefile.PL
+	make
+	make test
+	make install
 
 # BUGS
 
@@ -116,28 +85,12 @@ Bug reports, feature requests, and overall critique are welcome.
 
 # CONTRIBUTING TO THIS PROJECT
 
-Please see [STYLE.md](STYLE.md) for the style guide.
+See [STYLE.md](STYLE.md) for the style guide.
 
-Please see [CHECKLIST](CHECKLIST) if you plan to release a version.
+See [CHECKLIST](CHECKLIST) if you plan to release a version.
 
-# ACKNOWLEDGEMENTS
-
-[Eugene Ponizovsky](https://github.com/iph0)
-had great influence over my understanding of MVC.
-
-[Alexander Kuklev](https://github.com/akuklev)
-gave some great early feedback
-and also drove me towards functional programming and pure functions.
-
-[Akzhan Abdulin](https://github.com/akzhan)
-tricked me into making the hooks.
-
-[Cono](https://github.com/cono)
-made some early feedback and great feature proposals.
-
-Ideas were shamelessly stolen from PSGI, Dancer, and Catalyst.
-
-The CGI module was used heavily in the beginning of the project.
+See [TODO](TODO) for a rough development plan.
+It changes rapidly though.
 
 # LICENSE AND COPYRIGHT
 
