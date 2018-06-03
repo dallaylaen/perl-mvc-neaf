@@ -1,5 +1,10 @@
 Revision history for MVC-Neaf
 
+0.2501  Sun Jun 3 2018
+        - API BREAK Restrict characters for path, in particular ":" (a warning only)
+        - BUG Understand double slashes in URLs
+        - BUG Fix routing bug - was treating /pathogen as /path
+
 0.25    Sat Jun 2 2018
         - API Add 'strict' flag that makes controller emit error 422 if params/cookies pass validation
         - API Add overridable log_message, make_id to Request class

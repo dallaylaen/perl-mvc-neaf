@@ -1,7 +1,5 @@
 SINCE VERSION | TBD VERSION | COMMENT
     -- next version --
-0.25    0.26    BUG fix // in path
-0.25    0.26    BUG Restrict route path symbols
     -- todo --
 0.24    0.30    DOC Big rewrite of docs
 0.24    0.30    API Add regex-check for http headers, too

@@ -2,7 +2,7 @@ package MVC::Neaf::Route::Null;
 
 use strict;
 use warnings;
-our $VERSION = 0.24;
+our $VERSION = 0.2501;
 
 =head1 NAME
 

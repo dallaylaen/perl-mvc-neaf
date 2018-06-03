@@ -93,6 +93,7 @@ t/201-Neaf.t
 t/202-Neaf-content-length.t
 t/203-Neaf-alias.t
 t/204-Neaf-binary.t
+t/205-multiple-slashes.t
 t/209-Neaf-Request-postponed-write.t
 t/210-Neaf-static.t
 t/210-Neaf-static.t.png
@@ -150,6 +151,7 @@ t/907-header_in_keys.0.25.t
 t/909-unblessed-no-more-0.30.t
 t/910-default-args-0.30.t
 t/911-Apache2-0.30.t
+t/912-check_path-0.30.t
 t/README
 t/todo.t
 TODO

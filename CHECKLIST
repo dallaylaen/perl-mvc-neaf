@@ -47,7 +47,7 @@ MAJOR
 - must ONLY contain version bump
 
 % vim -p Changes TODO README.md
-- :r !git log --oneline | head -n 40 | sed 's/^[a-z0-9]*/        -/'
+- :r !git log --oneline | fgrep -B1000 -m1 '^_^' | sed 's/^[a-z0-9]*/        -/'
 - todo: remove completed, add new, sort by target version
 - readme: catch up with features
 
