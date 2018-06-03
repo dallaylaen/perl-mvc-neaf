@@ -6,22 +6,22 @@ MVC::Neaf `[ni:f]` stands for **Not Even A Framework**.
 
 The following code can be run as a PSGI application or CGI script:
 
-    use strict;
-    use warnings;
-    use MVC::Neaf;
+        use strict;
+        use warnings;
+        use MVC::Neaf;
 
-    get + post "/" => sub {
-        my $req = shift;
+        get + post "/" => sub {
+            my $req = shift;
 
-        return {
-            -view     => 'TT',
-            -template => \'Hello, [% name %]!',
-            -type     => 'text/plain',
-            name      => $req->param( name => qr/\w+/, "Stranger" ),
+            return {
+                -view     => 'TT',
+                -template => \'Hello, [% name %]!',
+                -type     => 'text/plain',
+                name      => $req->param( name => qr/\w+/, "Stranger" ),
+            };
         };
-    };
 
-    neaf->run;
+        neaf->run;
 
 Just like many other frameworks, Neaf organises an application
 into a *prefix tree* of routes. Each *route* has a *handler* `sub`
@@ -36,7 +36,7 @@ A 3-digit exception is a valid way of returning a configurable error page.
 The *return hash* may contain dash-prefixed keys to control Neaf itself.
 For instance, the default view is JSON-based but adding 
 
-    -view => 'TT', -template => 'my.tpl'
+        -view => 'TT', -template => 'my.tpl'
 
 to the hash would result in using `Template::Toolkit` instead.
 
@@ -50,14 +50,14 @@ producing hashes of errors and raw values for resubmission.
 * **Path-based defaults** that can be overridden in route definition or
 by controller itself:
 
-    neaf default => { -view => 'JS', version => $VERSION }, path => '/api';
+        neaf default => { -view => 'JS', version => $VERSION }, path => '/api';
 
 * **Hooks** that may be executed at different stages:
 
-    neaf pre_logic => sub {
-        my $req = shift;
-        die 403 unless $req->session->{is_admin};
-    }, path => '/admin';
+        neaf pre_logic => sub {
+            my $req = shift;
+            die 403 unless $req->session->{is_admin};
+        }, path => '/admin';
 
 * **Easy CLI debugging** - see `perl myapp.pl --help`
 
@@ -67,10 +67,10 @@ See [examples](example/) for more.
 
 To install this module, run the following commands:
 
-    perl Makefile.PL
-    make
-    make test
-    make install
+        perl Makefile.PL
+        make
+        make test
+        make install
 
 # BUGS
 
