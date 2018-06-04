@@ -1507,17 +1507,7 @@ sub handle_request {
         }, $req );
     };
 
-    # DISPATCH CONTENT
-    my $content = \$data->{-content};
-    $$content = '' if $req->method eq 'HEAD';
-    if ($data->{-continue} and $req->method ne 'HEAD') {
-        $req->postpone( $data->{'-continue'}, 1 );
-        $req->postpone( sub { $_[0]->write( $$content ); }, 1 );
-        return $req->do_reply( $data->{-status} );
-    } else {
-        return $req->do_reply( $data->{-status}, $$content );
-    };
-    # END DISPATCH CONTENT
+    $req->_respond;
 };
 
 =head2 get_view()

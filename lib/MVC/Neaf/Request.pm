@@ -1618,6 +1618,25 @@ sub execute_postponed {
     return $self;
 };
 
+# Dispatch headers & content
+# This is called at the end of handle_request
+sub _respond {
+    my $self = shift;
+
+    # TODO 0.30 kill do_reply, simplify this
+    my $data = $self->reply;
+
+    if( $self->method eq 'HEAD' ) {
+        return $self->do_reply( $data->{-status}, '' );
+    } elsif ( $data->{-continue} ) {
+        $self->postpone( $data->{-continue}, 1 );
+        $self->postpone( sub { $_[0]->write( $data->{-content} ); }, 1 );
+        return $self->do_reply( $data->{-status} );
+    } else {
+        return $self->do_reply( $data->{-status}, $data->{-content} );
+    };
+};
+
 sub DESTROY {
     my $self = shift;
 
