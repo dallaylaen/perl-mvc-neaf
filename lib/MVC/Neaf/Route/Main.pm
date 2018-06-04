@@ -705,6 +705,11 @@ sub get_hooks {
         };
     };
 
+    if (my $force_view = $self->{force_view}) {
+        # TODO 0.40 also push pre-rendered -content through force_view
+        push @{ $ret{pre_render} }, sub { $_[0]->reply->{-view} = $force_view };
+    };
+
     return \%ret;
 };
 
@@ -1529,10 +1534,6 @@ sub get_view {
     my ($self, $view, $lazy) = @_;
     $self = _one_and_true($self) unless ref $self;
 
-    # We've been overridden!
-    return $self->{force_view}
-        if exists $self->{force_view};
-
     # An object/code means controller knows better
     return $view
         if ref $view;
@@ -1655,10 +1656,11 @@ sub dispatch_view {
 
     my $content;
 
-    my $view = $self->get_view( $data->{-view} );
     eval {
         run_all( $route->hooks->{pre_render}, $req )
-            if $route and $route->hooks->{pre_render};
+            if $route->hooks->{pre_render};
+
+        my $view = $self->get_view( $data->{-view} );
 
         ($content, my $type) = blessed $view
             ? $view->render( $data ) : $view->( $data );
