@@ -1477,7 +1477,7 @@ sub handle_request {
 
         if (my $hooks = $req->route->hooks->{pre_content}) {
             run_all_nodie( $hooks, sub {
-                    $req->log_error( "NEAF: WARN: pre_content hook failed: $@" )
+                    $req->log_error( "NEAF: pre_content hook failed: $@" )
             }, $req );
         };
 
@@ -1503,7 +1503,7 @@ sub handle_request {
     };
     if (my $hooks = $req->route->hooks->{pre_reply}) {
         run_all_nodie( $hooks, sub {
-                $req->log_error( "NEAF: WARN: pre_reply hook failed: $@" )
+                $req->log_error( "NEAF: pre_reply hook failed: $@" )
         }, $req );
     };
 
@@ -1676,7 +1676,7 @@ sub dispatch_view {
     };
 
     if (!defined $content) {
-        $req->log_error( "Request processed, but rendering failed: ". ($@ || "unknown error") );
+        $req->log_error( "NEAF: Request processed, but rendering failed: ". ($@ || "unknown error") );
         die MVC::Neaf::Exception->new(
             -status => 500,
             -reason => "Rendering error: $@"
@@ -1717,7 +1717,7 @@ sub error_to_reply {
             $self->{on_error}->($req, $err, $req->endpoint_origin);
             1;
         }
-            or $req->log_error( "on_error callback failed: ".($@ || "unknown reason") );
+            or $req->log_error( "NEAF: on_error callback failed: ".($@ || "unknown reason") );
     };
 
     # Try fancy error template
@@ -1733,7 +1733,7 @@ sub error_to_reply {
             $data;
         };
         return $ret if $ret;
-        $req->log_error( "error_template for ".$err->status." failed:"
+        $req->log_error( "NEAF: error_template for ".$err->status." failed:"
             .( $@ || "unknown reason") );
     };
 
