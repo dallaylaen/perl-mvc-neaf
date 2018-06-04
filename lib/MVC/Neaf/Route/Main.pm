@@ -1494,8 +1494,8 @@ sub handle_request {
             unless $data->{-content};
     };
 
-    # Encode content, fix headers
-    $self->mangle_headers( $req );
+    # Encode content, fix headers - do it before hooks
+    $req->_mangle_headers;
 
     # Apply hooks
     if (my $hooks = $req->route->hooks->{pre_cleanup}) {
@@ -1732,66 +1732,6 @@ sub error_to_reply {
     $req->log_error( $err->reason )
         if $err->is_sudden;
     return $err->make_reply( $req );
-};
-
-=head2 mangle_headers
-
-Fixup content & headers
-
-=cut
-
-sub mangle_headers {
-    my ($self, $req) = @_;
-
-    my $data = $req->reply;
-    my $content = \$data->{-content};
-
-    $$content = '' unless defined $$content;
-
-    # Process user-supplied headers
-    if (my $append = $data->{-headers}) {
-        my $head = $req->header_out;
-        for (my $i = 0; $i < @$append; $i+=2) {
-            $head->push_header($append->[$i], $append->[$i+1]);
-        };
-    };
-
-    # Encode unicode content NOW so that we don't lie about its length
-    # Then detect ascii/binary
-    if (Encode::is_utf8( $$content )) {
-        # UTF8 means text, period
-        $$content = encode_utf8( $$content );
-        $data->{-type} ||= 'text/plain';
-        $data->{-type} .= "; charset=utf-8"
-            unless $data->{-type} =~ /; charset=/;
-    } elsif (!$data->{-type}) {
-        # Autodetect binary. Plain text is believed to be in utf8 still
-        $data->{-type} = $$content =~ /^.{0,512}?[^\s\x20-\x7F]/s
-            ? 'application/octet-stream'
-            : 'text/plain; charset=utf-8';
-    } elsif ($data->{-type} =~ m#^text/#) {
-        # Some other text, mark as utf-8 just in case
-        $data->{-type} .= "; charset=utf-8"
-            unless $data->{-type} =~ /; charset=/;
-    };
-
-    # MANGLE HEADERS
-    # NOTE these modifications remain stored in req
-    my $head = $req->header_out;
-
-    # The most standard ones...
-    $head->init_header( content_type => $data->{-type} );
-    $head->init_header( location => $data->{-location} )
-        if $data->{-location};
-    $head->push_header( set_cookie => $req->format_cookies );
-    $head->init_header( content_length => length $$content )
-        unless $data->{-continue};
-
-    if ($data->{-status} == 200 and my $ttl = $req->route->cache_ttl) {
-        $head->init_header( expires => http_date( time + $ttl ) );
-    };
-
-    # END MANGLE HEADERS
 };
 
 =head1 DEPRECATED METHODS

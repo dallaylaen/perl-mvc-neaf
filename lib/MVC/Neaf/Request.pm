@@ -1618,6 +1618,63 @@ sub execute_postponed {
     return $self;
 };
 
+
+sub _mangle_headers {
+    my $self = shift;
+
+    my $data = $self->reply;
+    my $content = \$data->{-content};
+
+    # TODO 0.30 warn - this is not normal
+    $$content = '' unless defined $$content;
+
+    # Process user-supplied headers
+    if (my $append = $data->{-headers}) {
+        my $head = $self->header_out;
+        for (my $i = 0; $i < @$append; $i+=2) {
+            $head->push_header($append->[$i], $append->[$i+1]);
+        };
+    };
+
+    # TODO 0.30 do something with this regex mess - its complicated & dog slow
+    # Encode unicode content NOW so that we don't lie about its length
+    # Then detect ascii/binary
+    if (Encode::is_utf8( $$content )) {
+        # UTF8 means text, period
+        $$content = encode_utf8( $$content );
+        $data->{-type} ||= 'text/plain';
+        $data->{-type} .= "; charset=utf-8"
+            unless $data->{-type} =~ /; charset=/;
+    } elsif (!$data->{-type}) {
+        # Autodetect binary. Plain text is believed to be in utf8 still
+        $data->{-type} = $$content =~ /^.{0,512}?[^\s\x20-\x7F]/s
+            ? 'application/octet-stream'
+            : 'text/plain; charset=utf-8';
+    } elsif ($data->{-type} =~ m#^text/#) {
+        # Some other text, mark as utf-8 just in case
+        $data->{-type} .= "; charset=utf-8"
+            unless $data->{-type} =~ /; charset=/;
+    };
+
+    # MANGLE HEADERS
+    my $head = $self->header_out;
+
+    # The most standard ones...
+    $head->init_header( content_type => $data->{-type} );
+    $head->init_header( location => $data->{-location} )
+        if $data->{-location};
+    $head->push_header( set_cookie => $self->format_cookies );
+    $head->init_header( content_length => length $$content )
+        unless $data->{-continue};
+
+    # TODO 0.30 must be hook
+    if ($data->{-status} == 200 and my $ttl = $self->route->cache_ttl) {
+        $head->init_header( expires => http_date( time + $ttl ) );
+    };
+
+    # END MANGLE HEADERS
+};
+
 # Dispatch headers & content
 # This is called at the end of handle_request
 sub _respond {
