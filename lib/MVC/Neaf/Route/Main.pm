@@ -1501,17 +1501,7 @@ sub handle_request {
 
     # Encode content, fix headers - do it before hooks
     $req->_mangle_headers;
-
-    # Apply hooks
-    if (my $hooks = $req->route->hooks->{pre_cleanup}) {
-        $req->postpone( $hooks );
-    };
-    if (my $hooks = $req->route->hooks->{pre_reply}) {
-        run_all_nodie( $hooks, sub {
-                $req->log_error( "NEAF: pre_reply hook failed: $@" )
-        }, $req );
-    };
-
+    $req->_apply_late_hooks;
     $req->_respond;
 };
 

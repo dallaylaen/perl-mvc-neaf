@@ -1675,6 +1675,21 @@ sub _mangle_headers {
     # END MANGLE HEADERS
 };
 
+# Apply route's pre_reply & pre_cleanup hooks to self, if any
+sub _apply_late_hooks {
+    my $self = shift;
+
+    my $route = $self->route;
+    if (my $hooks = $route->hooks->{pre_cleanup}) {
+        $self->postpone( $hooks );
+    };
+    if (my $hooks = $route->hooks->{pre_reply}) {
+        run_all_nodie( $hooks, sub {
+                $self->log_error( "NEAF: pre_reply hook failed: $@" )
+        }, $self );
+    };
+};
+
 # Dispatch headers & content
 # This is called at the end of handle_request
 sub _respond {
