@@ -1590,34 +1590,7 @@ some king of logging.
 
 sub log_error {
     my ($self, $msg) = @_;
-    $self->do_log_error( $self->_log_mark($msg) );
-};
-
-sub _where {
-    my $self = shift;
-
-    return $self->{prefix} || "pre_route";
-};
-
-sub _log_mark {
-    my ($self, $msg) = @_;
-
-    $msg ||= Carp::shortmess( "Something bad happened" );
-    $msg =~ s/\s*$//s;
-
-    return "req_id=".$self->id." in ".$self->_where.": $msg";
-};
-
-# See do_log_error below
-
-# If called outside user's code, carp() will point at http server
-#     which is misleading.
-# So make a warn/die message that actually blames user's code
-sub _message {
-    my ($self, $message) = @_;
-
-    return "NEAF: $message in handler ".$self->method." '".$self->script_name
-        ."' at ".$self->endpoint_origin."\n";
+    $self->log_message( error => $msg );
 };
 
 =head2 execute_postponed()
@@ -1722,10 +1695,14 @@ Suggested values are "fatal", "error", "warn", "debug".
 =cut
 
 _helper_fallback( log_message => sub {
-    my ($req, $level, @mess) = @_;
+    my ($req, $level, $mess) = @_;
 
-    warn sprintf "%s req_id=%s [%s]: %s"
-        , uc $level, $req->id, $req->_where, join " ", @mess;
+    $mess = Carp::shortmess("(undef)")
+        unless defined $mess;
+    $mess =~ s/\n+$//s;
+
+    warn sprintf "%s req_id=%s [%s]: %s\n"
+        , uc $level, $req->id, $req->route->path, $mess;
 });
 
 =head1 DRIVER METHODS
@@ -1769,8 +1746,6 @@ They SHOULD NOT be called directly inside the application.
 
 =item * do_close()
 
-=item * do_log_error()
-
 =back
 
 =cut
@@ -1792,13 +1767,6 @@ foreach (qw(
 
 # by default, just skip - the handle will auto-close anyway at some point
 sub do_close { return 1 };
-
-# by default, write to STDERR - ugly but at least it will get noticed
-sub do_log_error {
-    my ($self, $msg) = @_;
-
-    warn "NEAF: ERROR: $msg\n";
-};
 
 sub _croak {
     my ($self, $msg) = @_;
