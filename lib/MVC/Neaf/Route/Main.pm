@@ -874,11 +874,12 @@ sub set_forced_view {
 
     $neaf->load_resources( $file_name || \*FH )
 
-Load pseudo-files from a file, like templates or static files.
+Load pseudo-files from a file (typically C<__DATA__>),
+say templates or static files.
 
 The format is as follows:
 
-    @@ [TT] main.html
+    @@ /main.html view=TT
 
     [% some_tt_template %]
 
@@ -890,12 +891,14 @@ The format is as follows:
 I<This is obviously stolen from L<Mojolicious>,
 in a slightly incompatible way.>
 
-If view is specified in brackets, preload template.
-A missing view is skipped, no error.
+An entry starts with a literal C<@@>, followed by 1 or more spaces,
+followed by a slash and a file name, optionally followed by a list
+of options, and finally by a newline.
 
-Otherwise file is considered a static resource.
+Everything following the newline and until next such entry
+is considered file content.
 
-Extra options may follow file name:
+Options may include:
 
 =over
 
@@ -903,46 +906,74 @@ Extra options may follow file name:
 
 =item * C<format=base64>
 
+=item * C<view=view_name,view_name...> - specify a template for given view(s)
+Leading slash will be stripped in this case.
+
 =back
 
-Unknown options are skipped.
-Unknown format value will cause exception though.
+Entries with unknown options will be skipped with a warning.
 
 B<[EXPERIMENTAL]> This method and exact format of data is being worked on.
 
 =cut
 
+# TODO split this sub & move to a separate file
 my $INLINE_SPEC = qr/^(?:\[(\w+)\]\s+)?(\S+)((?:\s+\w+=\S+)*)$/;
+my %load_resources_opt;
+$load_resources_opt{$_}++ for qw( view format type );
 sub load_resources {
     my ($self, $file) = @_;
 
-    my $fd;
-    if (ref $file) {
-        $fd = $file;
-    } else {
-        open $fd, "<", $file
+    my $content;
+
+    if (ref $file eq 'GLOB') {
+        local $/;
+        $content = <$file>;
+        # Die later
+    } elsif (ref $file eq 'SCALAR') {
+        $content = $$file;
+    } elsif (!ref $file and defined $file) {
+        open my $fd, "<", $file
             or $self->my_croak( "Failed to open(r) $file: $!" );
+        $content = <$fd>;
+    } else {
+        $self->my_croak( "Argument must be a scalar, a scalar ref, or a file descriptor" );
     };
 
-    local $/;
-    my $content = <$fd>;
     defined $content
         or $self->my_croak( "Failed to read from $file: $!" );
 
-    my @parts = split /^@@\s+(.*\S)\s*$/m, $content, -1;
+    # TODO 0.40 The regex should be: ^@@\s+(/\S+(?:\s+\w+=\S+)*)\s*$
+    #     but we must deprecate '[TT] foo.html' first
+    my @parts = split m{^@@\s+(\S.*?)\s*$}m, $content, -1;
     shift @parts;
-    die "Something went wrong" if @parts % 2;
+    confess "NEAF load_resources failed unexpectedly, file a bug in MVC::Neaf"
+        if @parts % 2;
 
     my %templates;
     my %static;
     while (@parts) {
-        # parse file
+        # parse pseudo-file
         my $spec = shift @parts;
-        my ($dest, $name, $extra) = ($spec =~ $INLINE_SPEC);
-        my %opt = $extra =~ /(\w+)=(\S+)/g;
-        $name or $self->my_croak("Bad resource spec format @@ $spec");
-
         my $content = shift @parts;
+
+        # process header
+        my ($dest, $name, $extra) = ($spec =~ $INLINE_SPEC);
+        $self->my_croak("Bad resource spec format @@ $spec")
+            unless defined $name;
+        my %opt = $extra =~ /(\w+)=(\S+)/g;
+        if ($dest) {
+            $opt{view} = $dest;
+            carp "DEPRECATED '@@ [$dest]' resource format,"
+                ." use '@@ $name view=$dest' instead";
+        };
+
+        if ( my @unknown = grep { !$load_resources_opt{$_} } keys %opt ) {
+            carp "Unknown options (@unknown) in '@@ name' in $file, skipping";
+            next;
+        };
+
+        # process content
         if (!$opt{format}) {
             $content =~ s/^\n+//s;
             $content =~ s/\s+$//s;
@@ -950,33 +981,40 @@ sub load_resources {
         } elsif ($opt{format} eq 'base64') {
             $content = decode_b64( $content );
         } else {
+            # TODO 0.50 calculate line
             $self->my_croak("Unknown format $opt{format} in '@@ $spec' in $file");
         };
 
-        if ($dest) {
+        # store for loading
+        if (defined( my $view = $opt{view} )) {
             # template
             $self->my_croak("Duplicate template '@@ $spec' in $file")
-                if defined $templates{lc $dest}{$name};
-            $templates{$dest}{$name} = $content;
+                if defined $templates{$view}{$name};
+            $templates{$view}{$name} = $content;
         } else {
             # static file
             $self->my_croak("Duplicate static file '@@ $spec' in $file")
                 if $static{$name};
             $static{$name} = [ $content, $opt{type} ];
         };
-    };
+    }; # end while @parts
 
     # now do the loading
     foreach my $name( keys %templates ) {
-        my $view = $self->get_view( $name, 1 ) or next;
-        $view->can("preload") or next; # TODO 0.30 warn here?
-        $view->preload( %{ $templates{$name} } );
+        my $view = $self->get_view( $name, 1 );
+        if (!$view) {
+            carp "NEAF: Unknown view $name mentioned in $file";
+        } elsif ($view->can("preload")) {
+            $view->preload( %{ $templates{$name} } );
+        } else  {
+            carp "NEAF: View $name mentioned in $file doesn't support template preloading";
+        };
     };
     if( %static ) {
         my $st = $self->_static_global;
         $st->preload( %static );
         foreach( keys %static ) {
-            $self->route( $_ => $st->one_file_handler, method => 'GET'
+            $self->add_route( $_ => $st->one_file_handler, method => 'GET'
                 , description => "Static resource from $file" );
         };
     };
