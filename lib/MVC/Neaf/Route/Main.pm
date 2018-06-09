@@ -694,14 +694,9 @@ sub get_hooks {
         for qw( pre_reply pre_cleanup );
 
     # Prepend session handler unconditionally, if present
-    if (my $engine = $self->{session_handler}) {
-        unshift @{ $ret{pre_route} }, sub {
-            $_[0]->_set_session_handler( $engine );
-        };
-        if (my $key = $self->{session_view_as}) {
-            unshift @{ $ret{pre_render} }, sub {
-                $_[0]->reply->{$key} = $_[0]->load_session;
-            };
+    if (my $key = $self->{session_view_as}) {
+        unshift @{ $ret{pre_render} }, sub {
+            $_[0]->reply->{$key} = $_[0]->load_session;
         };
     };
 
@@ -722,23 +717,23 @@ sub get_hooks {
 sub set_helper {
     my ($self, $name, $code, %opt) = @_;
 
-    $self->my_croak( "inappropriate helper name '$name'" )
-        if $name !~ /^[a-z][a-z_0-9]*/ or $name =~ /^(?:do|neaf)/;
-
     $self->my_croak( "helper must be a CODEREF, not ".ref $code )
         unless ref $code and UNIVERSAL::isa( $code, 'CODE' );
+    _install_helper( $name );
 
     $self->{todo_helpers}{$name} ||= MVC::Neaf::Util::Container->new( exclusive => 1 );
     $self->{todo_helpers}{$name}->store( $code, %opt );
-
-    _install_helper( $name );
 };
 
 sub _install_helper {
     my $name = shift;
 
     return if $MVC::Neaf::Request::allow_helper{$name};
-    croak "Cannot override existing method '$name' with a helper"
+
+    croak( "NEAF: helper: inappropriate helper name '$name'" )
+        if $name !~ /^[a-z][a-z_0-9]*/ or $name =~ /^(?:do|neaf)/;
+
+    croak "NEAF: helper: Cannot override existing method '$name' in Request"
         if MVC::Neaf::Request->can( $name );
 
     my $sub = sub {
@@ -1101,7 +1096,14 @@ sub set_session_handler {
     my $regex = $sess->session_id_regex;
     my $ttl   = $opt{ttl} || $sess->session_ttl || 0;
 
-    $self->{session_handler} = [ $sess, $cook, $regex, $ttl ];
+    my $setup = {
+        engine => $sess,
+        cookie => $cook,
+        regex  => $regex,
+        ttl    => $ttl,
+    };
+
+    $self->set_helper( _session_setup => sub { $setup }, override => 1 );
     $self->{session_view_as} = $opt{view_as};
     return $self;
 };

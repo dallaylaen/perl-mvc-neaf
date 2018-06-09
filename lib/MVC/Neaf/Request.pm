@@ -219,7 +219,7 @@ instead.
 
 sub route {
     my $self = shift;
-    return $self->{route} || MVC::Neaf::Route::Null->new;
+    return $self->{route} ||= MVC::Neaf::Route::Null->new;
 };
 
 =head2 set_path()
@@ -1251,24 +1251,10 @@ sub delete_session {
     return $self;
 };
 
-# TODO 0.90 This is awkward, but... Maybe optimize later
-# TODO 0.90 Replace with callback generator (managed by cb anyway)
-sub _set_session_handler {
-    my ($self, $data) = @_;
-
-    $self->{session_engine} = {
-        engine  => $data->[0],
-        cookie  => $data->[1],
-        regex   => $data->[2],
-        ttl     => $data->[3],
-    };
-};
-
-# TODO helper
-sub _session_setup {
+_helper_fallback( _session_setup => sub {
     my $self = shift;
-    return $self->{session_engine};
-};
+    $self->_croak("No session engine found, use `neaf session => ...` to set up one");
+} );
 
 =head1 REPLY METHODS
 
