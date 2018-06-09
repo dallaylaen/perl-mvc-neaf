@@ -1138,7 +1138,7 @@ sub session {
         return $sess;
     };
 
-    return $self->{session} = $self->{session_engine}->create_session;
+    return $self->{session} = $self->_session_setup->{engine}->create_session;
 };
 
 =head2 load_session
@@ -1155,20 +1155,34 @@ sub load_session {
     # aggressive caching FTW
     return $self->{session} if exists $self->{session};
 
+    my $setup = $self->_session_setup;
     $self->_croak("No session engine found, use Request->stash() for per-request data")
-        unless $self->{session_engine};
+        unless $setup;
 
     # Try loading session...
-    my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
-    my $hash = ($id && $self->{session_engine}->load_session( $id ));
+    my $id = $self->get_cookie( $setup->{cookie}, $setup->{regex} );
+    my $hash = ($id && $setup->{engine}->load_session( $id ));
 
-    if ($hash && ref $hash eq 'HASH' && $hash->{data}) {
+    if (!$hash) {
+        return;
+    } elsif ( ref $hash ne 'HASH' ) {
+        $self->_croak( (ref $setup->{engine})
+            ."->load_session must return a HASH and not ".(ref $hash) );
+    } elsif ($hash->{data} ) {
         # Loaded, cache it & refresh if needed
         $self->{session} = $hash->{data};
 
         $self->set_cookie(
-            $self->{session_cookie} => $hash->{id}, expire => $hash->{expire} )
-                if $hash->{id};
+            $setup->{cookie} => $hash->{id},
+            expire => $hash->{expire} || $setup->{expire},
+        )
+            if $hash->{id};
+    } else {
+        carp(
+            (ref $setup->{engine})
+            ."->load_session must return keys(data,[id,expire]) and not "
+            .join ",", keys %$hash
+        );
     };
 
     return $self->{session};
@@ -1196,21 +1210,21 @@ sub save_session {
         $self->{session} = shift;
     };
 
-    return $self
-        unless exists $self->{session_engine};
+    my $setup = $self->_session_setup;
+    return $self unless $setup;
 
     # TODO 0.90 set "save session" flag, save later
-    my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
-    $id ||= $self->{session_engine}->get_session_id();
+    my $id = $self->get_cookie( $setup->{cookie}, $setup->{regex} );
+    $id ||= $setup->{engine}->get_session_id();
 
-    my $hash = $self->{session_engine}->save_session( $id, $self->session );
+    my $hash = $setup->{engine}->save_session( $id, $self->session );
 
     if ( $hash && ref $hash eq 'HASH' ) {
         # save successful - send cookie to user
         my $expire = $hash->{expire};
 
         $self->set_cookie(
-            $self->{session_cookie} => $hash->{id} || $id,
+            $setup->{cookie} => $hash->{id} || $id,
             expire => $hash->{expire},
         );
     };
@@ -1226,12 +1240,14 @@ Remove session.
 
 sub delete_session {
     my $self = shift;
-    return unless $self->{session_engine};
 
-    my $id = $self->get_cookie( $self->{session_cookie}, $self->{session_regex} );
-    $self->{session_engine}->delete_session( $id )
+    my $setup = $self->_session_setup;
+    return unless $setup->{engine};
+
+    my $id = $self->get_cookie( $setup->{cookie}, $setup->{regex} );
+    $setup->{engine}->delete_session( $id )
         if $id;
-    $self->delete_cookie( $self->{session_cookie} );
+    $self->delete_cookie( $setup->{cookie} );
     return $self;
 };
 
@@ -1239,10 +1255,19 @@ sub delete_session {
 # TODO 0.90 Replace with callback generator (managed by cb anyway)
 sub _set_session_handler {
     my ($self, $data) = @_;
-    $self->{session_engine} = $data->[0];
-    $self->{session_cookie} = $data->[1];
-    $self->{session_regex}  = $data->[2];
-    $self->{session_ttl}    = $data->[3];
+
+    $self->{session_engine} = {
+        engine  => $data->[0],
+        cookie  => $data->[1],
+        regex   => $data->[2],
+        ttl     => $data->[3],
+    };
+};
+
+# TODO helper
+sub _session_setup {
+    my $self = shift;
+    return $self->{session_engine};
 };
 
 =head1 REPLY METHODS
