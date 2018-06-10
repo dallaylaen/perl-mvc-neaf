@@ -1532,11 +1532,9 @@ sub handle_request {
     };
 
     if (!$data) {
-        # Failed. TODO 0.30: do it better, still convoluted logic
-        $data = $self->error_to_reply( $req, $@ );
-        $req->_set_reply( $data );
-        confess "NEAF: No content after error. File a bug in MVC::Neaf"
-            unless $data->{-content};
+        # TODO 0.30 Error handler should be route-dependent.
+        $req->_unset_reply;
+        $data = $self->_error_to_reply( $req, $@ );
     };
 
     # Encode content, fix headers - do it before hooks
@@ -1694,6 +1692,7 @@ sub dispatch_view {
 
         ($content, my $type) = blessed $view
             ? $view->render( $data ) : $view->( $data );
+
         $data->{-type} ||= $type;
     };
 
@@ -1708,11 +1707,7 @@ sub dispatch_view {
     return $content;
 };
 
-=head2 error_to_reply
-
-=cut
-
-sub error_to_reply {
+sub _error_to_reply {
     my ($self, $req, $err) = @_;
 
     # Convert all errors to Neaf expt.
@@ -1750,7 +1745,7 @@ sub error_to_reply {
                 error => $err,
             );
             $data->{-status}  ||= $err->status;
-            $req->_set_reply( $data );
+            $data = $req->_set_reply( $data );
             $data->{-content} ||= $self->dispatch_view( $req );
             $data;
         };
@@ -1763,7 +1758,7 @@ sub error_to_reply {
     #    keep track of reason on the inside
     $req->log_error( $err->reason )
         if $err->is_sudden;
-    return $err->make_reply( $req );
+    $req->_set_reply( $err->make_reply( $req ) );
 };
 
 =head1 DEPRECATED METHODS

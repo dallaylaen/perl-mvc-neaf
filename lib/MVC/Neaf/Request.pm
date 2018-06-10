@@ -1373,11 +1373,20 @@ sub _set_reply {
     die "NEAF: FATAL: '-headers' must be an even-sized array at ".$self->endpoint_origin."\n"
         if defined $data->{-headers}
             and (ref $data->{-headers} ne 'ARRAY' or @{ $data->{-headers} } % 2);
+    Carp::cluck "NEAF: WARN: Request->_set_reply called twice, please file a bug in Neaf"
+        if $self->{response}{ret};
+
     my $def = $self->route->default || {};
 
     # Return the resulting hash
-    $self->{response}{ret} = +{ %$def, %$data };
+    $self->{response}{ret} = { %$def, %$data };
 }
+
+# TODO 0.4 should we delete {response} altogether?
+sub _unset_reply {
+    my $self = shift;
+    delete $self->{response}{ret};
+};
 
 =head2 stash( ... )
 
@@ -1636,8 +1645,8 @@ sub _mangle_headers {
     my $data = $self->reply;
     my $content = \$data->{-content};
 
-    # TODO 0.30 warn - this is not normal
-    $$content = '' unless defined $$content;
+    confess "NEAF: No content after request processing. File a bug in MVC::Neaf"
+         unless defined $$content;
 
     # Process user-supplied headers
     if (my $append = $data->{-headers}) {
