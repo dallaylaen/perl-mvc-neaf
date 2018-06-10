@@ -43,6 +43,8 @@ MAJOR
 
 # version-bump
 % find lib/ -name \*.pm | xargs perl -w -i -p -e 's/^our \$VERSION *=.*;/our \$VERSION = '"$VERSION"';/'
+% grep -rL 'our *$VERSION *=' lib/
+- must be empty
 % git diff
 - must ONLY contain version bump
 

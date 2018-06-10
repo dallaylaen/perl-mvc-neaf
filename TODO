@@ -1,23 +1,23 @@
 PRIORITY | COMPLEXITY | COMMENT
     -- next version --
-*     *     API Add /foo/:bar with mandatory param_regex{bar}
 *     **    API Add regex-check for http headers, too
+*     *     API Make custom error handlers path-based
 *     **    API load_resources() automagically
     -- todo --
-*     **    TPL variables -> js module for TT
+*     *     API Add /foo/:bar with mandatory param_regex{bar} [HOLD v.0.3]
+*     **    TPL create a <script>var foo = "bar"</script> upon request
+**    **    TST blog, wiki & chat examples
 *     ***   DOC Big rewrite of docs
 *     ***   MOD Oauth2 example/helper
 *     ***   TPL Predefined header/footer to spare user of boilerplate
-*     ***** COR Async support via $req->future
-**    *     API helper_object to manage shared objects
 **    *     MOD static file_regex, dir_regex
 **    *     REF Add digest, hmac, and digest_fast to Util
 **    **    API Add encoding detect & strict/coding flags to upload_utf8
 **    **    API body_json( validator ) - die 422 is !json || val fails
-***   *     REF Req https detection: change to is_secure? http:https.
-***   **    API multiple uploads under same name, wildcard uploads
-***   **    TPL Add XSLate support
+*     ***** COR Async support via $req->future
     -- backlog --
+**    **    TST Coverage >90%
+**    *     API Add rendering in -continue via Request->write( \%hash )
 **    *     API Add encoding field to route to allow for non-utf8
 **    *     MOD form->data_hash instead of %{ form->data }
 **    **    REF Use Digest::SHA3 if avail (thx @akuklev)
@@ -25,13 +25,17 @@ PRIORITY | COMPLEXITY | COMMENT
 **    **    MOD Session::Redis
 **    **    MOD static: X-Accel-Redirect (@cono)
 **    **    TPL Add default favicon for neaf
+***   *     REF Req https detection: change to is_secure? http:https.
 **    ***   API body_content() or smth - decoded as Content-Type suggests (ned accept_body => [ ... ])
 **    ***   MOD Add json schema support to forms
 **    ***   REF Split get/post PSGI request, remove hacks
 **    ****  MOD OpenAPI plugin: model+in-spec+out-spec => swagger.txt+routes
 ***   *     MOD Add form defaults populating BOTH raw and data
+***   **    API multiple uploads under same name, wildcard uploads
+***   **    TPL Add XSLate support
 ***   **    MOD Add well-known regexes from Regexp::Common to default Form
 ***   ***   DOC HOWTO add dumper to TT view (pre-render)
+****  *     API helper_object to manage shared objects
 ****  *     API Add -charset for content encoding
 ****  **    COR Add per-route exceptions instead of 404,422
 ****  **    DEV last source file, complain if no run() at EOF
