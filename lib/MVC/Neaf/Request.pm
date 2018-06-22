@@ -480,7 +480,7 @@ sub param {
     return $default if !defined $value;
     return $value   if  $value =~ /^(?:$regex)$/s;
 
-    if ($self->route->strict) {
+    if (length $value && $self->route->strict) {
         die 422; # TODO 0.30 configurable die message
     };
     return $default;
@@ -534,7 +534,7 @@ sub url_param {
     return $default if !defined $value;
     return $value   if  $value =~ /^(?:$regex)$/s;
 
-    if ($self->route->strict) {
+    if (length $value && $self->route->strict) {
         die 422; # TODO 0.30 configurable die message
     };
     return $default;
@@ -832,7 +832,7 @@ sub get_cookie {
 
     return $value if $value =~ /^$regex$/;
 
-    if ($self->route->strict) {
+    if (length $value && $self->route->strict) {
         die 422; # TODO 0.30 configurable die message
     };
     return $default;
