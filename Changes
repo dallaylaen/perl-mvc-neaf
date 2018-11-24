@@ -1,5 +1,8 @@
 Revision history for MVC-Neaf
 
+0.2603  Sat Nov 24 2018
+        - BUG Fix Apache2 test warning
+
 0.2602  Sat Nov 24 2018
         - BUG Fix (?) failing test
 
