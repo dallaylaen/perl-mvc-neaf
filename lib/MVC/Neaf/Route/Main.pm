@@ -1342,6 +1342,13 @@ sub run {
     my $self = shift;
     $self = _one_and_true($self) unless ref $self;
 
+    # "Magically" load __DATA__ section from calling file
+    if ($self->{magic}) {
+        my ($file, $data) = data_fh(1);
+        $self->load_resources( $data, $file )
+            if $data;
+    };
+
     if (!defined wantarray) {
         # void context - we're being called as CGI
         if (@ARGV) {
@@ -1356,12 +1363,8 @@ sub run {
         };
     };
 
-    # "Magically" load __DATA__ section from calling file
-    if ($self->{magic}) {
-        my ($file, $data) = data_fh(1);
-        $self->load_resources( $data, $file )
-            if $data;
-    };
+    # Do postsetup after CGI/CLI execution
+    # because it's unneeded there - only one route may be needed so why bother
     $self->post_setup;
 
     return sub {
