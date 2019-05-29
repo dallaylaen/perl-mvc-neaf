@@ -51,7 +51,7 @@ use Time::HiRes ();
 use Sys::Hostname ();
 use Digest::MD5 qw(md5);
 
-use MVC::Neaf::Util qw( http_date run_all_nodie canonize_path encode_b64 );
+use MVC::Neaf::Util qw( JSON http_date run_all_nodie canonize_path encode_b64 );
 use MVC::Neaf::Upload;
 use MVC::Neaf::Exception;
 use MVC::Neaf::Route::Null;
@@ -707,20 +707,69 @@ sub _all_params {
 
 =head2 body()
 
-Returns request body for PUT/POST requests.
-This is not regex-checked - the check is left for the user.
+See L</body_raw> below.
 
-Also the data is NOT converted to C<utf8>.
+=head2 body_text()
+
+Returns request body for PUT/POST requests as unicode text.
+
+B<WARNING> Encodings other than UTF-8 are not supported as of yet.
+
+=head2 body_json()
+
+Get decoded request body in JSON format.
+In case of errors, error 422 is thrown.
+
+=head2 body_raw()
+
+Returns request body for PUT/POST requests as binary data.
+Decoding and validation is left up to the user.
 
 =cut
 
-sub body {
+sub body_raw {
     my $self = shift;
+
+    carp ("MVC::Neaf: using body() is discouraged for method ".$self->method)
+        if ($query_allowed{$self->method});
 
     $self->{body} = $self->do_get_body
         unless exists $self->{body};
+
     return $self->{body};
 };
+
+*body = *body = \&body_raw;
+
+_helper_fallback( body_text => sub {
+    my $self = shift;
+
+    # TODO adhere to charset= in content_type
+    return decode_utf8( $self->body_raw );
+});
+
+my $codec = JSON->new->utf8->allow_nonref;
+_helper_fallback( body_json => sub {
+    my ($self, $validator) = @_;
+
+    # TODO add validator support - if fails, also 422
+    # TODO but note validator is likely to be path-specific, not call-specific
+    my $data;
+    eval {
+        # Content-Type must be application/json or empty
+        $self->content_type =~ /^(application\/json\b|$)/
+            or die "Unexpected content type for body_json: ".$self->content_type;
+        $data = $codec->decode( $self->body );
+        1;
+    } || do {
+        # TODO do we need to log error here?
+        $@ =~ s/at \S+ line \d+\.?\n?$//;
+        $self->log_message( warning => "Failed to read JSON from request via body_json(): ".$@);
+        die 422;
+    };
+
+    return $data;
+} );
 
 =head2 upload_utf8( ... )
 
@@ -1087,6 +1136,33 @@ sub user_agent {
             unless exists $self->{user_agent};
         return $self->{user_agent};
     };
+};
+
+=head2 content_type
+
+Returns C<Content-Type> request header, if present, or an empty string.
+
+The usage of Content-Type in GET/HEAD requests is discouraged.
+See also L<body>.
+
+=cut
+
+sub content_type {
+    my ($self, $regex) = @_;
+
+    carp ("MVC::Neaf: using content_type is discouraged for method ".$self->method)
+        if ($query_allowed{$self->method});
+
+    my $ctype = $self->header_in("content_type");
+    $ctype = '' unless defined $ctype;
+
+    if ($regex) {
+        $regex = qr/^$regex/ unless ref $regex eq 'Regexp';
+        $ctype =~ $regex
+            or die 422;
+    };
+
+    return $ctype;
 };
 
 =head2 dump ()
