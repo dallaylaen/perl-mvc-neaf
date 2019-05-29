@@ -28,7 +28,7 @@ use URI::Escape;
 
 use parent qw(MVC::Neaf::Route);
 use MVC::Neaf::Util qw( run_all run_all_nodie http_date canonize_path check_path
-     maybe_list supported_methods extra_missing encode_b64 decode_b64 );
+     maybe_list supported_methods extra_missing encode_b64 decode_b64 data_fh );
 use MVC::Neaf::Util::Container;
 use MVC::Neaf::Request::PSGI;
 use MVC::Neaf::Route::PreRoute;
@@ -83,6 +83,9 @@ sub new {
     # This is required for $self->hooks to produce something.
     # See also todo_hooks where the real hooks sit.
     $self->{hooks} = {};
+
+    # magical by default
+    $self->{magic} = 1;
 
     return $self;
 };
@@ -865,12 +868,37 @@ sub set_forced_view {
     return $self;
 };
 
+=head2 magic( bool )
+
+Get/set "magic" bit that triggers stuff like loading resources from __DATA__
+on run() and such.
+
+Neaf is magical by default.
+
+=cut
+
+# Dumb accessor(boolean)
+sub magic {
+    my $self = shift;
+    if (@_) {
+        $self->{magic} = !! shift;
+        return $self;
+    } else {
+        return $self->{magic};
+    };
+};
+
 =head2 load_resources()
 
     $neaf->load_resources( $file_name || \*FH )
 
 Load pseudo-files from a file (typically C<__DATA__>),
 say templates or static files.
+
+As of 0.27, load_resources happens automatically upon L<run>,
+but only once for each calling file.
+Use C<neaf-E<gt>magic(0)> if you know better
+(e.g. you want to use __DATA__ for something else).
 
 The format is as follows:
 
@@ -917,26 +945,36 @@ my $INLINE_SPEC = qr/^(?:\[(\w+)\]\s+)?(\S+)((?:\s+\w+=\S+)*)$/;
 my %load_resources_opt;
 $load_resources_opt{$_}++ for qw( view format type );
 sub load_resources {
-    my ($self, $file) = @_;
+    my ($self, $file, $name) = @_;
+
+    if (!ref $file and defined $file) {
+        open my $fd, "<", $file
+            or $self->my_croak( "Failed to open(r) $file: $!" );
+        $name = $file;
+        $file = $fd;
+    };
+
+    # Don't load the same filename twice
+    return $self
+        if defined $name and $self->{load_resources}{$name}++;
 
     my $content;
 
     if (ref $file eq 'GLOB') {
         local $/;
         $content = <$file>;
+        defined $content
+            or $self->my_croak( "Failed to read from $file: $!" );
+        close $file;
         # Die later
     } elsif (ref $file eq 'SCALAR') {
         $content = $$file;
-    } elsif (!ref $file and defined $file) {
-        open my $fd, "<", $file
-            or $self->my_croak( "Failed to open(r) $file: $!" );
-        $content = <$fd>;
     } else {
         $self->my_croak( "Argument must be a scalar, a scalar ref, or a file descriptor" );
     };
 
     defined $content
-        or $self->my_croak( "Failed to read from $file: $!" );
+        or $self->my_croak( "Failed load content" );
 
     # TODO 0.40 The regex should be: ^@@\s+(/\S+(?:\s+\w+=\S+)*)\s*$
     #     but we must deprecate '[TT] foo.html' first
@@ -1269,6 +1307,13 @@ sub _make_route_re {
 Run the application.
 This SHOULD be the last statement in your application's main file.
 
+When run() is called, the routes are compiled into one giant regex,
+and the post-setup is run, if needed.
+
+Additionally if neaf is in magical mode,
+L</load_resources> is called on the enclosing file's DATA descriptor.
+Magic mode is on by default. See L</magic-bool>.
+
 If called in void context, assumes execution as C<CGI>
 and prints results to C<STDOUT>.
 If command line options are present at the moment,
@@ -1303,6 +1348,12 @@ sub run {
         };
     };
 
+    # "Magically" load __DATA__ section from calling file
+    if ($self->{magic}) {
+        my ($file, $data) = data_fh(1);
+        $self->load_resources( $data, $file )
+            if $data;
+    };
     $self->post_setup;
 
     return sub {
@@ -1479,8 +1530,6 @@ sub get_routes {
 
     return \%ret;
 };
-
-
 
 =head1 RUN TIME METHODS
 
