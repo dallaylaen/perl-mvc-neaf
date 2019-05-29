@@ -132,6 +132,7 @@ t/243-run-cgi.t
 t/244-force-view.t
 t/245-error-tpl.t
 t/246-strict-empty.t
+t/247-body_json.t
 t/301-default-view.t
 t/401-pre-logic-403-tpl.t
 t/402-error-logged.t
