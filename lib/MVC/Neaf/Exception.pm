@@ -32,6 +32,8 @@ use Scalar::Util qw(blessed);
 use Carp;
 use overload '""' => "as_string";
 
+use MVC::Neaf::Util qw(bare_html_escape);
+
 =head1 METHODS
 
 =head2 new( $@ || 500, %options )
@@ -135,35 +137,52 @@ sub as_string {
 
 =head2 make_reply( $request )
 
-Create a Neaf-like default reply:
+Returns a refault error HTML page.
 
-    {"status":400,"req_id":"FOOB4RED"}
+The default page is guaranteen to contain
+the status as its one and only C<< <span> >> element,
+the unique request-id as one and only C<< <b> >> element,
+and the location (if any) as its one and only C<< <i> >> element.
 
-Or
-
-    See $location
-
-if redirect.
+This page used to be a JSON but it turned out hard to debug
+when dealing with javascript.
 
 =cut
 
 sub make_reply {
     my ($self, $req) = @_;
 
-    # Handle redirects first
-    return {
-        -status   => $self->{-status},
-        -content  => "See $self->{-location}\n",
-        -type     => 'text/plain; charset=utf8',
-        -headers  => [ Location => $self->{-location}, @{ $self->{-headers} || [] } ],
-    } if ($self->{-location});
+    my $code = $self->{-status};
+    my $redirect = '';
+    my $request_id = $req->id;
+    my @headers = @{ $self->{-headers} || [] };
+    if (my $where = $self->{-location}) {
+        unshift @headers, Location => $where;
+        $where = bare_html_escape( $where );
+        $redirect = qq{<p>See <a href="$where"><i>$where</i></a></p>};
+    };
 
-    my $req_id = $req->id;
+    # An in-place template to avoid rendering
+    # don't worry, be stupid!
+    my $content = qq{<html>
+<head>
+    <title>Error $code</title>
+</head>
+<body>
+    <h1>Error <span>$code</span></h1>
+    <p>Request-id:<b>$request_id</b></p>
+    $redirect
+    <hr></hr>
+    <small>Powered by <a href="https://metacpan.org/pod/MVC::Neaf">Not even a framework<a/>.</small>
+</body>
+</html>
+};
+
     return {
         -status   => $self->{-status},
-        -type     => 'application/json',
-        -content  => qq({"error":"$self->{-status}","req_id":"$req_id"}),
-        -headers  => $self->{-headers},
+        -content  => $content,
+        -type     => 'text/html; charset=utf8',
+        -headers  => \@headers,
     };
 };
 

@@ -31,6 +31,7 @@ our @EXPORT_OK = qw(
     extra_missing make_getters maybe_list http_date rex
     supported_methods
     data_fh
+    bare_html_escape
 );
 our @CARP_NOT;
 
@@ -362,6 +363,27 @@ sub data_fh {
     return unless openhandle $fh and !eof $fh;
 
     return ($caller[1], $fh);
+};
+
+=head2 bare_html_escape( $dangerous )
+
+A crude html-entities escaper.
+Should be replaced by something real.
+
+=cut
+
+# TODO 0.40 replace with a normal module
+my %entity = (
+    '&' => '&amp;',
+    '<' => '&lt;',
+    '>' => '&gt;',
+    '"' => '&quot;',
+);
+my $entity_rex = qr([&<>"]);
+sub bare_html_escape {
+    my $str = shift;
+    $str =~ s/($entity_rex)/$entity{$1}/g;
+    return $str;
 };
 
 =head1 LICENSE AND COPYRIGHT
