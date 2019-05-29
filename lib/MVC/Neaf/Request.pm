@@ -50,6 +50,7 @@ use HTTP::Headers::Fast;
 use Time::HiRes ();
 use Sys::Hostname ();
 use Digest::MD5 qw(md5);
+use Scalar::Util qw(reftype);
 
 use MVC::Neaf::Util qw( JSON http_date run_all_nodie canonize_path encode_b64 );
 use MVC::Neaf::Upload;
@@ -91,7 +92,7 @@ sub client_ip {
     my $self = shift;
 
     return $self->{client_ip} ||= do {
-        my @fwd = $self->header_in( "X-Forwarded-For" );
+        my @fwd = $self->header_in( 'X-Forwarded-For', '.*' );
         @fwd == 1 && $fwd[0] || $self->do_get_client_ip || "127.0.0.1";
     };
 };
@@ -869,7 +870,7 @@ sub get_cookie {
 
     $self->{neaf_cookie_in} ||= do {
         my %hash;
-        foreach ($self->header_in("cookie")) {
+        foreach ($self->header_in('cookie', qr/.*/)) {
             while (/(\S+?)=([^\s;]*);?/g) {
                 $hash{$1} = decode_utf8(uri_unescape($2));
             };
@@ -1072,7 +1073,7 @@ sub redirect {
 
 =item * C<header_in()> - return headers as-is
 
-=item * C<$req-E<gt>header_in( "header_name" )>
+=item * C<$req-E<gt>header_in( "header_name", qr/.../ )>
 
 =back
 
@@ -1083,23 +1084,34 @@ so C<Http-Header>, C<HTTP_HEADER> and C<http_header> are all the same.
 Without argument, returns a L<HTTP::Headers::Fast> object.
 
 With a name, returns all values for that header in list context,
-or ", " - joined value as one scalar in scalar context -
-this is actually a frontend to HTTP::Headers::Fast C<header()> method.
+or ", " - joined value as one scalar in scalar context.
+An empty string is returned if no such header is present.
 
-B<[NOTE]> No regex checks are made (yet) on headers, these may be added
-in the future.
+If regex fails to match I<any> of the header values, error 422 is thrown.
+
+This call still works without regex, but such behavior is deprecated.
 
 =cut
 
 sub header_in {
-    my ($self, $name) = @_;
+    my ($self, $name, $regex) = @_;
 
     $self->{header_in} ||= $self->do_get_header_in;
     return $self->{header_in} unless defined $name;
 
     $name = lc $name;
     $name =~ s/-/_/g;
-    return $self->{header_in}->header( $name );
+    my @list = $self->{header_in}->header( $name );
+
+    # TODO 0.30 deprecate w/o regex
+    if ($regex) {
+        $regex = qr/^$regex$/
+            unless ref $regex and reftype $regex eq 'REGEXP';
+        $_ =~ $regex or die 422 # TODO 0.30 configurable
+            for @list;
+    };
+
+    return wantarray ? @list : join ', ', @list;
 };
 
 =head2 referer
@@ -1115,7 +1127,7 @@ sub referer {
     if (@_) {
         $self->{referer} = shift
     } else {
-        return $self->{referer} ||= $self->header_in( "referer" );
+        return $self->{referer} ||= $self->header_in( 'referer', qr/.*/ );
     };
 };
 
@@ -1132,7 +1144,7 @@ sub user_agent {
     if (@_) {
         $self->{user_agent} = shift
     } else {
-        $self->{user_agent} = $self->header_in("user_agent")
+        $self->{user_agent} = $self->header_in( 'user_agent', qr/.*/ )
             unless exists $self->{user_agent};
         return $self->{user_agent};
     };
@@ -1153,14 +1165,8 @@ sub content_type {
     carp ("MVC::Neaf: using content_type is discouraged for method ".$self->method)
         if ($query_allowed{$self->method});
 
-    my $ctype = $self->header_in("content_type");
+    my $ctype = $self->header_in('content_type', $regex || qr/.*/);
     $ctype = '' unless defined $ctype;
-
-    if ($regex) {
-        $regex = qr/^$regex/ unless ref $regex eq 'Regexp';
-        $ctype =~ $regex
-            or die 422;
-    };
 
     return $ctype;
 };
