@@ -21,6 +21,7 @@ This module optionally exports anything it has.
 
 use Carp;
 use MIME::Base64 3.11;
+use Scalar::Util qw( openhandle );
 
 use parent qw(Exporter);
 our @EXPORT_OK = qw(
@@ -29,6 +30,7 @@ our @EXPORT_OK = qw(
     JSON encode_json decode_json encode_b64 decode_b64
     extra_missing make_getters maybe_list http_date rex
     supported_methods
+    data_fh
 );
 our @CARP_NOT;
 
@@ -339,6 +341,27 @@ if (!$luck) {
     require JSON::PP;
     JSON::PP->import;
     *JSON = sub () { "JSON::PP" };
+};
+
+=head2 data_fh($n)
+
+Get C<DATA> filehandle in the calling package $n levels up the stack,
+together with the file name (so that we don't read the same __DATA__ twice).
+
+=cut
+
+sub data_fh {
+    my $n = shift;
+
+    my @caller = caller($n);
+
+    my $fh = do {
+        no strict 'refs'; ## no critic
+        \*{ $caller[0].'::DATA' };
+    };
+    return unless openhandle $fh and !eof $fh;
+
+    return ($caller[1], $fh);
 };
 
 =head1 LICENSE AND COPYRIGHT
