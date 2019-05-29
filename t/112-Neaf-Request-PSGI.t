@@ -16,7 +16,7 @@ neaf->route("/psgi" => sub {
 my $reply = neaf->run->({ REQUEST_URI => '/psgi/foo/bar?roundtrip=42' });
 
 is (scalar @$reply, 3, "PSGI return from run()");
-like( $MVC::Neaf::Request::PSGI::VERSION, qr/^\d+\.\d+$/, "Autoload ok");
+like( $MVC::Neaf::Request::PSGI::VERSION, qr/^\d+\.\d+/, "Autoload ok");
 
 is ($capture_req->client_ip, "127.0.0.1", "localhost detected");
 
