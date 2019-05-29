@@ -217,7 +217,8 @@ Same as fetch(), but only return the last (last added & longest path) element.
 
 sub fetch_last {
     my $self = shift;
-    return [ $self->fetch_raw(@_) ]->[-1]{data};
+    my ($bucket) = reverse $self->fetch_raw(@_);
+    return $bucket->{data};
 };
 
 =head2 fetch_raw
