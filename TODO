@@ -4,6 +4,8 @@ PRIORITY | COMPLEXITY | COMMENT
 *     *     API Make custom error handlers path-based
 *     **    API load_resources() automagically
     -- todo --
+*     *     MOD Add tentative default favicon
+*     *     MOD Add tentative script directory
 *     *     API Add /foo/:bar with mandatory param_regex{bar} [HOLD v.0.3]
 *     **    TPL create a <script>var foo = "bar"</script> upon request
 **    **    TST blog, wiki & chat examples
@@ -13,7 +15,6 @@ PRIORITY | COMPLEXITY | COMMENT
 **    *     MOD static file_regex, dir_regex
 **    *     REF Add digest, hmac, and digest_fast to Util
 **    **    API Add encoding detect & strict/coding flags to upload_utf8
-**    **    API body_json( validator ) - die 422 is !json || val fails
 *     ***** COR Async support via $req->future
     -- backlog --
 **    **    TST Coverage >90%
