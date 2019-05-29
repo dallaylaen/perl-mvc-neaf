@@ -23,7 +23,7 @@ containing a hash of other routes designated by their path prefixes.
 use Carp;
 use Encode;
 use Module::Load;
-use Scalar::Util qw( blessed looks_like_number );
+use Scalar::Util qw( blessed looks_like_number reftype );
 use URI::Escape;
 
 use parent qw(MVC::Neaf::Route);
@@ -1148,11 +1148,15 @@ sub set_session_handler {
 
 =head2 set_error_handler()
 
-    $neaf->set_error_handler ( $status => CODEREF( $request, %options ) )
+    $neaf->set_error_handler ( $status => CODEREF( $request, %options ), %where )
 
 Set custom error handler.
 
-Status must be a 3-digit number (as in HTTP).
+Status MUST be a 3-digit number (as in HTTP).
+
+%where may include C<path>, C<method>, and C<exclude> keys.
+If omitted, just install error handler globally.
+
 Other allowed keys MAY appear in the future.
 
 The following options will be passed to coderef:
@@ -1171,21 +1175,22 @@ This is DEPRECATED and will silently disappear around version 0.25
 The coderef MUST return an unblessed hash just like a normal controller does.
 
 In case of exception or unexpected return format
-default JSON-based error will be returned.
+default HTML error page will be returned.
 
-Also available as C<set_error_handler( status =E<gt> \%hash )>.
+Also available in static form, as C<set_error_handler( status =E<gt> \%hash )>.
 
 This is a synonym to C<sub { +{ status =E<gt> $status,  ... } }>.
 
 =cut
 
-# TODO 0.30 helper
 sub set_error_handler {
-    my ($self, $status, $code) = @_;
+    my ($self, $status, $code, %where) = @_;
     $self = _one_and_true($self) unless ref $self;
 
     $status =~ /^(?:\d\d\d)$/
-        or $self->my_croak( "1st arg must be http status");
+        or $self->my_croak( "1st argument must be an http status");
+    extra_missing( \%where, { path => 1, exclude => 1, method => 1 } );
+
     if (ref $code eq 'HASH') {
         my $hash = $code;
         $code = sub {
@@ -1194,10 +1199,13 @@ sub set_error_handler {
             return { -status => $opt{status}, %opt, %$hash };
         };
     };
-    UNIVERSAL::isa($code, 'CODE')
-        or $self->my_croak( "2nd arg must be callback or hash");
+    reftype $code eq 'CODE'
+        or $self->my_croak( "2nd argument must be a callback or hash");
 
-    $self->{error_template}{$status} = $code;
+    my $store = $self->{error_template}{$status}
+        ||= MVC::Neaf::Util::Container->new();
+
+    $store->store( $code, %where );
 
     return $self;
 };
@@ -1787,7 +1795,7 @@ sub _error_to_reply {
     };
 
     # Try fancy error template
-    if (my $tpl = $self->{error_template}{$err->status}) {
+    if (my $tpl = $self->_get_error_handler( $err->status, $req )) {
         my $ret = eval {
             my $data = $tpl->( $req,
                 status => $err->status,
@@ -1808,6 +1816,15 @@ sub _error_to_reply {
     $req->log_error( $err->reason )
         if $err->is_sudden;
     $req->_set_reply( $err->make_reply( $req ) );
+};
+
+sub _get_error_handler {
+    my ($self, $status, $req) = @_;
+
+    my $store = $self->{error_template}{$status};
+    return unless $store;
+
+    return $store->fetch_last( method => $req->method, path => $req->path );
 };
 
 =head1 DEPRECATED METHODS
