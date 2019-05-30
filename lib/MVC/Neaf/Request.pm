@@ -50,7 +50,6 @@ use HTTP::Headers::Fast;
 use Time::HiRes ();
 use Sys::Hostname ();
 use Digest::MD5 qw(md5);
-use Scalar::Util qw(reftype);
 
 use MVC::Neaf::Util qw( JSON http_date run_all_nodie canonize_path encode_b64 );
 use MVC::Neaf::Upload;
@@ -1106,7 +1105,7 @@ sub header_in {
     # TODO 0.30 deprecate w/o regex
     if ($regex) {
         $regex = qr/^$regex$/
-            unless ref $regex and reftype $regex eq 'REGEXP';
+            unless ref $regex and ref $regex eq 'Regexp';
         $_ =~ $regex or die 422 # TODO 0.30 configurable
             for @list;
     };
