@@ -2,7 +2,7 @@ package MVC::Neaf::X::Form::Wildcard;
 
 use strict;
 use warnings;
-our $VERSION = '0.27';
+our $VERSION = '0.2701';
 
 =head1 NAME
 

@@ -1,5 +1,8 @@
 Revision history for MVC-Neaf
 
+0.2701  Thu May 30 2019
+        - BUG Fix regex type check on perls <= 5.010
+
 0.27    Thu May 30 2019
         - API call load_resources(\*DATA) upon run() automatically
         - API Add body_json(), body_raw(), body_text(), and content_type() calls to request
