@@ -35,6 +35,6 @@ done
 
 check_fail
 
-prove -Ilib -r t xt it || fail "tests fail"
+HARNESS_OPTIONS=j4 prove -Ilib -r t xt it || fail "tests fail"
 
 check_fail
