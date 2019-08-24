@@ -109,7 +109,7 @@ sub new {
         unless UNIVERSAL::isa($opt{code}, 'CODE');
     $class->my_croak("'public' endpoint must have a 'description'")
         if $opt{public} and not $opt{description};
-    $class->_croak( "'default' must be unblessed hash" )
+    $class->my_croak( "'default' must be unblessed hash" )
         if ref $opt{default} ne 'HASH';
     $class->my_croak("'method' must be a plain scalar")
         unless $opt{method} =~ /^[A-Z0-9_]+$/;
@@ -128,7 +128,7 @@ sub new {
     # preprocess regular expression for params
     if ( my $reg = $opt{param_regex} ) {
         my %real_reg;
-        $class->_croak("param_regex must be a hash of regular expressions")
+        $class->my_croak("'param_regex' must be a hash of regular expressions")
             if ref $reg ne 'HASH' or grep { !defined $reg->{$_} } keys %$reg;
         $real_reg{$_} = qr(^$reg->{$_}$)s
             for keys %$reg;
@@ -136,12 +136,11 @@ sub new {
     };
 
     if ( $opt{cache_ttl} ) {
-        $class->_croak("cache_ttl must be a number")
+        $class->my_croak("'cache_ttl' must be a number")
             unless looks_like_number($opt{cache_ttl});
         # as required by RFC
         $opt{cache_ttl} = -100000 if $opt{cache_ttl} < 0;
         $opt{cache_ttl} = $year if $opt{cache_ttl} > $year;
-        $opt{cache_ttl} = $opt{cache_ttl};
     };
 
     return bless \%opt, $class;
