@@ -177,18 +177,10 @@ Check that route is locked.
 
 =cut
 
+# TODO 0.40 a version with croak
 sub is_locked {
     my $self = shift;
     return !!$self->{lock};
-};
-
-# TODO 0.30 -> Util::Base?
-sub _can_modify {
-    my $self = shift;
-    return unless $self->{lock};
-    # oops
-
-    croak "Modification of locked ".(ref $self)." attempted";
 };
 
 =head2 add_form()
@@ -309,20 +301,7 @@ sub get_form {
     };
 };
 
-=head2 get_view
-
-=cut
-
-sub get_view {
-    my ($self, $name) = @_;
-
-    return $self->{views}{$name} ||= do {
-        my $parent = $self->parent;
-        $self->my_croak("Failed to locate view named $name")
-            unless $parent;
-        $parent->get_view($name);
-    };
-};
+# TODO 0.40 get_view should be per-route, not global
 
 =head2 post_setup
 
