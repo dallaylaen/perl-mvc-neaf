@@ -35,11 +35,23 @@ use parent qw(MVC::Neaf::Route);
 my $nobody_home = sub { die 404 };
 sub new {
     my $class = shift;
-    my $self = $class->SUPER::new(
-        where => '[in pre_route]', path => '/', code => $nobody_home, @_ );
 
-    $self->post_setup();
-    $self->{path} = "[pre_route]";
+    # Not using SUPER::new because MVC::Neaf::Route requires a parent
+    my $self = bless {
+        where   => '[in pre_route]',
+        path    => '/',
+        code    => $nobody_home,
+        default => {},
+        hooks   => {},
+        helpers => {},
+        @_
+    }, $class;
+
+    $self->post_setup()
+        if $self->{parent};
+
+    # Probably a bad idea. How to visually separate missing path in logs?
+    $self->{path} = '[pre_route]';
     $self;
 };
 
@@ -52,6 +64,8 @@ sub new {
 
 =item * path = C<'[pre_route]'>
 
+May change to C</> in the future.
+
 =item * code = C<die 404;>
 
 =item * where = C<'[pre_route]'>
@@ -61,7 +75,6 @@ sub new {
 Do not rely on these values.
 
 =cut
-
 
 =head1 LICENSE AND COPYRIGHT
 

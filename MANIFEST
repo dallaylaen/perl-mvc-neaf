@@ -34,7 +34,6 @@ lib/MVC/Neaf/Request/FakeWriter.pm
 lib/MVC/Neaf/Request/PSGI.pm
 lib/MVC/Neaf/Route.pm
 lib/MVC/Neaf/Route/Main.pm
-lib/MVC/Neaf/Route/Null.pm
 lib/MVC/Neaf/Route/PreRoute.pm
 lib/MVC/Neaf/Upload.pm
 lib/MVC/Neaf/Util.pm

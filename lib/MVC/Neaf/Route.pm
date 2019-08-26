@@ -303,7 +303,7 @@ sub get_form {
     # Aggressive caching for the win
     return $self->{forms}{$name} ||= do {
         my $parent = $self->parent;
-        $self->my_croak("Failed to locate form named $name")
+        croak("Failed to locate form '$name'")
             unless $parent;
         $parent->get_form($name);
     };

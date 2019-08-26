@@ -54,7 +54,7 @@ use Digest::MD5 qw(md5);
 use MVC::Neaf::Util qw( JSON http_date run_all_nodie canonize_path encode_b64 );
 use MVC::Neaf::Upload;
 use MVC::Neaf::Exception;
-use MVC::Neaf::Route::Null;
+use MVC::Neaf::Route::PreRoute;
 
 our %allow_helper;
 
@@ -219,7 +219,9 @@ instead.
 
 sub route {
     my $self = shift;
-    return $self->{route} ||= MVC::Neaf::Route::Null->new;
+    return $self->{route} ||= MVC::Neaf::Route::PreRoute->new(
+        method => 'GET',
+    );
 };
 
 =head2 set_path()
