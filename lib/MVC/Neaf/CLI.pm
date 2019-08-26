@@ -126,7 +126,6 @@ sub serve {
     my $runner = Plack::Runner->new;
     $runner->parse_options( @ARGV );
     $runner->run( $app->run );
-    exit;
 };
 
 =head2 run_test( $app, %override )
@@ -187,14 +186,11 @@ sub run_test {
     print STDOUT "Status $status\n";
     print STDOUT $head->as_string, "\n";
     print STDOUT $content;
-    # exit?
 };
 
 =head2 usage()
 
-Display help message and exit(0).
-
-B<NOTE> exit() used.
+Display help message.
 
 =cut
 
@@ -225,7 +221,6 @@ Options may include:
 See `perldoc MVC::Neaf::CLI` for more.
 USAGE
 
-    exit 0; # Yes, MVC::Neaf::CLI->usage() will exit deliberately.
 };
 
 =head2 list()

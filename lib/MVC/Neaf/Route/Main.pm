@@ -1361,6 +1361,7 @@ sub run {
                 unless defined $ENV{SCRIPT_NAME};
             Plack::Handler::CGI->new->run( $self->run );
         };
+        return;
     };
 
     # Do postsetup after CGI/CLI execution
