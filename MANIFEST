@@ -88,6 +88,7 @@ t/143-static-cache.t
 t/144-util-container.t
 t/145-set_path_defaults.t
 t/146-Request-header_in.t
+t/147-null-route.t
 t/201-Neaf.t
 t/202-Neaf-content-length.t
 t/203-Neaf-alias.t
@@ -146,6 +147,10 @@ t/404-exception-in-hook.t
 t/405-add_route-fail.t
 t/406-resource-load-fail.t
 t/407-session-garb.t
+t/408-bad-routes.t
+t/409-Neaf-new-badopt.t
+t/410-bad-hooks.t
+t/411-bad-helper.t
 t/801-cli.t
 t/802-X-Form.t
 t/803-X-Form-LIVR.t
@@ -167,6 +172,7 @@ t/911-Apache2-0.30.t
 t/912-check_path-0.30.t
 t/913-add_route-view-0.30.t
 t/914-preload-tpl.t
+t/915-Request-deprecated-0.30.t
 t/README
 t/todo.t
 TODO
