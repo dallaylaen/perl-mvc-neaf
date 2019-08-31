@@ -47,6 +47,42 @@ subtest '--help' => sub {
     note $summary;
 };
 
+subtest '--post' => sub {
+    my $post = MVC::Neaf->new;
+    $post->add_route( '/foo' => sub { +{ -content => 'method='.$_[0]->method } } );
+
+    my $out = capture( $post, qw( --post /foo ) );
+    like $out, qr/^Status 200/, 'cgi worked';
+    like $out, qr/method=POST/, 'post detected via cli';
+};
+
+subtest '--listen' => sub {
+    # this is a terrible whitebox test. Can't figure out any better.
+
+    # prevent any further modules from loading
+    unshift @INC, sub {
+        my ($self, $file) = @_;
+        Carp::confess "Test required $file when it shouldn't. File a bug in MVC::Neaf"
+    };
+
+    # Set up a fake Plack::Runner
+    no warnings 'once'; ## no critic
+    my @trace;
+    local *Plack::Runner::new = sub { return bless {}, shift };
+    local *Plack::Runner::parse_options = sub {
+        my $self = shift;
+        push @trace, [ parse_options => @_ ];
+    };
+    local *Plack::Runner::run = sub { };
+    local $INC{'Plack/Runner.pm'} = 1;
+
+    # Test it.
+    my $out = capture( $app, qw( --listen :31415 ) );
+    is $out, '', 'no output';
+    is_deeply $trace[0], [qw[ parse_options --listen :31415 ]], 'parse_options';
+    # TODO verify that neaf->run and Plack::Runner->run were called, too
+};
+
 done_testing;
 
 sub capture {
