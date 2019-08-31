@@ -287,14 +287,7 @@ sub add_route {
         $profile{param_regex} = \%real_reg;
     };
 
-    if ( $args{cache_ttl} ) {
-        $self->my_croak("cache_ttl must be a number")
-            unless looks_like_number($args{cache_ttl});
-        # as required by RFC
-        $args{cache_ttl} = -100000 if $args{cache_ttl} < 0;
-        $args{cache_ttl} = $year if $args{cache_ttl} > $year;
-        $profile{cache_ttl} = $args{cache_ttl};
-    };
+    $profile{cache_ttl} = $args{cache_ttl};
 
     # ready, shallow copy handler & burn cache
     delete $self->{route_re};
