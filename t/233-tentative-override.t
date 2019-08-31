@@ -32,7 +32,9 @@ warnings_like{
     };
     ok !$@, "No exception for override"
         or diag "override dies: $@";
-} [qr#Overriding.*/my.*at $line[2]#], "override still with a warning";
+    # NOTE `put` is executed before `patch`, therefore warnings in that order
+} [qr(Overriding.*/my.*at $line[2]), qr(Overriding.*/my.*at $line[3])],
+     "override still with a warning";
 
 warnings_like {
     eval {

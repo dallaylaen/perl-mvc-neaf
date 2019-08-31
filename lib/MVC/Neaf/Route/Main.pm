@@ -243,77 +243,55 @@ sub add_route {
     $self->my_croak("Public endpoint must have nonempty description")
         if $args{public} and not $args{description};
 
-    $self->_detect_duplicate( \%args );
+    my @real_method = $self->_detect_duplicate( \%args, $args{method} );
 
     # Do the work
-    my %profile;
-    $profile{parent}    = $self;
-    $profile{code}      = $sub;
-    $profile{tentative} = $args{tentative};
-    $profile{override}  = $args{override};
-    $profile{strict}    = $args{strict};
+    $args{parent}    = $self;
+    $args{code}      = $sub;
 
     # Always have regex defined to simplify routing
-    $profile{path_info_regex} = (defined $args{path_info_regex})
+    $args{path_info_regex} = (defined $args{path_info_regex})
         ? qr#^$args{path_info_regex}$#
         : qr#^$#;
 
     # Just for information
-    $profile{path}        = $path;
-    $profile{description} = $args{description};
-    $profile{public}      = $args{public} ? 1 : 0;
-    $profile{caller}      = $args{caller} || [caller(0)]; # save file,line
+    $args{public}      = $args{public} ? 1 : 0;
+    $args{caller}    ||= [caller(0)]; # save file,line
 
-    if (my $view = $args{view}) {
+    if (exists $args{view}) {
         # TODO 0.30
         carp "NEAF: route(): view argument is deprecated, use -view instead";
-        $args{default}{-view} = $view;
+        $args{default}{-view} = delete $args{view};
     };
 
     # preload view so that we can fail early
     $args{default}{-view} = $self->get_view( $args{default}{-view} )
         if $args{default}{-view};
 
-    # todo_default because some path-based defs will be mixed in later
-    $profile{default} = $args{default};
-
-    # preprocess regular expression for params
-    if ( my $reg = $args{param_regex} ) {
-        my %real_reg;
-        $self->my_croak("param_regex must be a hash of regular expressions")
-            if ref $reg ne 'HASH' or grep { !defined $reg->{$_} } keys %$reg;
-        $real_reg{$_} = qr(^$reg->{$_}$)s
-            for keys %$reg;
-        $profile{param_regex} = \%real_reg;
-    };
-
-    $profile{cache_ttl} = $args{cache_ttl};
-
     # ready, shallow copy handler & burn cache
     delete $self->{route_re};
 
-    $self->{route}{ $path }{$_} = MVC::Neaf::Route->new( %profile, method => $_ )
-        for @{ $args{method} };
+    $self->{route}{ $path }{$_} = MVC::Neaf::Route->new( %args, method => $_ )
+        for @real_method;
 
     # This is for get+post sugar
-    $self->{last_added} = \%profile;
+    $self->{last_added} = \%args;
 
     return $self;
 }; # end sub route
 
-# in: { method => [...], path => '/...', tentative => 0|1, override=> 0|1 }
-# out: none
-# spoils $method if tentative
+# in: { path => '/...', tentative => 0|1, override=> 0|1 }, \@method_list
+# out: @real_method_list
 # dies/warns if violations found
 sub _detect_duplicate {
-    my ($self, $profile) = @_;
+    my ($self, $profile, $methods) = @_;
 
     my $path = $profile->{path};
     # Handle duplicate route definitions
     my @dupe = grep {
         exists $self->{route}{$path}{$_}
         and !$self->{route}{$path}{$_}{tentative};
-    } @{ $profile->{method} };
+    } @$methods;
 
     if (@dupe) {
         my %olddef;
@@ -333,16 +311,18 @@ sub _detect_duplicate {
             carp( (ref $self)."->$caller: Overriding old handler for"
                 ." $oldpath defined $oldwhere");
         } elsif( $profile->{tentative} ) {
-            # just skip duplicate methods
+            # if we're tentative, filter out already known method/route pairs
             my %filter;
-            $filter{$_}++ for @{ $profile->{method} };
+            $filter{$_}++ for @{ $methods };
             delete $filter{$_} for @dupe;
-            $profile->{method} = [keys %filter];
+            return keys %filter;
         } else {
             croak( (ref $self)."->$caller: Attempting to set duplicate handler for"
                 ." $oldpath defined $oldwhere");
         };
     };
+
+    return @$methods;
 };
 
 # This is for get+post sugar
@@ -354,11 +334,11 @@ sub _dup_route {
     $profile ||= $self->{last_added};
     my $path = $profile->{path};
 
-    $self->_detect_duplicate($profile);
+    my @real_method = $self->_detect_duplicate($profile, [ $method ]);
 
     delete $self->{route_re};
-    $self->{route}{ $path }{$method} = MVC::Neaf::Route->new(
-        %$profile, method => $method );
+    $self->{route}{ $path }{$_} = MVC::Neaf::Route->new( %$profile, method => $_ )
+        for @real_method;
 };
 
 =head2 static()
