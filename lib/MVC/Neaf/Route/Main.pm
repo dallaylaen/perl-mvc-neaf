@@ -52,33 +52,23 @@ sub _one_and_true {
 
 =head2 new()
 
-    new( %options )
+    new( )
 
 This is also called by C<MVC::Neaf-E<gt>new>,
 in case one wants to instantiate a Neaf application object
 instead of using the default L<MVC::Neaf/neaf>.
 
-Options may include:
-
-=over
-
-=item force_view - use that view instead of anything specified by controller.
-See L</load_view> for details about how view is declared.
-Useful for debugging.
-
-=back
+A hash of %options may be added in the future, but isn't supported currently.
 
 =cut
 
 sub new {
     my ($class, %opt) = @_;
 
-    my $force = delete $opt{force_view};
+    croak('MVC::Neaf->new: no options currently supported: '.join ", ", sort keys %opt)
+        if %opt;
 
-    my $self = bless \%opt, $class;
-
-    $self->set_forced_view( $force )
-        if $force;
+    my $self = bless {}, $class;
 
     $self->set_path_defaults( { -status => 200, -view => 'JS' } );
 
