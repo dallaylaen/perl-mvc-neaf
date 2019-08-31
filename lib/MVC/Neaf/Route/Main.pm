@@ -621,6 +621,8 @@ sub add_hook {
     $self = _one_and_true($self);
 
     extra_missing( \%opt, \%add_hook_args );
+    $self->my_croak( "hook must be a coderef, not ".ref $code )
+        unless UNIVERSAL::isa( $code, 'CODE' );
     $self->my_croak( "illegal phase: $phase" )
         unless $hook_phases{$phase};
 
