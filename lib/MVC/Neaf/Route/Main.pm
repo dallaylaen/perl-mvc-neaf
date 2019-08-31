@@ -33,8 +33,10 @@ use MVC::Neaf::Util::Container;
 use MVC::Neaf::Request::PSGI;
 use MVC::Neaf::Route::PreRoute;
 
+# TODO 0.30 remove
 sub _one_and_true {
     my $self = shift;
+    return $self if ref $self;
 
     my $method = [caller 1]->[3];
     $method =~ s/.*:://;
@@ -217,7 +219,7 @@ sub add_route {
     $self->my_croak( "Odd number of elements in hash assignment" )
         if @_ % 2;
     my ($path, $sub, %args) = @_;
-    $self = _one_and_true($self) unless ref $self;
+    $self = _one_and_true($self);
 
     $self->my_croak( "handler must be a coderef, not ".ref $sub )
         unless UNIVERSAL::isa( $sub, "CODE" );
@@ -415,7 +417,7 @@ Not need to set up one for merely testing icons/js/css, though.>
 
 sub static {
     my ($self, $path, $dir, %options) = @_;
-    $self = _one_and_true($self) unless ref $self;
+    $self = _one_and_true($self);
 
     $options{caller} ||= [caller 0];
 
@@ -465,7 +467,7 @@ This needs to be fixed in the future.
 # TODO 0.30 add_alias or something
 sub alias {
     my ($self, $new, $old) = @_;
-    $self = _one_and_true($self) unless ref $self;
+    $self = _one_and_true($self);
 
     $new = canonize_path( $new );
     $old = canonize_path( $old );
@@ -516,7 +518,7 @@ Whatever the controller returns overrides all of these.
 # TODO 0.30 rename defaults => [something]
 sub set_path_defaults {
     my $self = shift;
-    $self = _one_and_true($self) unless ref $self;
+    $self = _one_and_true($self);
 
     # Old form - path => \%hash
     # TODO 0.30 kill
@@ -626,7 +628,7 @@ $hook_phases{$_}++ for qw(pre_route
 
 sub add_hook {
     my ($self, $phase, $code, %opt) = @_;
-    $self = _one_and_true($self) unless ref $self;
+    $self = _one_and_true($self);
 
     extra_missing( \%opt, \%add_hook_args );
     $self->my_croak( "illegal phase: $phase" )
@@ -790,7 +792,7 @@ my %view_alias = (
 );
 sub load_view {
     my ($self, $name, $obj, @param) = @_;
-    $self = _one_and_true($self) unless ref $self;
+    $self = _one_and_true($self);
 
     $self->my_croak("At least two arguments required")
         unless defined $name and defined $obj;
@@ -831,7 +833,7 @@ Returns self.
 
 sub set_forced_view {
     my ($self, $view) = @_;
-    $self = _one_and_true($self) unless ref $self;
+    $self = _one_and_true($self);
 
     delete $self->{force_view};
     return $self unless $view;
@@ -1081,7 +1083,7 @@ The engine MUST provide the following methods
 
 sub set_session_handler {
     my ($self, %opt) = @_; # TODO 0.30 use helpers when ready
-    $self = _one_and_true($self) unless ref $self;
+    $self = _one_and_true($self);
 
     my $sess = delete $opt{engine};
     my $cook = $opt{cookie} || 'neaf.session';
@@ -1158,7 +1160,7 @@ This is a synonym to C<sub { +{ status =E<gt> $status,  ... } }>.
 
 sub set_error_handler {
     my ($self, $status, $code, %where) = @_;
-    $self = _one_and_true($self) unless ref $self;
+    $self = _one_and_true($self);
 
     $status =~ /^(?:\d\d\d)$/
         or $self->my_croak( "1st argument must be an http status");
@@ -1200,7 +1202,7 @@ If it dies, only a warning is emitted.
 
 sub on_error {
     my ($self, $code) = @_;
-    $self = _one_and_true($self) unless ref $self;
+    $self = _one_and_true($self);
 
     if (defined $code) {
         ref $code eq 'CODE'
@@ -1313,7 +1315,7 @@ L<MVC::Neaf::Request::Apache2>.
 
 sub run {
     my $self = shift;
-    $self = _one_and_true($self) unless ref $self;
+    $self = _one_and_true($self);
 
     # "Magically" load __DATA__ section from calling file
     if ($self->{magic}) {
@@ -1396,7 +1398,7 @@ $run_test_allow{$_}++
     for qw( type method cookie body override secure uploads header );
 sub run_test {
     my ($self, $env, %opt) = @_;
-    $self = _one_and_true($self) unless ref $self;
+    $self = _one_and_true($self);
 
     my @extra = grep { !$run_test_allow{$_} } keys %opt;
     $self->my_croak( "Extra keys @extra" )
@@ -1493,7 +1495,7 @@ This SHOULD NOT be used by application itself.
 # TODO 0.30 Route->inspect, Route::Main->inspect
 sub get_routes {
     my ($self, $code) = @_;
-    $self = _one_and_true($self) unless ref $self;
+    $self = _one_and_true($self);
 
     $code ||= sub { $_[0] };
     scalar $self->run; # burn caches
@@ -1548,7 +1550,7 @@ are for running callbacks, handling corner cases, and substituting sane defaults
 
 sub handle_request {
     my ($self, $req) = @_;
-    $self = _one_and_true($self) unless ref $self;
+    $self = _one_and_true($self);
 
     my $data = eval {
         my $hash = $self->dispatch_logic( $req, '', $req->path );
@@ -1594,7 +1596,7 @@ If L</set_forced_view> was called, return its argument instead.
 
 sub get_view {
     my ($self, $view, $lazy) = @_;
-    $self = _one_and_true($self) unless ref $self;
+    $self = _one_and_true($self);
 
     # An object/code means controller knows better
     return $view
