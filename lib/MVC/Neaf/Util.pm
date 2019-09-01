@@ -25,13 +25,23 @@ use Scalar::Util qw( openhandle );
 
 use parent qw(Exporter);
 our @EXPORT_OK = qw(
-    canonize_path check_path path_prefixes
-    run_all run_all_nodie
-    JSON encode_json decode_json encode_b64 decode_b64
-    extra_missing make_getters maybe_list http_date rex
-    supported_methods
-    data_fh
     bare_html_escape
+    canonize_path
+    check_path
+    data_fh
+    decode_json
+    encode_b64 decode_b64
+    encode_json
+    extra_missing
+    http_date
+    JSON
+    make_getters
+    maybe_list
+    path_prefixes
+    rex
+    run_all
+    run_all_nodie
+    supported_methods
 );
 our @CARP_NOT;
 
