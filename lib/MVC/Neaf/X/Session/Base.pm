@@ -2,7 +2,7 @@ package MVC::Neaf::X::Session::Base;
 
 use strict;
 use warnings;
-our $VERSION = '0.2701';
+our $VERSION = '0.28';
 
 =head1 DESCRIPTION
 

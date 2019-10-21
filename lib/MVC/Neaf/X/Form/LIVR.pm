@@ -2,7 +2,7 @@ package MVC::Neaf::X::Form::LIVR;
 
 use strict;
 use warnings;
-our $VERSION = '0.2701';
+our $VERSION = '0.28';
 
 =head1 NAME
 

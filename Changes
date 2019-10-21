@@ -1,5 +1,8 @@
 Revision history for MVC-Neaf
 
+0.28    Mon Oct 21 2019
+        - TST Increase test coverage + some refactoring
+
 0.2701  Thu May 30 2019
         - BUG Fix regex type check on perls <= 5.010
 
