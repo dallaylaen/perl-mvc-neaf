@@ -228,7 +228,7 @@ is always the Neaf application itself (but who cares).
 =cut
 
 use Carp;
-use Scalar::Util qw( blessed );
+use Scalar::Util qw( blessed reftype );
 use parent qw(Exporter);
 
 our @EXPORT;
@@ -1020,10 +1020,11 @@ foreach (keys %ALIAS) {
         };
 
         # normal operation
-        my ($path, $handler, @args) = @_;
+        my $path = shift;
+        my $handler = reftype $_[0] eq 'CODE' ? shift : pop;
 
         return neaf()->add_route(
-            $path, $handler, @args, method => $method, caller => [caller(0)] );
+            $path, $handler, @_, method => $method, caller => [caller(0)] );
     };
 
     push @EXPORT_SUGAR, $_;
