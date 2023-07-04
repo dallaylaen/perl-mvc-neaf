@@ -33,7 +33,7 @@ $dir may be one of
 
 =item * an absolute path starting with '/' - this path is used
 
-=item * a relative path starting with '.' - a path relative to the
+=item * a relative path starting with '.' or '..' - a path relative to the
 calling file is calculated.
 
 =back
@@ -47,7 +47,9 @@ sub new {
     if (!defined $dir or !length $dir) {
         $dir = getcwd();
         carp "Relying on cwd() is deprecated. Consider using `neaf root => '.';`. Defaulting to $dir";
-    } elsif ($dir !~ /^\//) {
+    } elsif ($dir =~ /^\//) {
+        # do nothing
+    } elsif ($dir =~ /^\.\.?(?:\/|$)/) {
         my $relative;
         my $level = 0;
         while (1) {
@@ -58,13 +60,15 @@ sub new {
             $relative = $caller[1];
             last;
         }
-        if (!defined $relative) {
+        if (defined $relative) {
+            $relative = dirname($relative);
+        } else {
             $relative = getcwd();
             carp "Failed to find a suitable root for relative path. Consider using `neaf root => '/some/path';`. Defaulting to $relative";
-        } else {
-            $relative = dirname($relative);
         };
         $dir = abs_path( "$relative/$dir" );
+    } else {
+        croak "Base directory must start with '/', './', or '../'";
     };
 
     return bless \$dir, $class;
@@ -82,5 +86,15 @@ sub path {
     my ($self, $cont) = @_;
     return $cont =~ /^\// ? $cont : File::Spec->canonpath("$$self/$cont");
 };
+
+=head2 base()
+
+Return the base path.
+
+=cut
+
+sub base {
+    ${ $_[0] };
+}
 
 1;
