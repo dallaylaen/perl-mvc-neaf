@@ -238,7 +238,12 @@ our %EXPORT_TAGS = (
     sugar => \@EXPORT_SUGAR,
 );
 
-# NOTE This is for new() only, the rest is handled by parent
+# NOTE We want MVC::Neaf->new() to create an application object.
+#      We also want to profoundly document all the methods of said.
+#      We also want `perdoc MVC::Neaf` to introduce the framework
+#          and its DSL and features.
+#      And thus we outsource our numerous helper methods to a separate class
+#          and only leave exported stuff in this file.
 use parent qw(MVC::Neaf::Route::Main);
 
 our $Inst;
