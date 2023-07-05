@@ -813,7 +813,7 @@ sub load_view {
             eval { load $obj; 1 }
                 or $self->my_croak( "Failed to load view $name=>$obj: $@" );
         };
-        $obj = $obj->new( @param );
+        $obj = $obj->new( neaf_base_dir => $self->neaf_base_dir, @param );
     };
 
     $self->my_croak( "view must be a coderef or a MVC::Neaf::View object" )
