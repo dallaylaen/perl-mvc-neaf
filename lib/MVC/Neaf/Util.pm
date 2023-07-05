@@ -26,6 +26,7 @@ use Scalar::Util qw( openhandle );
 use parent qw(Exporter);
 our @EXPORT_OK = qw(
     bare_html_escape
+    caller_info
     canonize_path
     check_path
     data_fh
@@ -48,6 +49,30 @@ our @CARP_NOT;
 # use JSON::MaybeXS; # not now, see JSON() below
 
 # Alphabetic order, please
+
+=head2 caller_info()
+
+Returns first caller(n) that is not inside MVC::Neaf itself.
+
+This is implemented inside L<Carp::shortmess>
+but we can't rely on Carp's internals.
+
+=cut
+
+sub caller_info {
+    my $level = 0;
+    my @caller;
+    {
+        # code stolen from Carp.
+        # it's just a while(1) with fancy next/last conditionals.
+        @caller = caller($level++);
+        last unless defined $caller[0];
+        redo if $caller[0] =~ /^MVC::Neaf/;
+        redo if $caller[0]->isa('MVC::Neaf::Util::Base');
+    };
+
+    return wantarray ? @caller : \@caller;
+};
 
 =head2 canonize_path( path, want_slash )
 
