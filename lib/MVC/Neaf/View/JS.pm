@@ -56,7 +56,7 @@ my $jsonp_re = qr/^$js_id_re(?:\.$js_id_re)*$/;
 =cut
 
 my %new_keys;
-$new_keys{$_}++ for qw(want_pretty want_sorted preserve_dash);
+$new_keys{$_}++ for qw( neaf_base_dir preserve_dash want_pretty want_sorted );
 sub new {
     my ($class, %opt) = @_;
 
