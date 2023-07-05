@@ -23,6 +23,9 @@ unless documentation explicitly states otherwise.
 
 View in turn has a single method called C<render()>.
 
+B<NOTE> Please always use C<$self-E<gt>dir($path)> whenever dealing with
+templates or resources when subclassing this class.
+
 =head1 METHODS
 
 As of current, the one and only method (except constructor)
@@ -31,6 +34,7 @@ is needed, C<render>.
 =cut
 
 use Carp;
+use parent qw(MVC::Neaf::X);
 
 =head2 new( %options )
 
@@ -41,6 +45,8 @@ Options may include:
 =item * on_render - a callback to be called in the render sub was not defined.
 Useful if you are too lazy to subclass.
 
+=item * neaf_base_path - a directory to calculate relative template paths from.
+
 =back
 
 B<NOTE> The constructor of this particular class happily encloses itself
@@ -48,11 +54,6 @@ over any data one gives to it. No checks are performed.
 This may change in the future.
 
 =cut
-
-sub new {
-    my ($class, %opt) = @_;
-    return bless \%opt, $class;
-};
 
 =head2 render( \%hash )
 
