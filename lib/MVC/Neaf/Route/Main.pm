@@ -21,17 +21,31 @@ containing a hash of other routes designated by their path prefixes.
 =cut
 
 use Carp;
+use Cwd qw(cwd abs_path);
 use Encode;
+use File::Basename qw(dirname);
 use Module::Load;
 use Scalar::Util qw( blessed looks_like_number reftype );
 use URI::Escape;
 
 use parent qw(MVC::Neaf::Route);
-use MVC::Neaf::Util qw( run_all run_all_nodie http_date canonize_path check_path
-     maybe_list supported_methods extra_missing encode_b64 decode_b64 data_fh );
-use MVC::Neaf::Util::Container;
 use MVC::Neaf::Request::PSGI;
 use MVC::Neaf::Route::PreRoute;
+use MVC::Neaf::Util qw(
+    caller_info
+    canonize_path
+    check_path
+    data_fh
+    decode_b64
+    encode_b64
+    extra_missing
+    http_date
+    maybe_list
+    run_all
+    run_all_nodie
+    supported_methods
+);
+use MVC::Neaf::Util::Container;
 
 # TODO 0.30 remove
 sub _one_and_true {
@@ -423,7 +437,7 @@ sub static {
 
     require MVC::Neaf::X::Files;
     my $xfiles = MVC::Neaf::X::Files->new(
-        %options, root => $dir, base_url => $path );
+        %options, root => $self->dir($dir), base_url => $path );
     return $self->route( $xfiles->make_route, %fwd_opt );
 };
 
@@ -1796,6 +1810,25 @@ sub _get_error_handler {
     return unless $store;
 
     return $store->fetch_last( method => $req->method, path => $req->path );
+};
+
+=head2 neaf_base_dir()
+
+Returns the containing directory of the first non-Neaf calling file,
+or cwd() with a warning otherwise.
+
+=cut
+
+# Should we cache? If so, how to determine we're in a different file now?
+sub neaf_base_dir {
+    my $self = shift;
+
+    my $file = caller_info()->[1];
+    return dirname(abs_path($file)) if defined $file and -f $file;
+
+    my $cwd = cwd;
+    carp "Unable to determine relative path via caller, consider using absolute paths. Defaulting to cwd='$cwd'";
+    return $cwd;
 };
 
 =head1 DEPRECATED METHODS
