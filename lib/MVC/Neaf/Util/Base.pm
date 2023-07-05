@@ -19,8 +19,7 @@ See L<MVC::Neaf::X> for public interface.
 =cut
 
 use Carp;
-
-use MVC::Neaf::Util qw(canonize_path);
+use File::Spec;
 
 =head2 new( %options )
 
@@ -85,10 +84,11 @@ sub dir {
         if (!defined $root) {
             $root = $self->neaf_base_dir;
             unless (defined $root) {
-                die ((ref $self)."->path(...) was called, but neaf_base_dir was never set at $stack[1] line $stack[2].\n");
+                warn ((ref $self)."->path(...) was called, but neaf_base_dir was never set at $stack[1] line $stack[2].\n");
+                $root = '.';
             };
         };
-        return canonize_path("$root/$_");
+        return File::Spec->canonpath("$root/$_");
     };
 
     local $_ = shift;
