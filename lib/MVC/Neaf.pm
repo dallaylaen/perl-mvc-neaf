@@ -1026,7 +1026,7 @@ foreach (keys %ALIAS) {
 
         # normal operation
         my $path = shift;
-        my $handler = reftype $_[0] eq 'CODE' ? shift : pop;
+        my $handler = ref $_[0] && reftype $_[0] eq 'CODE' ? shift : pop;
 
         return neaf()->add_route(
             $path, $handler, @_, method => $method, caller => [caller(0)] );

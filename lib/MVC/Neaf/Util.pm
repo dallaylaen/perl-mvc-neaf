@@ -393,6 +393,7 @@ sub data_fh {
 
     my $fh = do {
         no strict 'refs'; ## no critic
+        no warnings 'once'; ## no critic
         \*{ $caller[0].'::DATA' };
     };
     return unless openhandle $fh and !eof $fh;
