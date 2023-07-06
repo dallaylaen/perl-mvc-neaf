@@ -1824,7 +1824,11 @@ sub neaf_base_dir {
     my $self = shift;
 
     my $file = caller_info()->[1];
-    return dirname(abs_path($file)) if defined $file and -f $file;
+    if (defined $file and -f $file) {
+        $file = abs_path($file);
+        # TODO actually don't use magic, add use param instead
+        return $file =~ /(.*)\.pm$/ ? $1 : dirname $file;
+    };
 
     my $cwd = cwd;
     carp "Unable to determine relative path via caller, consider using absolute paths. Defaulting to cwd='$cwd'";
