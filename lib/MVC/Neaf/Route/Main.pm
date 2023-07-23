@@ -1252,6 +1252,9 @@ sub post_setup {
     # confess "Attempt to call post_setup twice"
     #     if $self->{lock};
 
+    $self->_preload_own_static
+        or carp "Failed to preload resources from MVC/Neaf/static";
+
     $self->{route_re} ||= $self->_make_route_re;
 
     # Add implicit HEAD for all GETs via shallow copy
@@ -1287,6 +1290,26 @@ sub _make_route_re {
     # split path into (/foo/bar)/(baz)?param=value
     # return prefix as $1 and postfix as $2, if present
     return qr{^($re)(?:/+([^?]*))?(?:\?|$)};
+};
+
+sub _preload_own_static {
+    my $self = shift;
+
+    # Preload tentative static resources
+    my $shortname = __PACKAGE__;
+    $shortname =~ s{::}{/}g;
+    my ($libdir) = __FILE__ =~ m{^(.*)/$shortname\.pm};
+    return unless $libdir;
+
+    my $dir = "$libdir/MVC/Neaf/static";
+    return unless -d $dir;
+
+    $dir = abs_path($dir);
+
+    # TODO - extra route breaks tests
+    # $self->static( '/favicon.ico' => "$dir/neaf-logo-64x64.png", tentative => 1 );
+
+    return 1;
 };
 
 =head2 run()

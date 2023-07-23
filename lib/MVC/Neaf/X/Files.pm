@@ -29,6 +29,7 @@ So this module is here to fill the gap in L<MVC::Neaf>.
 
 =cut
 
+use Cwd qw(abs_path);
 use File::Basename;
 use Encode;
 
@@ -113,6 +114,9 @@ sub new {
 
     defined $options{root}
         or $class->my_croak( "option 'root' is required" );
+    ref $options{root}
+        and $class->my_croak( "option 'root' must be a string" );
+    $options{root} = abs_path($options{root}) || $options{root};
 
     my @extra = grep { !$static_options{$_} } keys %options;
     $class->my_croak( "Unknown options @extra" )
