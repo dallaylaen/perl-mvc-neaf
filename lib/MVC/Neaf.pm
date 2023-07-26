@@ -463,7 +463,7 @@ This is not enforced whatsoever.
 
 =back
 
-See L<MVC::Meaf::X::Files> for implementation.
+See L<MVC::Neaf::X::Files> for implementation.
 
 File type detection is based on extentions so far, and the list is quite short.
 This MAY change in the future.
