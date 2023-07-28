@@ -407,12 +407,23 @@ See L<MVC::Neaf::Route::Main/add_route> for implementation.
 
     neaf static => '/path' => $local_path, %options;
 
-    neaf static => '/other/path' => [ "content", "content-type" ];
+    neaf static => '/other/path' => [ $content, $content_type ];
 
     $neaf->static( $req_path => $file_path, %options )
 
 Serve static content located under C<$file_path>.
 Both directories and single files may be added.
+
+Note that non-absolute local paths will be calculated relative to
+the file where static() was called, not current working directory.
+For files ending in C<.pm> and having a matching package name,
+the file name without C<.pm> suffix will be used:
+
+    # in /www/lib/perl5/My/App.pm
+    package My::App;
+    use MVC::Neaf;
+    neaf static => '/css' => './resources/css';
+        # points to /www/lib/perl5/My/App/resources/css/
 
 If an arrayref of C<[ $content, $content_type ]> is given as second argument,
 serve that content from memory instead.
@@ -594,6 +605,11 @@ and create a new() instance.
 
 Short aliases C<JS>, C<TT>, and C<Dumper> may be used
 for corresponding C<MVC::Neaf::View::*> modules.
+
+The templates that allow for paths
+(i.e. currently just L<MVC::Neaf::View::TT>)
+will have non-absolute paths calculated relative to the file where
+static() was called, not to the current directory.
 
 =item * if coderef is given, use it as a C<render> method.
 The coderef must take 1 argument - the hash returned from application -
