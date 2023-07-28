@@ -1,3 +1,7 @@
+
+0.29    Fri Jul 28 2023    - Calculate template & static content paths relative to the calling file,
+      not current directory.
+    - Allow to put get/post/... handler after, not before other options.
 Revision history for MVC-Neaf
 
 0.28    Mon Oct 21 2019
