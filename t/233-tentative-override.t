@@ -8,7 +8,7 @@ use Test::Warn;
 use MVC::Neaf;
 
 # portable carp pointers
-my @line = map { __FILE__.' line '.(__LINE__ + $_) } 0..4;
+my @line = map { file_line( __LINE__ + $_ ) } 0..4;
 get      '/my'  => sub { +{-content => "OLD"} };
 post+put '/my'  => sub { +{-content => "OLD"} };
 patch    '/my'  => sub { +{-content => "OLD"} };
@@ -38,7 +38,7 @@ warnings_like{
 
 warnings_like {
     eval {
-        push @line, __FILE__." line ".(__LINE__+1);
+        push @line, file_line( __LINE__+1 );
         put '/our' => sub { +{-content => 'NEW' } };
     };
     ok !$@, "No exception for tentative"
@@ -75,3 +75,9 @@ warnings_like {
 } [], "...and still no warnings";
 
 done_testing;
+
+sub file_line {
+    my $line = shift;
+    my $str = __FILE__." line ".$line;
+    return qr/\Q$str\E/;
+};

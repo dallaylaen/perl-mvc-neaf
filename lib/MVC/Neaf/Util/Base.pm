@@ -80,7 +80,8 @@ sub dir {
     my $handler;
     $handler = sub {
         return [map { $handler->() } @$_] if ref $_ eq 'ARRAY';
-        return $_ if $_ =~ /^\//;
+        return File::Spec->canonpath($_)
+            if File::Spec->file_name_is_absolute($_);
         if (!defined $root) {
             $root = $self->neaf_base_dir;
             unless (defined $root) {
