@@ -1,5 +1,7 @@
 # Revision history for MVC::Neaf
 
+0.2901  Wed Aug 02 2023    - [bug] Fix path-dependent tests on windows
+
 0.29    Fri Jul 28 2023
     - Calculate template & static content paths relative to the calling file,
     -   not current directory.
