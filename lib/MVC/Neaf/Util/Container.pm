@@ -34,7 +34,7 @@ and extract them in the needed order.
 
 use Carp;
 
-use parent qw(MVC::Neaf::Util::Base);
+use parent qw(MVC::Neaf::X);
 use MVC::Neaf::Util qw( maybe_list canonize_path path_prefixes supported_methods check_path );
 our @CARP_NOT = qw(MVC::Neaf::Route);
 

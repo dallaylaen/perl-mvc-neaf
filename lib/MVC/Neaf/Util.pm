@@ -68,7 +68,7 @@ sub caller_info {
         @caller = caller($level++);
         last unless defined $caller[0];
         redo if $caller[0] =~ /^MVC::Neaf/;
-        redo if $caller[0]->isa('MVC::Neaf::Util::Base');
+        redo if $caller[0]->isa('MVC::Neaf::X');
     };
 
     return wantarray ? @caller : \@caller;

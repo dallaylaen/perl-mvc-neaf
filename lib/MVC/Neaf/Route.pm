@@ -26,7 +26,7 @@ use Module::Load;
 use Scalar::Util qw( looks_like_number blessed );
 use URI::Escape qw( uri_unescape );
 
-use parent qw(MVC::Neaf::Util::Base);
+use parent qw(MVC::Neaf::X);
 use MVC::Neaf::Util qw( canonize_path path_prefixes run_all run_all_nodie http_date make_getters );
 
 our @CARP_NOT = qw(MVC::Neaf MVC::Neaf::Request);
@@ -152,7 +152,6 @@ Create a copy of existing route, possibly overriding some of the fields.
 
 =cut
 
-# TODO 0.30 -> Util::Base?
 sub clone {
     my ($self, %override) = @_;
 
