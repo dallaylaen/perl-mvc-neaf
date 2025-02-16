@@ -345,6 +345,7 @@ sub _dup_route {
     delete $self->{route_re};
     $self->{route}{ $path }{$_} = MVC::Neaf::Route->new( %$profile, method => $_ )
         for @real_method;
+    return $self;
 };
 
 =head2 static()

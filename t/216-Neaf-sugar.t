@@ -3,14 +3,17 @@
 use strict;
 use warnings;
 use Test::More;
+use Test::Exception;
 
 use MVC::Neaf;
 
-get  foo => sub {+{}}, -view => 'JS';
-post bar => sub {+{}}, -view => 'JS';
-get + post '/plus' => sub { +{-content => 'sugar='.$_[0]->method} };
+lives_ok {
+    get  foo => sub {+{}}, -view => 'JS';
+    post bar => sub {+{}}, -view => 'JS';
+    get + post + patch '/plus' => sub { +{-content => 'sugar='.$_[0]->method} };
 
-neaf error => 404 => { -content => 'Second Foundation' };
+    neaf error => 404 => { -content => 'Second Foundation' };
+} 'defining routes doesn\'t die';
 
 my @re = neaf->run_test( '/foo?x=42' );
 is ($re[0], 200, "request ok");
